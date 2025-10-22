@@ -108,3 +108,14 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Archivos temporales de sesión
+*_SESION.md
+CONEXION*.md
+MIGRACION*.md
+PLAN_*.md
+RESUMEN_*.md
+SOLUCION_*.md
+ESTADO_*.md
+HABILITAR_*.md
+INSTALACION_*.md

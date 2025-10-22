@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService } from '../../../services/googleSheetsService';
+import { sqlServerService } from '@/services/sqlServerService';
 import { TensorFlowService } from '../../../services/tensorflowService';
 import { createCanvas, loadImage } from 'canvas';
 import { parseFilename } from '../../../utils/filenameParser';
@@ -103,18 +104,48 @@ export async function POST(request: NextRequest) {
       exifDateTime: exifDateTime
     };
 
-    // Save to Google Sheets
-    try {
-      await googleSheetsService.saveProcessingResult(processingResult);
-      console.log('✅ Processing result saved to Google Sheets');
-    } catch (sheetsError) {
-      console.error('⚠️ Error saving to Google Sheets:', sheetsError);
-      // Continue even if Google Sheets fails
+    // Save to data store (SQL Server and/or Google Sheets)
+    const dataSource = process.env.DATA_SOURCE || 'sql'; // 'sql', 'sheets', 'hybrid'
+    let sqlAnalisisId: number | null = null;
+    let savedToSheets = false;
+
+    // Guardar en SQL Server
+    if (dataSource === 'sql' || dataSource === 'hybrid') {
+      try {
+        sqlAnalisisId = await sqlServerService.saveProcessingResult(processingResult);
+        console.log(`✅ Processing result saved to SQL Server (ID: ${sqlAnalisisId})`);
+      } catch (sqlError) {
+        console.error('⚠️ Error saving to SQL Server:', sqlError);
+        // En modo SQL puro, lanzar error; en híbrido, continuar
+        if (dataSource === 'sql') {
+          throw sqlError;
+        }
+      }
+    }
+
+    // Guardar en Google Sheets (si es modo sheets o híbrido)
+    if (dataSource === 'sheets' || dataSource === 'hybrid') {
+      try {
+        await googleSheetsService.saveProcessingResult(processingResult);
+        savedToSheets = true;
+        console.log('✅ Processing result saved to Google Sheets');
+      } catch (sheetsError) {
+        console.error('⚠️ Error saving to Google Sheets:', sheetsError);
+        // En modo sheets puro, lanzar error; en híbrido, continuar
+        if (dataSource === 'sheets') {
+          throw sheetsError;
+        }
+      }
     }
 
     console.log('✅ Image processing completed:', processingResult.fileName);
 
-    return NextResponse.json(processingResult);
+    return NextResponse.json({
+      ...processingResult,
+      sqlAnalisisId,
+      savedToSheets,
+      dataSource
+    });
   } catch (error) {
     console.error('❌ Error processing image:', error);
     return NextResponse.json(

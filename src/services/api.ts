@@ -40,9 +40,14 @@ export const apiService = {
     return response.data;
   },
 
-  // Get field data for dropdowns
+  // Get field data for dropdowns (migrated to SQL Server with fallback to Google Sheets)
   getFieldData: async (): Promise<FieldData> => {
-    const response = await api.get('/api/google-sheets/field-data');
+    const response = await api.get('/api/field-data');
+    // New endpoint returns { success, source, data, ... }
+    if (response.data.data) {
+      return response.data.data;
+    }
+    // Fallback to old format for compatibility
     return response.data;
   },
 

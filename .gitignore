@@ -99,3 +99,12 @@ coverage/
 
 # TernJS port file
 .tern-port
+
+# Scripts SQL generados automáticamente
+scripts/generated/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

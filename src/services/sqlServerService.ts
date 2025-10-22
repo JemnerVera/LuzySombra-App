@@ -76,13 +76,13 @@ class SqlServerService {
       console.log('📊 Fetching field data from SQL Server...');
       const startTime = Date.now();
 
-      // Usar la vista que ya creamos en el schema
+      // Usar las abreviaturas para sector y lote (sectorbrev, lotebrev)
       const rows = await query<JerarquiaRow>(`
         SELECT 
           e.empresa,
           f.fundo,
-          s.sector,
-          l.lote
+          s.sectorbrev as sector,
+          l.lotebrev as lote
         FROM image.lote l
         INNER JOIN image.sector s ON l.sectorid = s.sectorid
         INNER JOIN image.fundo f ON s.fundoid = f.fundoid
@@ -91,7 +91,7 @@ class SqlServerService {
           AND s.statusid = 1 
           AND f.statusid = 1 
           AND e.statusid = 1
-        ORDER BY e.empresa, f.fundo, s.sector, l.lote
+        ORDER BY e.empresa, f.fundo, s.sectorbrev, l.lotebrev
       `);
 
       const fetchTime = Date.now() - startTime;
@@ -147,7 +147,7 @@ class SqlServerService {
 
       const limit = filters?.limit || 500;
 
-      // Build dynamic query with filters
+      // Build dynamic query with filters (usando abreviaturas para sector y lote)
       let whereClause = 'WHERE 1=1';
       const params: Record<string, string> = {};
 
@@ -160,39 +160,39 @@ class SqlServerService {
         params.fundo = filters.fundo;
       }
       if (filters?.sector) {
-        whereClause += ' AND s.sector = @sector';
+        whereClause += ' AND s.sectorbrev = @sector';
         params.sector = filters.sector;
       }
       if (filters?.lote) {
-        whereClause += ' AND l.lote = @lote';
+        whereClause += ' AND l.lotebrev = @lote';
         params.lote = filters.lote;
       }
 
       const queryStr = `
         SELECT TOP ${limit}
           a.analisisid,
-          a.fecha_procesamiento,
-          a.nombre_archivo_original,
+          a.datecreated as fecha_procesamiento,
+          a.filename as nombre_archivo_original,
           e.empresa,
           f.fundo,
-          s.sector,
-          l.lote,
+          s.sectorbrev as sector,
+          l.lotebrev as lote,
           a.hilera,
-          a.numero_planta,
+          a.planta as numero_planta,
           a.latitud,
           a.longitud,
           a.porcentaje_luz,
           a.porcentaje_sombra,
-          a.dispositivo,
-          a.software,
-          a.direccion
+          '' as dispositivo,
+          '' as software,
+          '' as direccion
         FROM image.analisis_imagen a
         INNER JOIN image.lote l ON a.loteid = l.loteid
         INNER JOIN image.sector s ON l.sectorid = s.sectorid
         INNER JOIN image.fundo f ON s.fundoid = f.fundoid
         INNER JOIN image.empresa e ON f.empresaid = e.empresaid
         ${whereClause}
-        ORDER BY a.fecha_procesamiento DESC
+        ORDER BY a.datecreated DESC
       `;
 
       const rows = await query<AnalisisRow>(queryStr, params);
@@ -265,9 +265,17 @@ class SqlServerService {
   }): Promise<number> {
     try {
       console.log('💾 Saving processing result to SQL Server...');
+      console.log('📋 Data received:', {
+        empresa: result.empresa,
+        fundo: result.fundo,
+        sector: result.sector,
+        lote: result.lote,
+        fileName: result.fileName
+      });
       const startTime = Date.now();
 
       // 1. Obtener IDs de la jerarquía
+      console.log('🔍 Buscando empresa:', result.empresa);
       const empresaResult = await query<{ empresaid: number }>(`
         SELECT empresaid FROM image.empresa WHERE empresa = @empresa
       `, { empresa: result.empresa });
@@ -276,7 +284,9 @@ class SqlServerService {
         throw new Error(`Empresa no encontrada: ${result.empresa}`);
       }
       const empresaid = empresaResult[0].empresaid;
+      console.log('✅ Empresa encontrada, ID:', empresaid);
 
+      console.log('🔍 Buscando fundo:', result.fundo);
       const fundoResult = await query<{ fundoid: number }>(`
         SELECT fundoid FROM image.fundo WHERE fundo = @fundo AND empresaid = @empresaid
       `, { fundo: result.fundo, empresaid });
@@ -285,61 +295,67 @@ class SqlServerService {
         throw new Error(`Fundo no encontrado: ${result.fundo} en empresa ${result.empresa}`);
       }
       const fundoid = fundoResult[0].fundoid;
+      console.log('✅ Fundo encontrado, ID:', fundoid);
 
+      console.log('🔍 Buscando sector (abrev):', result.sector);
       const sectorResult = await query<{ sectorid: number }>(`
-        SELECT sectorid FROM image.sector WHERE sector = @sector AND fundoid = @fundoid
+        SELECT sectorid FROM image.sector WHERE sectorbrev = @sector AND fundoid = @fundoid
       `, { sector: result.sector, fundoid });
 
       if (sectorResult.length === 0) {
         throw new Error(`Sector no encontrado: ${result.sector} en fundo ${result.fundo}`);
       }
       const sectorid = sectorResult[0].sectorid;
+      console.log('✅ Sector encontrado, ID:', sectorid);
 
+      console.log('🔍 Buscando lote (abrev):', result.lote);
       const loteResult = await query<{ loteid: number }>(`
-        SELECT loteid FROM image.lote WHERE lote = @lote AND sectorid = @sectorid
+        SELECT loteid FROM image.lote WHERE lotebrev = @lote AND sectorid = @sectorid
       `, { lote: result.lote, sectorid });
 
       if (loteResult.length === 0) {
         throw new Error(`Lote no encontrado: ${result.lote} en sector ${result.sector}`);
       }
       const loteid = loteResult[0].loteid;
+      console.log('✅ Lote encontrado, ID:', loteid);
 
       // 2. Obtener usuario (por ahora usamos el primero disponible)
-      const usuarioResult = await query<{ usuarioid: number }>(`
-        SELECT TOP 1 usuarioid FROM image.usuario WHERE activo = 1 ORDER BY usuarioid
+      const usuarioResult = await query<{ userid: number }>(`
+        SELECT TOP 1 userid FROM image.usuario WHERE activo = 1 ORDER BY userid
       `);
 
-      const usuarioid = usuarioResult.length > 0 ? usuarioResult[0].usuarioid : 1;
+      const usercreatedid = usuarioResult.length > 0 ? usuarioResult[0].userid : 1;
+      console.log('✅ Usuario ID:', usercreatedid);
 
-      // 3. Insertar análisis
+      // 3. Insertar análisis (usando el schema real)
+      console.log('💾 Preparando INSERT...');
       const pool = await connectDb();
       const request = pool.request();
 
       request.input('loteid', sql.Int, loteid);
-      request.input('usuarioid', sql.Int, usuarioid);
-      request.input('nombre_archivo_original', sql.NVarChar(500), result.fileName);
-      request.input('ruta_imagen_procesada', sql.NVarChar(1000), result.processed_image);
+      request.input('hilera', sql.NVarChar(50), result.hilera || '');
+      request.input('planta', sql.NVarChar(50), result.numero_planta || '');
+      request.input('filename', sql.NVarChar(500), result.fileName);
+      request.input('filepath', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
       request.input('porcentaje_luz', sql.Decimal(5, 2), parseFloat(result.porcentaje_luz.toFixed(2)));
       request.input('porcentaje_sombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
-      request.input('hilera', sql.NVarChar(50), result.hilera || null);
-      request.input('numero_planta', sql.NVarChar(50), result.numero_planta || null);
       request.input('latitud', sql.Decimal(10, 8), result.latitud);
       request.input('longitud', sql.Decimal(11, 8), result.longitud);
-      request.input('dispositivo', sql.NVarChar(200), 'Web App');
-      request.input('software', sql.NVarChar(200), 'Next.js + TensorFlow.js');
-      request.input('direccion', sql.NVarChar(500), result.timestamp);
+      request.input('processed_image_url', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
+      request.input('usercreatedid', sql.Int, usercreatedid);
 
+      console.log('💾 Ejecutando INSERT en image.analisis_imagen...');
       const insertResult = await request.query(`
         INSERT INTO image.analisis_imagen (
-          loteid, usuarioid, nombre_archivo_original, ruta_imagen_procesada,
-          porcentaje_luz, porcentaje_sombra, hilera, numero_planta,
-          latitud, longitud, dispositivo, software, direccion
+          loteid, hilera, planta, filename, filepath,
+          porcentaje_luz, porcentaje_sombra, latitud, longitud,
+          processed_image_url, usercreatedid, statusid
         )
         OUTPUT INSERTED.analisisid
         VALUES (
-          @loteid, @usuarioid, @nombre_archivo_original, @ruta_imagen_procesada,
-          @porcentaje_luz, @porcentaje_sombra, @hilera, @numero_planta,
-          @latitud, @longitud, @dispositivo, @software, @direccion
+          @loteid, @hilera, @planta, @filename, @filepath,
+          @porcentaje_luz, @porcentaje_sombra, @latitud, @longitud,
+          @processed_image_url, @usercreatedid, 1
         )
       `);
 
@@ -352,8 +368,14 @@ class SqlServerService {
       this.historialCache = null;
 
       return analisisid;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error saving processing result to SQL Server:', error);
+      
+      // Detectar error de duplicado (UNIQUE constraint violation)
+      if (error.number === 2627 || error.number === 2601) {
+        throw new Error(`Esta imagen ya fue procesada anteriormente para el lote "${result.lote}". Archivo: ${result.fileName}`);
+      }
+      
       throw error;
     }
   }

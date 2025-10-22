@@ -106,3 +106,6 @@ export async function closeConnection(): Promise<void> {
 // Exportar el objeto sql para tipos y utilidades
 export { sql };
 
+// Alias para compatibilidad
+export const connectDb = getConnection;
+

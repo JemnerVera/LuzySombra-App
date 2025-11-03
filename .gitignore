@@ -28,6 +28,11 @@ credentials.json
 google-credentials.json
 google-token.json
 
+# SQL Server credentials (AGROMIGIVA)
+credenciales_sql_server_agromigiva.txt
+*credenciales*.txt
+*credentials*.txt
+
 # IDE
 .vscode/
 .idea/

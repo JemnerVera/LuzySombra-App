@@ -5,7 +5,7 @@ Aplicación web para análisis de imágenes agrícolas que clasifica píxeles en
 ## 🚀 Características
 
 - **Machine Learning**: Clasificación de píxeles con TensorFlow.js
-- **Integración Google Sheets**: Almacenamiento automático de resultados
+- **SQL Server Integration**: Base de datos empresarial AgroMigiva para almacenamiento
 - **Procesamiento de Imágenes**: Extracción de GPS y metadatos EXIF
 - **Interfaz Moderna**: Dark mode, responsive design con Tailwind CSS
 - **Deploy Ready**: Optimizado para Vercel
@@ -15,7 +15,7 @@ Aplicación web para análisis de imágenes agrícolas que clasifica píxeles en
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS
 - **ML**: TensorFlow.js
-- **APIs**: Google Sheets API
+- **Database**: SQL Server (AgroMigiva Enterprise DB)
 - **Deploy**: Vercel
 
 ## 📦 Instalación
@@ -29,8 +29,8 @@ cd luz-sombra-next.js
 npm install
 
 # Configurar variables de entorno
-cp .env.example .env.local
-# Editar .env.local con tus credenciales de Google Sheets
+cp env.example .env.local
+# Editar .env.local con tus credenciales de SQL Server AgroMigiva
 
 # Ejecutar en desarrollo
 npm run dev
@@ -53,15 +53,28 @@ npm run clean        # Limpiar archivos de build
 Crea un archivo `.env.local` con:
 
 ```bash
-# Google Sheets Configuration
+# SQL Server AgroMigiva Configuration
+SQL_SERVER=10.1.10.4
+SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+SQL_PORT=1433
+SQL_USER=ucown_powerbi_desa
+SQL_PASSWORD=your_password_here
+SQL_ENCRYPT=true
+
+# Data Source (sql | google_sheets)
+DATA_SOURCE=sql
+
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:3000
+
+# Google Sheets (opcional, solo para fallback)
 GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
 GOOGLE_SHEETS_SHEET_NAME=Data-app
 GOOGLE_SHEETS_CREDENTIALS_BASE64=your_credentials_base64
 GOOGLE_SHEETS_TOKEN_BASE64=your_token_base64
-
-# API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
+
+**⚠️ IMPORTANTE**: El archivo `.env.local` contiene credenciales sensibles y NO debe commitrearse.
 
 ## 📱 Funcionalidades
 
@@ -88,9 +101,10 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
-│   │   ├── google-sheets/ # Google Sheets integration
+│   │   ├── field-data/    # Field data API (SQL Server)
 │   │   ├── historial/     # History API
-│   │   └── procesar-imagen/ # Image processing
+│   │   ├── procesar-imagen/ # Image processing
+│   │   └── test-db/       # Database test endpoint
 │   ├── globals.css        # Global styles
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Main page
@@ -105,8 +119,11 @@ src/
 │   └── useTensorFlow.ts
 ├── services/              # Business logic
 │   ├── tensorflowService.ts
-│   ├── googleSheetsService.ts
+│   ├── sqlServerService.ts # SQL Server integration
+│   ├── googleSheetsService.ts # Google Sheets (fallback)
 │   └── api.ts
+├── lib/                   # Libraries
+│   └── db.ts              # Database connection
 ├── types/                 # TypeScript types
 ├── utils/                 # Utilities
 └── config/                # Configuration
@@ -128,7 +145,7 @@ git push origin main
 
 ## 📈 Rendimiento
 
-- **Cache**: 5 minutos para datos de Google Sheets
+- **Cache**: 5 minutos para datos de campo (SQL Server)
 - **Optimización**: Imágenes optimizadas automáticamente
 - **Bundle**: Tree-shaking y code splitting
 - **SEO**: Meta tags y Open Graph

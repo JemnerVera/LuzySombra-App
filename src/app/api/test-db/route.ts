@@ -3,32 +3,30 @@ import { query } from '../../../lib/db';
 
 export async function GET() {
   try {
-    // Test: Contar registros en todas las tablas principales
+    // Test: Contar registros en tablas GROWER y MAST de AgroMigiva
     const counts = await query(`
       SELECT 
-        (SELECT COUNT(*) FROM image.pais WHERE statusid = 1) as paises,
-        (SELECT COUNT(*) FROM image.empresa WHERE statusid = 1) as empresas,
-        (SELECT COUNT(*) FROM image.fundo WHERE statusid = 1) as fundos,
-        (SELECT COUNT(*) FROM image.sector WHERE statusid = 1) as sectores,
-        (SELECT COUNT(*) FROM image.lote WHERE statusid = 1) as lotes,
-        (SELECT COUNT(*) FROM image.usuario WHERE activo = 1) as usuarios,
-        (SELECT COUNT(*) FROM image.estado_fenologico WHERE statusid = 1) as estados_fenologicos,
-        (SELECT COUNT(*) FROM image.tipo_alerta WHERE statusid = 1) as tipos_alerta
+        (SELECT COUNT(*) FROM GROWER.GROWERS WHERE statusID = 1) as empresas,
+        (SELECT COUNT(*) FROM GROWER.FARMS WHERE statusID = 1) as fundos,
+        (SELECT COUNT(*) FROM GROWER.STAGE WHERE statusID = 1) as sectores,
+        (SELECT COUNT(*) FROM GROWER.LOT WHERE statusID = 1) as lotes,
+        (SELECT COUNT(*) FROM MAST.USERS WHERE statusID = 1) as usuarios,
+        (SELECT COUNT(*) FROM IMAGE.ANALISIS_IMAGEN WHERE statusID = 1) as analisis_imagenes
     `);
 
     // Test: Obtener algunas empresas como ejemplo
     const empresas = await query(`
-      SELECT TOP 5 empresaid, empresabrev, empresa 
-      FROM image.empresa 
-      WHERE statusid = 1
-      ORDER BY empresa
+      SELECT TOP 5 growerID, abbreviation, businessName as empresa
+      FROM GROWER.GROWERS 
+      WHERE statusID = 1
+      ORDER BY businessName
     `);
 
     return NextResponse.json({
       success: true,
       message: 'Conexión exitosa a SQL Server',
       timestamp: new Date().toISOString(),
-      database: 'AgricolaDB',
+      database: process.env.SQL_DATABASE || 'unknown',
       counts: counts[0],
       sample_empresas: empresas,
     });

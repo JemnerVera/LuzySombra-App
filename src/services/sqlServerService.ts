@@ -36,6 +36,10 @@ interface JerarquiaRow {
   fundo: string;
   sector: string;
   lote: string;
+  growerID?: string;  // Para compatibilidad con GROWER.GROWERS
+  farmID?: string;    // Para compatibilidad con GROWER.FARMS
+  stageID?: number;   // Para compatibilidad con GROWER.STAGE
+  lotID?: number;     // Para compatibilidad con GROWER.LOT
 }
 
 interface AnalisisRow {
@@ -76,22 +80,26 @@ class SqlServerService {
       console.log('📊 Fetching field data from SQL Server...');
       const startTime = Date.now();
 
-      // Usar las abreviaturas para sector y lote (sectorbrev, lotebrev)
+      // Usar tablas GROWER de AgroMigiva (BD_PACKING_AGROMIGIVA_DESA)
       const rows = await query<JerarquiaRow>(`
         SELECT 
-          e.empresa,
-          f.fundo,
-          s.sectorbrev as sector,
-          l.lotebrev as lote
-        FROM image.lote l
-        INNER JOIN image.sector s ON l.sectorid = s.sectorid
-        INNER JOIN image.fundo f ON s.fundoid = f.fundoid
-        INNER JOIN image.empresa e ON f.empresaid = e.empresaid
-        WHERE l.statusid = 1 
-          AND s.statusid = 1 
-          AND f.statusid = 1 
-          AND e.statusid = 1
-        ORDER BY e.empresa, f.fundo, s.sectorbrev, l.lotebrev
+          g.businessName as empresa,
+          f.Description as fundo,
+          s.stage as sector,
+          l.name as lote,
+          g.growerID,
+          f.farmID,
+          s.stageID,
+          l.lotID
+        FROM GROWER.LOT l
+        INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+        INNER JOIN GROWER.GROWERS g ON f.growerID = g.growerID
+        WHERE l.statusID = 1 
+          AND s.statusID = 1 
+          AND f.statusID = 1 
+          AND g.statusID = 1
+        ORDER BY g.businessName, f.Description, s.stage, l.name
       `);
 
       const fetchTime = Date.now() - startTime;
@@ -152,31 +160,31 @@ class SqlServerService {
       const params: Record<string, string> = {};
 
       if (filters?.empresa) {
-        whereClause += ' AND e.empresa = @empresa';
+        whereClause += ' AND g.businessName = @empresa';
         params.empresa = filters.empresa;
       }
       if (filters?.fundo) {
-        whereClause += ' AND f.fundo = @fundo';
+        whereClause += ' AND f.Description = @fundo';
         params.fundo = filters.fundo;
       }
       if (filters?.sector) {
-        whereClause += ' AND s.sectorbrev = @sector';
+        whereClause += ' AND s.stage = @sector';
         params.sector = filters.sector;
       }
       if (filters?.lote) {
-        whereClause += ' AND l.lotebrev = @lote';
+        whereClause += ' AND l.name = @lote';
         params.lote = filters.lote;
       }
 
       const queryStr = `
         SELECT TOP ${limit}
-          a.analisisid,
-          a.datecreated as fecha_procesamiento,
+          a.analisisID,
+          a.dateCreated as fecha_procesamiento,
           a.filename as nombre_archivo_original,
-          e.empresa,
-          f.fundo,
-          s.sectorbrev as sector,
-          l.lotebrev as lote,
+          g.businessName as empresa,
+          f.Description as fundo,
+          s.stage as sector,
+          l.name as lote,
           a.hilera,
           a.planta as numero_planta,
           a.latitud,
@@ -186,13 +194,14 @@ class SqlServerService {
           '' as dispositivo,
           '' as software,
           '' as direccion
-        FROM image.analisis_imagen a
-        INNER JOIN image.lote l ON a.loteid = l.loteid
-        INNER JOIN image.sector s ON l.sectorid = s.sectorid
-        INNER JOIN image.fundo f ON s.fundoid = f.fundoid
-        INNER JOIN image.empresa e ON f.empresaid = e.empresaid
+        FROM IMAGE.ANALISIS_IMAGEN a
+        INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
+        INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+        INNER JOIN GROWER.GROWERS g ON f.growerID = g.growerID
+        WHERE a.statusID = 1
         ${whereClause}
-        ORDER BY a.datecreated DESC
+        ORDER BY a.dateCreated DESC
       `;
 
       const rows = await query<AnalisisRow>(queryStr, params);
@@ -274,100 +283,134 @@ class SqlServerService {
       });
       const startTime = Date.now();
 
-      // 1. Obtener IDs de la jerarquía
+      // 1. Obtener IDs de la jerarquía usando tablas GROWER de AgroMigiva
       console.log('🔍 Buscando empresa:', result.empresa);
-      const empresaResult = await query<{ empresaid: number }>(`
-        SELECT empresaid FROM image.empresa WHERE empresa = @empresa
+      const empresaResult = await query<{ growerID: string }>(`
+        SELECT growerID FROM GROWER.GROWERS 
+        WHERE businessName = @empresa AND statusID = 1
       `, { empresa: result.empresa });
 
       if (empresaResult.length === 0) {
         throw new Error(`Empresa no encontrada: ${result.empresa}`);
       }
-      const empresaid = empresaResult[0].empresaid;
-      console.log('✅ Empresa encontrada, ID:', empresaid);
+      const growerID = empresaResult[0].growerID;
+      console.log('✅ Empresa encontrada, ID:', growerID);
 
       console.log('🔍 Buscando fundo:', result.fundo);
-      const fundoResult = await query<{ fundoid: number }>(`
-        SELECT fundoid FROM image.fundo WHERE fundo = @fundo AND empresaid = @empresaid
-      `, { fundo: result.fundo, empresaid });
+      const fundoResult = await query<{ farmID: string }>(`
+        SELECT farmID FROM GROWER.FARMS 
+        WHERE Description = @fundo AND growerID = @growerID AND statusID = 1
+      `, { fundo: result.fundo, growerID });
 
       if (fundoResult.length === 0) {
         throw new Error(`Fundo no encontrado: ${result.fundo} en empresa ${result.empresa}`);
       }
-      const fundoid = fundoResult[0].fundoid;
-      console.log('✅ Fundo encontrado, ID:', fundoid);
+      const farmID = fundoResult[0].farmID;
+      console.log('✅ Fundo encontrado, ID:', farmID);
 
-      console.log('🔍 Buscando sector (abrev):', result.sector);
-      const sectorResult = await query<{ sectorid: number }>(`
-        SELECT sectorid FROM image.sector WHERE sectorbrev = @sector AND fundoid = @fundoid
-      `, { sector: result.sector, fundoid });
+      console.log('🔍 Buscando sector:', result.sector);
+      const sectorResult = await query<{ stageID: number }>(`
+        SELECT stageID FROM GROWER.STAGE 
+        WHERE stage = @sector AND farmID = @farmID AND statusID = 1
+      `, { sector: result.sector, farmID });
 
       if (sectorResult.length === 0) {
         throw new Error(`Sector no encontrado: ${result.sector} en fundo ${result.fundo}`);
       }
-      const sectorid = sectorResult[0].sectorid;
-      console.log('✅ Sector encontrado, ID:', sectorid);
+      const stageID = sectorResult[0].stageID;
+      console.log('✅ Sector encontrado, ID:', stageID);
 
-      console.log('🔍 Buscando lote (abrev):', result.lote);
-      const loteResult = await query<{ loteid: number }>(`
-        SELECT loteid FROM image.lote WHERE lotebrev = @lote AND sectorid = @sectorid
-      `, { lote: result.lote, sectorid });
+      console.log('🔍 Buscando lote:', result.lote);
+      const loteResult = await query<{ lotID: number }>(`
+        SELECT lotID FROM GROWER.LOT 
+        WHERE name = @lote AND stageID = @stageID AND statusID = 1
+      `, { lote: result.lote, stageID });
 
       if (loteResult.length === 0) {
         throw new Error(`Lote no encontrado: ${result.lote} en sector ${result.sector}`);
       }
-      const loteid = loteResult[0].loteid;
-      console.log('✅ Lote encontrado, ID:', loteid);
+      const lotID = loteResult[0].lotID;
+      console.log('✅ Lote encontrado, ID:', lotID);
 
-      // 2. Obtener usuario (por ahora usamos el primero disponible)
-      const usuarioResult = await query<{ userid: number }>(`
-        SELECT TOP 1 userid FROM image.usuario WHERE activo = 1 ORDER BY userid
-      `);
-
-      const usercreatedid = usuarioResult.length > 0 ? usuarioResult[0].userid : 1;
-      console.log('✅ Usuario ID:', usercreatedid);
+      // 2. Obtener usuario de MAST.USERS
+      // Estructura verificada: userID (int, PK), statusID (int, NO NULL)
+      // No existe columna 'active', solo 'statusID'
+      let userCreatedID = 1; // Valor por defecto
+      try {
+        const usuarioResult = await query<{ userID: number }>(`
+          SELECT TOP 1 userID 
+          FROM MAST.USERS 
+          WHERE statusID = 1 
+          ORDER BY userID
+        `);
+        
+        if (usuarioResult.length > 0 && usuarioResult[0].userID) {
+          userCreatedID = Number(usuarioResult[0].userID);
+          console.log('✅ Usuario ID obtenido de MAST.USERS:', userCreatedID);
+        } else {
+          console.log('ℹ️ No se encontraron usuarios activos, usando valor por defecto:', userCreatedID);
+        }
+      } catch (userError) {
+        console.warn('⚠️ Error al obtener usuario de MAST.USERS, usando valor por defecto:', userError);
+        // Usar valor por defecto (1) si falla
+      }
 
       // 3. Insertar análisis (usando el schema real)
       console.log('💾 Preparando INSERT...');
       const pool = await connectDb();
       const request = pool.request();
 
-      request.input('loteid', sql.Int, loteid);
+      request.input('lotID', sql.Int, lotID);
       request.input('hilera', sql.NVarChar(50), result.hilera || '');
       request.input('planta', sql.NVarChar(50), result.numero_planta || '');
       request.input('filename', sql.NVarChar(500), result.fileName);
       request.input('filepath', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
+      
+      // Fecha de captura desde EXIF si está disponible
+      let fechaCaptura = null;
+      if (result.exifDateTime) {
+        try {
+          // Convertir fecha EXIF a DATETIME (formato: DD/MM/YYYY HH:MM:SS)
+          const [day, month, year] = result.exifDateTime.date.split('/');
+          const [hour, minute, second] = result.exifDateTime.time.split(':');
+          fechaCaptura = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+        } catch (e) {
+          console.warn('⚠️ Error parsing EXIF date:', e);
+        }
+      }
+      
+      request.input('fecha_captura', sql.DateTime, fechaCaptura);
       request.input('porcentaje_luz', sql.Decimal(5, 2), parseFloat(result.porcentaje_luz.toFixed(2)));
       request.input('porcentaje_sombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
       request.input('latitud', sql.Decimal(10, 8), result.latitud);
       request.input('longitud', sql.Decimal(11, 8), result.longitud);
       request.input('processed_image_url', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
-      request.input('usercreatedid', sql.Int, usercreatedid);
+      request.input('userCreatedID', sql.Int, userCreatedID);
 
-      console.log('💾 Ejecutando INSERT en image.analisis_imagen...');
+      console.log('💾 Ejecutando INSERT en IMAGE.ANALISIS_IMAGEN...');
       const insertResult = await request.query(`
-        INSERT INTO image.analisis_imagen (
-          loteid, hilera, planta, filename, filepath,
+        INSERT INTO IMAGE.ANALISIS_IMAGEN (
+          lotID, hilera, planta, filename, filepath, fecha_captura,
           porcentaje_luz, porcentaje_sombra, latitud, longitud,
-          processed_image_url, usercreatedid, statusid
+          processed_image_url, userCreatedID, statusID
         )
-        OUTPUT INSERTED.analisisid
+        OUTPUT INSERTED.analisisID
         VALUES (
-          @loteid, @hilera, @planta, @filename, @filepath,
+          @lotID, @hilera, @planta, @filename, @filepath, @fecha_captura,
           @porcentaje_luz, @porcentaje_sombra, @latitud, @longitud,
-          @processed_image_url, @usercreatedid, 1
+          @processed_image_url, @userCreatedID, 1
         )
       `);
 
-      const analisisid = insertResult.recordset[0].analisisid;
+      const analisisID = insertResult.recordset[0].analisisID;
       const saveTime = Date.now() - startTime;
 
-      console.log(`✅ Processing result saved to SQL Server in ${saveTime}ms (ID: ${analisisid})`);
+      console.log(`✅ Processing result saved to SQL Server in ${saveTime}ms (ID: ${analisisID})`);
 
       // Clear cache to force refresh on next load
       this.historialCache = null;
 
-      return analisisid;
+      return analisisID;
     } catch (error: any) {
       console.error('❌ Error saving processing result to SQL Server:', error);
       

@@ -1,16 +1,28 @@
 import sql from 'mssql';
 
+// Validar que todas las variables de entorno requeridas estén presentes
+const requiredEnvVars = ['SQL_USER', 'SQL_PASSWORD', 'SQL_SERVER', 'SQL_DATABASE'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `❌ Variables de entorno SQL Server faltantes: ${missingVars.join(', ')}\n` +
+    `Por favor, configura las variables en .env.local. Ver env.example para referencia.`
+  );
+}
+
 const config: sql.config = {
-  user: process.env.SQL_USER || 'agricola_app',
-  password: process.env.SQL_PASSWORD || 'Agricola2024!',
-  server: process.env.SQL_SERVER || 'localhost\\SQLEXPRESS',
-  database: process.env.SQL_DATABASE || 'AgricolaDB',
+  user: process.env.SQL_USER!,
+  password: process.env.SQL_PASSWORD!,
+  server: process.env.SQL_SERVER!,
+  database: process.env.SQL_DATABASE!,
   port: parseInt(process.env.SQL_PORT || '1433'),
   
   options: {
     trustServerCertificate: true,
     enableArithAbort: true,
-    encrypt: false, // Para conexión local sin SSL
+    // Encriptar para servidor remoto (AgroMigiva), pero permitir desactivar para desarrollo local
+    encrypt: process.env.SQL_ENCRYPT !== 'false',
   },
   
   // Pool de conexiones

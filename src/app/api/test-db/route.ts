@@ -30,15 +30,18 @@ export async function GET() {
       counts: counts[0],
       sample_empresas: empresas,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en test-db:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     
     return NextResponse.json(
       {
         success: false,
         message: 'Error conectando a SQL Server',
-        error: error.message,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined,
       },
       { status: 500 }
     );

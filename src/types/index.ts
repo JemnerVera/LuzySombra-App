@@ -74,6 +74,12 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   detail?: string;
+  pagination?: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
 }
 
 export interface ProcessingFormData {

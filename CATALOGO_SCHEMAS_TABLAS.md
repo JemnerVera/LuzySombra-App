@@ -1,6 +1,6 @@
 # 📚 Catálogo de Schemas - Tablas Existentes AgroMigiva
 ## Base de Datos
-**BD_PACKING_AGROMIGIVA_DESA** en servidor `10.1.10.4`
+**BD_PACKING_AGROMIGIVA_DESA** (configurar servidor en `.env.local`)
 **Generado automáticamente** el 2025-11-02 19:59:09
 
 ---

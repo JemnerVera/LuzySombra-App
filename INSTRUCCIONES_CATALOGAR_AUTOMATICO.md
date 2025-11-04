@@ -24,10 +24,12 @@ pip install pyodbc
 ### 3. Verificar .env.local
 
 Asegúrate de que el archivo `.env.local` existe y tiene las credenciales correctas:
-- `SQL_SERVER=10.1.10.4`
-- `SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA`
-- `SQL_USER=ucser_powerbi_desa` (o ucown_powerbi_desa)
-- `SQL_PASSWORD=D3s4S3r03` (o D3s4Own03)
+- `SQL_SERVER=your_server_ip_or_hostname`
+- `SQL_DATABASE=your_database_name`
+- `SQL_USER=your_sql_user`
+- `SQL_PASSWORD=your_sql_password`
+
+⚠️ **IMPORTANTE**: Las credenciales reales deben configurarse solo en `.env.local` (que no se commitrea).
 
 ## 🚀 Ejecutar Script
 
@@ -82,7 +84,7 @@ Para cada tabla:
 ```
 🔍 Catalogando schemas de tablas existentes...
 
-✅ Conectado a 10.1.10.4/BD_PACKING_AGROMIGIVA_DESA
+✅ Conectado a [server]/[database]
 📊 Verificando MAST.USERS... ✅ (14 columnas, 25 registros)
 📊 Verificando MAST.ORIGIN... ✅ (8 columnas, 5 registros)
 📊 Verificando GROWER.GROWERS... ✅ (12 columnas, 15 registros)

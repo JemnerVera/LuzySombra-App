@@ -1,7 +1,7 @@
 # Estructura de Base de Datos de Producción
 
-**Base de Datos:** `BD_PACKING_AGROMIGIVA_DESA` (Servidor: `10.1.10.4`)  
-**Credenciales:** `ucser_powerbi_desa` / `D3s4S3r03` (Solo lectura - `SELECT`)
+**Base de Datos:** `BD_PACKING_AGROMIGIVA_DESA` (Servidor: configurar en `.env.local`)  
+**Credenciales:** Configurar en `.env.local` (usuario solo lectura recomendado para consultas)
 
 ---
 

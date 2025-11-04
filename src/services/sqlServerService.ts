@@ -162,22 +162,38 @@ class SqlServerService {
     sector?: string;
     lote?: string;
     limit?: number;
-  }): Promise<{ success: boolean; procesamientos: ProcessingRecord[] }> {
+    page?: number;
+    pageSize?: number;
+  }): Promise<{ success: boolean; procesamientos: ProcessingRecord[]; total: number; page: number; pageSize: number; totalPages: number }> {
     try {
-      // Check cache first (only if no filters)
-      if (!filters && this.historialCache && (Date.now() - this.historialCache.timestamp) < this.cacheTimeout) {
+      // Check cache first (only if no filters and no pagination)
+      if (!filters && !filters?.page && this.historialCache && (Date.now() - this.historialCache.timestamp) < this.cacheTimeout) {
         console.log('📊 Using cached history data from SQL Server');
-        return { success: true, procesamientos: this.historialCache.data };
+        const cachedData = this.historialCache.data;
+        // Si hay paginación solicitada, aplicar paginación en memoria (solo para primera página)
+        if (page === 1) {
+          return { 
+            success: true, 
+            procesamientos: cachedData.slice(0, pageSize),
+            total: cachedData.length,
+            page: 1,
+            pageSize,
+            totalPages: Math.ceil(cachedData.length / pageSize)
+          };
+        }
       }
 
       console.log('📊 Fetching history data from SQL Server...');
       const startTime = Date.now();
 
-      const limit = filters?.limit || 500;
+      // Configuración de paginación
+      const pageSize = filters?.pageSize || filters?.limit || 50; // Default 50 registros por página
+      const page = filters?.page || 1;
+      const offset = (page - 1) * pageSize;
 
       // Build dynamic query with filters
       let whereClause = 'WHERE a.statusID = 1';
-      const params: Record<string, string> = {};
+      const params: Record<string, string | number> = {};
 
       if (filters?.empresa) {
         whereClause += ' AND g.businessName = @empresa';
@@ -196,11 +212,25 @@ class SqlServerService {
         params.lote = filters.lote;
       }
 
-      // NO incluir processedImageUrl en el SELECT principal para mejor rendimiento
-      // La imagen se carga solo cuando se necesita (lazy loading)
+      // Primero obtener el total de registros (para paginación)
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM image.Analisis_Imagen a
+        INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
+        INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+        INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
+        ${whereClause}
+      `;
+
+      const countResult = await query<{ total: number }>(countQuery, params);
+      const total = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / pageSize);
+
+      // Query principal con paginación usando OFFSET/FETCH (más eficiente que TOP)
       const queryStr = `
-        SELECT TOP ${limit}
-          a.analisisID,
+        SELECT 
+          a.analisisID as analisisid,
           a.fechaCreacion as fecha_procesamiento,
           a.filename as nombre_archivo_original,
           CASE WHEN a.processedImageUrl IS NOT NULL THEN 1 ELSE 0 END as tieneImagen,
@@ -224,7 +254,13 @@ class SqlServerService {
         INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
         ${whereClause}
         ORDER BY a.fechaCreacion DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
       `;
+
+      // Agregar parámetros de paginación
+      params.offset = offset;
+      params.pageSize = pageSize;
 
       const rows = await query<AnalisisRow>(queryStr, params);
 
@@ -234,8 +270,8 @@ class SqlServerService {
       const historial: ProcessingRecord[] = rows.map((row, index) => {
         const fecha = new Date(row.fecha_procesamiento);
         // Construir URL para cargar imagen bajo demanda (lazy loading)
-        // La imagen se carga solo cuando el usuario hace click en ver
-        const imagenUrl = row.tieneImagen 
+        const tieneImagen = row.tieneImagen ?? 0;
+        const imagenUrl = tieneImagen === 1
           ? `/api/imagen/${row.analisisid}` // URL del endpoint para cargar imagen bajo demanda
           : null;
         
@@ -243,19 +279,19 @@ class SqlServerService {
           id: row.analisisid.toString(),
           fecha: fecha.toLocaleDateString('es-ES'),
           hora: fecha.toLocaleTimeString('es-ES'),
-          imagen: row.nombre_archivo_original,
-          nombre_archivo: row.nombre_archivo_original,
+          imagen: row.nombre_archivo_original || '',
+          nombre_archivo: row.nombre_archivo_original || '',
           imagen_url: imagenUrl, // URL para cargar imagen bajo demanda (no Base64 en el historial)
-          empresa: row.empresa,
-          fundo: row.fundo,
-          sector: row.sector,
-          lote: row.lote,
+          empresa: row.empresa || '',
+          fundo: row.fundo || '',
+          sector: row.sector || '',
+          lote: row.lote || '',
           hilera: row.hilera || '',
           numero_planta: row.numero_planta || '',
-          latitud: row.latitud,
-          longitud: row.longitud,
-          porcentaje_luz: row.porcentajeLuz,
-          porcentaje_sombra: row.porcentajeSombra,
+          latitud: row.latitud ?? null,
+          longitud: row.longitud ?? null,
+          porcentaje_luz: row.porcentajeLuz ?? 0,
+          porcentaje_sombra: row.porcentajeSombra ?? 0,
           dispositivo: row.dispositivo || '',
           software: row.software || '',
           direccion: row.direccion || '',
@@ -273,7 +309,11 @@ class SqlServerService {
 
       return {
         success: true,
-        procesamientos: historial
+        procesamientos: historial,
+        total,
+        page,
+        pageSize,
+        totalPages
       };
     } catch (error) {
       console.error('❌ Error obteniendo historial desde SQL Server:', error);

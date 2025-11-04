@@ -1,0 +1,57 @@
+Resumen: Estándares de Codificación de Bases de Datos – AgroMigiva
+Objetivo:
+Establecer un lenguaje común para la implementación de objetos de base de datos en Migiva, facilitando el entendimiento y mantenimiento de proyectos.
+Alcance:
+Aplica a todos los proyectos y áreas relacionadas con el desarrollo y mantenimiento de bases de datos en producción o en fase de proyecto.
+Nomenclatura General:
+- Uso de LowerCamelCase.
+- Idioma español, evitando acentos y caracteres especiales (excepto guion bajo).
+- Prefijos y abreviaturas estandarizadas para objetos (ej. AGRI, CLI, COS, etc.).
+Usuarios:
+- Owner: UCOWN_[Servicio]
+- Servicio: UCSER_[Servicio]
+- Soporte: UCSOP_InicialNombre][Apellido]
+- Responsabilidad: UCRES_InicialNombre][Apellido]
+- Link Server: UCLNK_[BD/Schema]_[Instancia]
+- Temporales: TMP según tipo
+Esquemas:
+Nombres basados en área, proceso o sistema (ej. planta, packing, calidadAgricola, etc.).
+Tablas:
+- Comunes: [nombreDescripción]
+- Externas: [nombreDescripción]_ext
+- Temporales: [nombreDescripción]tmp o #tempXXX[nombreDescripción]
+- PK: PK_[nombreTabla]
+- FK: FK_[tabla]_[tablaReferencia]_XX
+- Constraints: UQ_, CK_, DF_
+- Índices: IDX_[tabla]_[columnas]_XXX
+- Triggers: trg_[tabla][tipoTrigger][DML]
+- Vistas: vwp_ (primarias), vwc_ (compuestas)
+- SP: usp_[prefijo]_[acción]
+- Funciones: ufn_ (escalar), uft_ (tabla)
+- Secuencias: seq_ o seqG_
+- Types: uTyp_[prefijo]_[descripción]
+Consultas SQL:
+- Evitar SELECT *
+- Usar WITH (NOLOCK) solo si se prioriza rendimiento
+- No usar funciones en filtros WHERE
+Diseño de Objetos:
+- Tipos de datos adecuados (ej. date, varchar, decimal, bit)
+- PK como INT IDENTITY(1,1)
+- FK obligatorias
+- Columnas NOT NULL justificadas
+- Índices y constraints definidos y nombrados
+Procedimientos y Funciones:
+- Parámetros: pln_ (IN), pOu_ (OUT), plO_ (INOUT)
+- Variables: v[Nombre]
+- Manejo de errores: TRY-CATCH, THROW
+- Instrucciones SET: NOCOUNT, ARITHABORT, ANSI_NULLS, XACT_ABORT
+Documentación:
+- Comentarios extendidos en tablas y columnas con sp_addextendedproperty
+- Auditoría: usuarioCreaID, fechaCreacion, usuarioModificaID, fechaModificacion
+- Encabezado estándar en SP, triggers, funciones y vistas
+- Modificaciones identificables con MOD_XXXX
+Scripts:
+- Extensión .sql
+- CREATE para nuevos objetos, CREATE OR REPLACE para modificados
+- Nombres con orden de ejecución, número de proyecto y nombre del script
+- Sentencias DML terminadas en punto y coma

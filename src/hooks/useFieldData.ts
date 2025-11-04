@@ -48,6 +48,20 @@ export const useFieldData = () => {
         hierarchical: data.hierarchical ? Object.keys(data.hierarchical) : 'No hierarchical data'
       });
       
+      // Debug: Log sample values to verify they're correct
+      if (data.empresa && data.empresa.length > 0) {
+        console.log('📊 Sample empresas:', data.empresa.slice(0, 5));
+      }
+      if (data.fundo && data.fundo.length > 0) {
+        console.log('📊 Sample fundos:', data.fundo.slice(0, 5));
+      }
+      if (data.sector && data.sector.length > 0) {
+        console.log('📊 Sample sectores:', data.sector.slice(0, 5));
+      }
+      if (data.lote && data.lote.length > 0) {
+        console.log('📊 Sample lotes:', data.lote.slice(0, 5));
+      }
+      
       // Update global cache
       globalFieldDataCache = {
         data,

@@ -508,7 +508,7 @@ GROWER.GROWERS (empresa)
           └─ GROWER.LOT (lote)
               ├─ GROWER.PLANTATION (relación lote-variedad)
               │   └─ GROWER.VARIETY (variedad)
-              └─ IMAGE.ANALISIS_IMAGEN (nuestra tabla nueva)
+              └─ image.Analisis_Imagen (nuestra tabla nueva)
 
 MAST.USERS (usuarios)
 ```

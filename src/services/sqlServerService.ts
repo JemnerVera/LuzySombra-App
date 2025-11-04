@@ -462,7 +462,11 @@ class SqlServerService {
           v.name AS variedad,
           cf.estadoFenologico,
           cf.diasCianamida,
-          CAST(img.fechaUltimaEvaluacion AS VARCHAR) AS fechaUltimaEvaluacion,
+          CASE 
+            WHEN img.fechaUltimaEvaluacion IS NOT NULL 
+            THEN CONVERT(VARCHAR(23), img.fechaUltimaEvaluacion, 126)
+            ELSE NULL 
+          END AS fechaUltimaEvaluacion,
           img.porcentajeLuzMin,
           img.porcentajeLuzMax,
           CAST(img.porcentajeLuzProm AS DECIMAL(5,2)) AS porcentajeLuzProm,
@@ -582,11 +586,12 @@ class SqlServerService {
     empresa: string;
     latitud: number | null;
     longitud: number | null;
-    processed_image: string;
-    timestamp: string;
-    exifDateTime?: { date: string; time: string } | null;
-    thumbnail?: string; // Thumbnail optimizado para guardar en BD
-  }): Promise<number> {
+          processed_image: string;
+      timestamp: string;
+      exifDateTime?: { date: string; time: string } | null;
+      thumbnail?: string; // Thumbnail optimizado para guardar en BD (imagen procesada)
+      originalThumbnail?: string; // Thumbnail optimizado de la imagen original
+    }): Promise<number> {
     try {
       console.log('💾 Saving processing result to SQL Server...');
       console.log('📋 Data received:', {
@@ -686,9 +691,13 @@ class SqlServerService {
       request.input('planta', sql.NVarChar(50), result.numero_planta || '');
       request.input('filename', sql.NVarChar(500), result.fileName);
       
-      // Guardar thumbnail optimizado en processedImageUrl
-      const thumbnailBase64 = result.thumbnail || null;
-      request.input('processedImageUrl', sql.NVarChar(sql.MAX), thumbnailBase64);
+              // Guardar thumbnail optimizado en processedImageUrl (imagen procesada)
+        const thumbnailBase64 = result.thumbnail || null;
+        request.input('processedImageUrl', sql.NVarChar(sql.MAX), thumbnailBase64);
+        
+        // Guardar thumbnail de imagen original en originalImageUrl
+        const originalThumbnailBase64 = result.originalThumbnail || null;
+        request.input('originalImageUrl', sql.NVarChar(sql.MAX), originalThumbnailBase64);
       
       // Fecha de captura desde EXIF si está disponible
       let fechaCaptura = null;
@@ -712,19 +721,19 @@ class SqlServerService {
 
       const thumbnailInfo = thumbnailBase64 ? `con thumbnail (~${Math.round((thumbnailBase64.length * 3) / 4 / 1024)} KB)` : 'sin imagen';
       console.log(`💾 Ejecutando INSERT en image.Analisis_Imagen ${thumbnailInfo}...`);
-      const insertResult = await request.query(`
-        INSERT INTO image.Analisis_Imagen (
-          lotID, hilera, planta, filename, fechaCaptura,
-          porcentajeLuz, porcentajeSombra, latitud, longitud,
-          processedImageUrl, usuarioCreaID, statusID
-        )
-        OUTPUT INSERTED.analisisID
-        VALUES (
-          @lotID, @hilera, @planta, @filename, @fechaCaptura,
-          @porcentajeLuz, @porcentajeSombra, @latitud, @longitud,
-          @processedImageUrl, @usuarioCreaID, 1
-        )
-      `);
+              const insertResult = await request.query(`
+          INSERT INTO image.Analisis_Imagen (
+            lotID, hilera, planta, filename, fechaCaptura,
+            porcentajeLuz, porcentajeSombra, latitud, longitud,
+            processedImageUrl, originalImageUrl, usuarioCreaID, statusID
+          )
+          OUTPUT INSERTED.analisisID
+          VALUES (
+            @lotID, @hilera, @planta, @filename, @fechaCaptura,
+            @porcentajeLuz, @porcentajeSombra, @latitud, @longitud,
+            @processedImageUrl, @originalImageUrl, @usuarioCreaID, 1
+          )
+        `);
 
       const analisisID = insertResult.recordset[0].analisisID;
       const saveTime = Date.now() - startTime;

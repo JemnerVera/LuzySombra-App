@@ -53,6 +53,17 @@ export async function POST(request: NextRequest) {
     // Process image with TensorFlow.js using Node.js canvas
     const imageBuffer = await file.arrayBuffer();
     
+    // Convertir imagen original a Base64 (antes de procesar)
+    // Esto se guardará para poder mostrar la imagen original más tarde
+    const originalImageBase64 = `data:${file.type || 'image/jpeg'};base64,${Buffer.from(imageBuffer).toString('base64')}`;
+    
+    // Crear thumbnail MUY comprimido de la imagen original para minimizar impacto en BD
+    // 400x300 con calidad 0.5 debería resultar en ~50-100 KB (vs 200-500 KB del procesado)
+    console.log('🖼️ Creando thumbnail comprimido de imagen original...');
+    const originalThumbnail = await createThumbnail(originalImageBase64, 400, 300, 0.5);
+    const originalThumbnailSize = estimateBase64Size(originalThumbnail);
+    console.log(`📊 Tamaño thumbnail original comprimido: ~${originalThumbnailSize} KB (objetivo: <100 KB)`);
+    
     // Load image using canvas (Node.js compatible)
     const img = await loadImage(Buffer.from(imageBuffer));
     
@@ -114,10 +125,11 @@ export async function POST(request: NextRequest) {
     const thumbnailSize = estimateBase64Size(thumbnail);
     console.log(`📊 Tamaño thumbnail: ~${thumbnailSize} KB (reducción: ${Math.round((1 - thumbnailSize/originalSize) * 100)}%)`);
     
-    // Agregar thumbnail al resultado para guardar en BD
+    // Agregar thumbnails al resultado para guardar en BD
     const processingResultWithThumbnail = {
       ...processingResult,
-      thumbnail: thumbnail
+      thumbnail: thumbnail, // Thumbnail de la imagen procesada
+      originalThumbnail: originalThumbnail // Thumbnail de la imagen original
     };
 
     // Save to data store (SQL Server and/or Google Sheets)

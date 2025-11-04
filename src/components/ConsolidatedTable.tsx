@@ -21,6 +21,9 @@ interface ConsolidatedRow {
   porcentajeLuzMin: number | null;
   porcentajeLuzMax: number | null;
   porcentajeLuzProm: number | null;
+  porcentajeSombraMin: number | null;
+  porcentajeSombraMax: number | null;
+  porcentajeSombraProm: number | null;
 }
 
 const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification }) => {
@@ -122,6 +125,9 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
         '% Luz Mín': row.porcentajeLuzMin?.toFixed(2) || '',
         '% Luz Máx': row.porcentajeLuzMax?.toFixed(2) || '',
         '% Luz Prom': row.porcentajeLuzProm?.toFixed(2) || '',
+        '% Sombra Mín': row.porcentajeSombraMin?.toFixed(2) || '',
+        '% Sombra Máx': row.porcentajeSombraMax?.toFixed(2) || '',
+        '% Sombra Prom': row.porcentajeSombraProm?.toFixed(2) || '',
       }));
       
       exportToCSV(csvData, 'tabla_consolidada.csv');
@@ -272,31 +278,34 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
       <div className="bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-            <thead className="bg-gray-50 dark:bg-dark-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fundo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Sector</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Lote</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Variedad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Estado Fenológico</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Días Cianamida</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fecha Última Evaluación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Mín</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Máx</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Prom</th>
-              </tr>
-            </thead>
+                            <thead className="bg-gray-50 dark:bg-dark-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fundo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Sector</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Lote</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Variedad</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Estado Fenológico</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Días Cianamida</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fecha Última Evaluación</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Mín</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Máx</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Prom</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Mín</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Máx</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Prom</th>
+                  </tr>
+                </thead>
             <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-200 dark:divide-dark-700">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-8 text-center">
+                  <td colSpan={13} className="px-6 py-8 text-center">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-500" />
                     <p className="text-gray-600 dark:text-dark-300">Cargando datos...</p>
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-8 text-center text-gray-500 dark:text-dark-400">
+                  <td colSpan={13} className="px-6 py-8 text-center text-gray-500 dark:text-dark-400">
                     No hay datos disponibles
                   </td>
                 </tr>
@@ -320,6 +329,15 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {row.porcentajeLuzProm !== null ? row.porcentajeLuzProm.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {row.porcentajeSombraMin !== null ? row.porcentajeSombraMin.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {row.porcentajeSombraMax !== null ? row.porcentajeSombraMax.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {row.porcentajeSombraProm !== null ? row.porcentajeSombraProm.toFixed(2) : '-'}
                     </td>
                   </tr>
                 ))

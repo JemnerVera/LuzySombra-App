@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
-import { Upload, Eye, BarChart3, Table, Sun, Moon } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image } from 'lucide-react';
 
 interface LayoutProps {
   currentTab: TabType;
@@ -13,6 +13,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) => {
   const [isDark, setIsDark] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['consolidada']));
 
   useEffect(() => {
     // Aplicar tema al HTML
@@ -37,9 +38,29 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <BarChart3 className="h-5 w-5" />;
       case 'table':
         return <Table className="h-5 w-5" />;
+      case 'calendar':
+        return <Calendar className="h-5 w-5" />;
+      case 'image':
+        return <Image className="h-5 w-5" />;
       default:
         return null;
     }
+  };
+
+  const toggleMenu = (menuId: string) => {
+    setExpandedMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(menuId)) {
+        newSet.delete(menuId);
+      } else {
+        newSet.add(menuId);
+      }
+      return newSet;
+    });
+  };
+
+  const getSubTabs = (parentId: string) => {
+    return UI_CONFIG.tabs.filter(tab => (tab as any).parent === parentId);
   };
 
   return (
@@ -59,20 +80,57 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         {/* Navigation */}
         <nav className="p-4">
           <div className="space-y-2">
-            {UI_CONFIG.tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id as TabType)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg font-medium text-sm transition-all duration-200 ${
-                  currentTab === tab.id
-                    ? 'bg-primary-600 text-white border-r-2 border-primary-400 shadow-lg'
-                    : 'text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-gray-900 dark:hover:text-white hover:shadow-md'
-                }`}
-              >
-                {getIcon(tab.icon)}
-                <span>{tab.label}</span>
-              </button>
-            ))}
+            {UI_CONFIG.tabs
+              .filter(tab => !(tab as any).parent)
+              .map((tab) => {
+                const hasSubMenu = (tab as any).hasSubMenu;
+                const subTabs = hasSubMenu ? getSubTabs(tab.id) : [];
+                const isExpanded = expandedMenus.has(tab.id);
+                const isActive = currentTab === tab.id || subTabs.some(st => currentTab === st.id);
+
+                return (
+                  <div key={tab.id}>
+                    <button
+                      onClick={() => {
+                        if (hasSubMenu && subTabs.length > 0) {
+                          toggleMenu(tab.id);
+                        } else {
+                          onTabChange(tab.id as TabType);
+                        }
+                      }}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg font-medium text-sm transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary-600 text-white border-r-2 border-primary-400 shadow-lg'
+                          : 'text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-gray-900 dark:hover:text-white hover:shadow-md'
+                      }`}
+                    >
+                      {getIcon(tab.icon)}
+                      <span className="flex-1">{tab.label}</span>
+                      {hasSubMenu && subTabs.length > 0 && (
+                        isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                    {hasSubMenu && subTabs.length > 0 && isExpanded && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        {subTabs.map((subTab) => (
+                          <button
+                            key={subTab.id}
+                            onClick={() => onTabChange(subTab.id as TabType)}
+                            className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg font-medium text-xs transition-all duration-200 ${
+                              currentTab === subTab.id
+                                ? 'bg-primary-500 text-white border-r-2 border-primary-300 shadow-md'
+                                : 'text-gray-500 dark:text-dark-400 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-gray-700 dark:hover:text-dark-200'
+                            }`}
+                          >
+                            {getIcon(subTab.icon)}
+                            <span>{subTab.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </nav>
 

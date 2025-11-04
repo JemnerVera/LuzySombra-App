@@ -811,6 +811,71 @@ class SqlServerService {
   }
 
   /**
+   * Obtiene el detalle histórico de evaluaciones agrupadas por fecha para un lote específico
+   */
+  async getLoteDetalleHistorial(lotID: number): Promise<{
+    success: boolean;
+    data: Array<{
+      fecha: string;
+      luzMin: number | null;
+      luzMax: number | null;
+      luzProm: number | null;
+      sombraMin: number | null;
+      sombraMax: number | null;
+      sombraProm: number | null;
+    }>;
+  }> {
+    try {
+      console.log(`📊 [getLoteDetalleHistorial] Obteniendo detalle histórico para lotID: ${lotID}`);
+      
+      // Obtener evaluaciones agrupadas por fecha (usando fechaCaptura o fechaCreacion)
+      const rows = await query<{
+        fecha: Date;
+        luzMin: number;
+        luzMax: number;
+        luzProm: number;
+        sombraMin: number;
+        sombraMax: number;
+        sombraProm: number;
+      }>(`
+        SELECT 
+          CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE) AS fecha,
+          MIN(ai.porcentajeLuz) AS luzMin,
+          MAX(ai.porcentajeLuz) AS luzMax,
+          AVG(CAST(ai.porcentajeLuz AS FLOAT)) AS luzProm,
+          MIN(ai.porcentajeSombra) AS sombraMin,
+          MAX(ai.porcentajeSombra) AS sombraMax,
+          AVG(CAST(ai.porcentajeSombra AS FLOAT)) AS sombraProm
+        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        WHERE ai.lotID = @lotID 
+          AND ai.statusID = 1
+        GROUP BY CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE)
+        ORDER BY fecha DESC
+      `, { lotID });
+
+      const data = rows.map(row => ({
+        fecha: row.fecha.toISOString().split('T')[0], // Formato YYYY-MM-DD
+        luzMin: row.luzMin,
+        luzMax: row.luzMax,
+        luzProm: row.luzProm,
+        sombraMin: row.sombraMin,
+        sombraMax: row.sombraMax,
+        sombraProm: row.sombraProm,
+      }));
+
+      console.log(`✅ [getLoteDetalleHistorial] Obtenidos ${data.length} registros para lotID ${lotID}`);
+
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      console.error('❌ [getLoteDetalleHistorial] Error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Limpia el cache (útil para testing o forzar refresh)
    */
   clearCache(): void {

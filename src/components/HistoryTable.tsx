@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api';
 import { HistoryRecord } from '../types';
 import { formatDate, exportToCSV } from '../utils/helpers';
@@ -18,19 +18,35 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterFundo, setFilterFundo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 50; // Aumentado a 50 para mejor rendimiento
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const isInitialMount = useRef(true);
+  const prevFilters = useRef({ filterEmpresa, filterFundo });
+  const pageChangeFromFilter = useRef(false);
 
-  const loadHistory = async () => {
+  const loadHistory = async (page: number = currentPage) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📊 Loading history...');
+      console.log(`📊 Loading history page ${page}...`);
       
-      const response = await apiService.getHistory();
+      // Construir filtros para enviar al servidor
+      const params: { page: number; pageSize: number; empresa?: string; fundo?: string } = {
+        page,
+        pageSize: itemsPerPage
+      };
+      
+      if (filterEmpresa) params.empresa = filterEmpresa;
+      if (filterFundo) params.fundo = filterFundo;
+      
+      const response = await apiService.getHistory(params);
       
       if (response.success && response.data) {
         setHistory(response.data);
-        console.log('📊 History loaded:', response.data.length, 'records');
+        setTotalRecords(response.pagination?.total || 0);
+        setTotalPages(response.pagination?.totalPages || 0);
+        console.log(`📊 History loaded: page ${page}/${response.pagination?.totalPages || 0} (${response.data.length} records, total: ${response.pagination?.total || 0})`);
       } else {
         setError('No se pudieron cargar los datos del historial');
       }
@@ -42,13 +58,38 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
     }
   };
 
+  // Efecto para manejar cambios en filtros
   useEffect(() => {
-    loadHistory();
-  }, []);
+    const filtersChanged = 
+      prevFilters.current.filterEmpresa !== filterEmpresa ||
+      prevFilters.current.filterFundo !== filterFundo;
 
-  const handleRefresh = () => {
-    loadHistory();
-  };
+    if (filtersChanged && !isInitialMount.current) {
+      // Si cambian los filtros (y no es el mount inicial), resetear a página 1
+      prevFilters.current = { filterEmpresa, filterFundo };
+      pageChangeFromFilter.current = true;
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterEmpresa, filterFundo]);
+
+  // Efecto principal para cargar datos
+  useEffect(() => {
+    if (isInitialMount.current) {
+      // Carga inicial
+      isInitialMount.current = false;
+      prevFilters.current = { filterEmpresa, filterFundo };
+      loadHistory(1);
+    } else if (pageChangeFromFilter.current) {
+      // Si el cambio de página fue causado por un cambio de filtro, cargar página 1
+      pageChangeFromFilter.current = false;
+      loadHistory(1);
+    } else {
+      // Cargar la página actual (cambio de página normal)
+      loadHistory(currentPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, filterEmpresa, filterFundo]);
 
   const handleExportCSV = () => {
     if (history.length === 0) {
@@ -66,33 +107,39 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
     }
   };
 
+  // Filtrar localmente solo por búsqueda de texto (filtros de empresa y fundo ya vienen del servidor)
   const filteredHistory = history
     .filter(record => {
-      const matchesSearch = 
+      if (!searchTerm) return true;
+      
+      return (
         record.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.fundo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.lote.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.hilera.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.numero_planta.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesEmpresa = !filterEmpresa || record.empresa === filterEmpresa;
-      const matchesFundo = !filterFundo || record.fundo === filterFundo;
-
-      return matchesSearch && matchesEmpresa && matchesFundo;
+        record.numero_planta.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     })
     .sort((a, b) => parseInt(b.id) - parseInt(a.id)); // Ordenar por ID descendente (más recientes primero)
 
-  // Calcular paginación
-  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
+  // Usar totalPages del servidor (ya viene en el estado)
+  // Si hay búsqueda local, recalcular paginación local
+  const localTotalPages = searchTerm 
+    ? Math.ceil(filteredHistory.length / itemsPerPage)
+    : totalPages;
+  
+  const startIndex = searchTerm ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = searchTerm ? startIndex + itemsPerPage : filteredHistory.length;
+  const paginatedHistory = searchTerm 
+    ? filteredHistory.slice(startIndex, endIndex)
+    : filteredHistory;
 
   // Resetear página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterEmpresa, filterFundo]);
+  }, [searchTerm]); // Solo resetear cuando cambie searchTerm (filtro local)
+  // filterEmpresa y filterFundo ya disparan loadHistory que resetea la página en el servidor
 
   const uniqueEmpresas = [...new Set(history.map(record => record.empresa))];
   const uniqueFundos = [...new Set(history.map(record => record.fundo))];
@@ -254,7 +301,10 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 dark:text-dark-300">
-          Mostrando {startIndex + 1}-{Math.min(endIndex, filteredHistory.length)} de {filteredHistory.length} registros (de {history.length} total)
+          {searchTerm 
+            ? `Mostrando ${startIndex + 1}-${Math.min(endIndex, filteredHistory.length)} de ${filteredHistory.length} registros encontrados`
+            : `Mostrando ${history.length} registros de ${totalRecords} total (Página ${currentPage} de ${totalPages})`
+          }
         </div>
       </div>
 
@@ -354,8 +404,8 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
         </div>
       </div>
 
-      {/* Paginación */}
-      {totalPages > 1 && (
+      {/* Paginación - Mostrar siempre que haya más de 1 página (servidor o búsqueda local) */}
+      {(searchTerm ? localTotalPages > 1 : totalPages > 1) && (
         <div className="bg-white dark:bg-dark-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-dark-700 sm:px-6 rounded-xl shadow-2xl border border-gray-200 dark:border-dark-700">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
@@ -366,8 +416,11 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
               Anterior
             </button>
             <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => {
+                const maxPages = searchTerm ? localTotalPages : totalPages;
+                setCurrentPage(prev => Math.min(prev + 1, maxPages));
+              }}
+              disabled={currentPage >= (searchTerm ? localTotalPages : totalPages)}
               className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-lg text-gray-700 dark:text-dark-200 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               Siguiente
@@ -377,7 +430,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
             <div>
               <p className="text-sm text-gray-600 dark:text-dark-300">
                 Página <span className="font-medium text-gray-900 dark:text-white">{currentPage}</span> de{' '}
-                <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {searchTerm ? localTotalPages : totalPages}
+                </span>
+                {!searchTerm && totalRecords > 0 && (
+                  <span className="text-gray-500 dark:text-dark-400 ml-2">
+                    ({totalRecords} registros totales)
+                  </span>
+                )}
               </p>
             </div>
             <div>
@@ -390,15 +450,16 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
                   <ChevronLeft className="h-5 w-5" />
                 </button>
                 
-                {/* Números de página */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                  {/* Números de página */}
+                {Array.from({ length: Math.min(5, searchTerm ? localTotalPages : totalPages) }, (_, i) => {
+                  const maxPages = searchTerm ? localTotalPages : totalPages;
                   let pageNum: number;
-                  if (totalPages <= 5) {
+                  if (maxPages <= 5) {
                     pageNum = i + 1;
                   } else if (currentPage <= 3) {
                     pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
+                  } else if (currentPage >= maxPages - 2) {
+                    pageNum = maxPages - 4 + i;
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
@@ -419,8 +480,11 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
                 })}
                 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    const maxPages = searchTerm ? localTotalPages : totalPages;
+                    setCurrentPage(prev => Math.min(prev + 1, maxPages));
+                  }}
+                  disabled={currentPage >= (searchTerm ? localTotalPages : totalPages)}
                   className="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm font-medium text-gray-700 dark:text-dark-300 hover:bg-gray-50 dark:hover:bg-dark-600 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   <ChevronRight className="h-5 w-5" />

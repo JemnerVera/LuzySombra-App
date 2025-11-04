@@ -411,7 +411,7 @@ def generate_markdown_catalog(tables_data: Dict[str, Dict], output_file: str):
     md_content.append("          └─ GROWER.LOT (lote)\n")
     md_content.append("              ├─ GROWER.PLANTATION (relación lote-variedad)\n")
     md_content.append("              │   └─ GROWER.VARIETY (variedad)\n")
-    md_content.append("              └─ IMAGE.ANALISIS_IMAGEN (nuestra tabla nueva)\n")
+    md_content.append("              └─ image.Analisis_Imagen (nuestra tabla nueva)\n")
     md_content.append("\nMAST.USERS (usuarios)\n")
     md_content.append("```\n\n")
     

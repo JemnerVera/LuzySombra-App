@@ -11,7 +11,7 @@ export async function GET() {
         (SELECT COUNT(*) FROM GROWER.STAGE WHERE statusID = 1) as sectores,
         (SELECT COUNT(*) FROM GROWER.LOT WHERE statusID = 1) as lotes,
         (SELECT COUNT(*) FROM MAST.USERS WHERE statusID = 1) as usuarios,
-        (SELECT COUNT(*) FROM IMAGE.ANALISIS_IMAGEN WHERE statusID = 1) as analisis_imagenes
+        (SELECT COUNT(*) FROM image.Analisis_Imagen WHERE statusID = 1) as analisis_imagenes
     `);
 
     // Test: Obtener algunas empresas como ejemplo

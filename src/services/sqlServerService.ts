@@ -81,12 +81,13 @@ class SqlServerService {
       const startTime = Date.now();
 
       // Usar tablas GROWER de AgroMigiva (BD_PACKING_AGROMIGIVA_DESA)
+      // Nota: growerID está en STAGE, no en FARMS
       const rows = await query<JerarquiaRow>(`
         SELECT 
-          g.businessName as empresa,
-          f.Description as fundo,
-          s.stage as sector,
-          l.name as lote,
+          g.businessName as [empresa],
+          f.Description as [fundo],
+          s.stage as [sector],
+          l.name as [lote],
           g.growerID,
           f.farmID,
           s.stageID,
@@ -94,7 +95,7 @@ class SqlServerService {
         FROM GROWER.LOT l
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
-        INNER JOIN GROWER.GROWERS g ON f.growerID = g.growerID
+        INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
         WHERE l.statusID = 1 
           AND s.statusID = 1 
           AND f.statusID = 1 
@@ -104,6 +105,19 @@ class SqlServerService {
 
       const fetchTime = Date.now() - startTime;
       console.log(`📊 SQL Server fetch completed in ${fetchTime}ms (${rows.length} records)`);
+      
+      // Debug: Log primeros registros para verificar columnas
+      if (rows.length > 0) {
+        console.log('📊 Sample row (raw):', JSON.stringify(rows[0], null, 2));
+        console.log('📊 Sample row values:', {
+          empresa: rows[0].empresa,
+          fundo: rows[0].fundo,
+          sector: rows[0].sector,
+          lote: rows[0].lote
+        });
+        console.log('📊 First 3 empresas:', [...new Set(rows.slice(0, 10).map(r => r.empresa))]);
+        console.log('📊 First 3 fundos:', [...new Set(rows.slice(0, 10).map(r => r.fundo))]);
+      }
 
       if (rows.length === 0) {
         console.warn('⚠️ No data found in SQL Server, returning empty structure');
@@ -125,6 +139,10 @@ class SqlServerService {
       };
 
       console.log(`✅ Field data processed: ${processedData.empresa.length} empresas, ${processedData.fundo.length} fundos, ${processedData.sector.length} sectores, ${processedData.lote.length} lotes`);
+      console.log(`📊 Empresas encontradas:`, processedData.empresa.slice(0, 5));
+      console.log(`📊 Fundos encontrados:`, processedData.fundo.slice(0, 5));
+      console.log(`📊 Sectores encontrados:`, processedData.sector.slice(0, 5));
+      console.log(`📊 Lotes encontrados:`, processedData.lote.slice(0, 5));
 
       return processedData;
     } catch (error) {
@@ -179,7 +197,7 @@ class SqlServerService {
       const queryStr = `
         SELECT TOP ${limit}
           a.analisisID,
-          a.dateCreated as fecha_procesamiento,
+          a.fechaCreacion as fecha_procesamiento,
           a.filename as nombre_archivo_original,
           g.businessName as empresa,
           f.Description as fundo,
@@ -189,19 +207,19 @@ class SqlServerService {
           a.planta as numero_planta,
           a.latitud,
           a.longitud,
-          a.porcentaje_luz,
-          a.porcentaje_sombra,
+          a.porcentajeLuz,
+          a.porcentajeSombra,
           '' as dispositivo,
           '' as software,
           '' as direccion
-        FROM IMAGE.ANALISIS_IMAGEN a
+        FROM image.Analisis_Imagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
         INNER JOIN GROWER.GROWERS g ON f.growerID = g.growerID
         WHERE a.statusID = 1
         ${whereClause}
-        ORDER BY a.dateCreated DESC
+        ORDER BY a.fechaCreacion DESC
       `;
 
       const rows = await query<AnalisisRow>(queryStr, params);
@@ -225,8 +243,8 @@ class SqlServerService {
           numero_planta: row.numero_planta || '',
           latitud: row.latitud,
           longitud: row.longitud,
-          porcentaje_luz: row.porcentaje_luz,
-          porcentaje_sombra: row.porcentaje_sombra,
+          porcentaje_luz: row.porcentajeLuz,
+          porcentaje_sombra: row.porcentajeSombra,
           dispositivo: row.dispositivo || '',
           software: row.software || '',
           direccion: row.direccion || '',
@@ -297,9 +315,15 @@ class SqlServerService {
       console.log('✅ Empresa encontrada, ID:', growerID);
 
       console.log('🔍 Buscando fundo:', result.fundo);
+      // FARMS no tiene growerID directamente, hay que buscar a través de STAGE
       const fundoResult = await query<{ farmID: string }>(`
-        SELECT farmID FROM GROWER.FARMS 
-        WHERE Description = @fundo AND growerID = @growerID AND statusID = 1
+        SELECT DISTINCT f.farmID 
+        FROM GROWER.FARMS f
+        INNER JOIN GROWER.STAGE s ON f.farmID = s.farmID
+        WHERE f.Description = @fundo 
+          AND s.growerID = @growerID 
+          AND f.statusID = 1 
+          AND s.statusID = 1
       `, { fundo: result.fundo, growerID });
 
       if (fundoResult.length === 0) {
@@ -379,26 +403,26 @@ class SqlServerService {
         }
       }
       
-      request.input('fecha_captura', sql.DateTime, fechaCaptura);
-      request.input('porcentaje_luz', sql.Decimal(5, 2), parseFloat(result.porcentaje_luz.toFixed(2)));
-      request.input('porcentaje_sombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
+      request.input('fechaCaptura', sql.DateTime, fechaCaptura);
+      request.input('porcentajeLuz', sql.Decimal(5, 2), parseFloat(result.porcentaje_luz.toFixed(2)));
+      request.input('porcentajeSombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
       request.input('latitud', sql.Decimal(10, 8), result.latitud);
       request.input('longitud', sql.Decimal(11, 8), result.longitud);
-      request.input('processed_image_url', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
-      request.input('userCreatedID', sql.Int, userCreatedID);
+      request.input('processedImageUrl', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
+      request.input('usuarioCreaID', sql.Int, userCreatedID);
 
-      console.log('💾 Ejecutando INSERT en IMAGE.ANALISIS_IMAGEN...');
+      console.log('💾 Ejecutando INSERT en image.Analisis_Imagen...');
       const insertResult = await request.query(`
-        INSERT INTO IMAGE.ANALISIS_IMAGEN (
-          lotID, hilera, planta, filename, filepath, fecha_captura,
-          porcentaje_luz, porcentaje_sombra, latitud, longitud,
-          processed_image_url, userCreatedID, statusID
+        INSERT INTO image.Analisis_Imagen (
+          lotID, hilera, planta, filename, filepath, fechaCaptura,
+          porcentajeLuz, porcentajeSombra, latitud, longitud,
+          processedImageUrl, usuarioCreaID, statusID
         )
         OUTPUT INSERTED.analisisID
         VALUES (
-          @lotID, @hilera, @planta, @filename, @filepath, @fecha_captura,
-          @porcentaje_luz, @porcentaje_sombra, @latitud, @longitud,
-          @processed_image_url, @userCreatedID, 1
+          @lotID, @hilera, @planta, @filename, @filepath, @fechaCaptura,
+          @porcentajeLuz, @porcentajeSombra, @latitud, @longitud,
+          @processedImageUrl, @usuarioCreaID, 1
         )
       `);
 
@@ -427,6 +451,18 @@ class SqlServerService {
    * Procesa los datos crudos para crear la estructura jerárquica y listas únicas
    */
   private processFieldData(rawData: JerarquiaRow[]): FieldData {
+    // Debug: Verificar estructura de datos recibidos
+    if (rawData.length > 0) {
+      const firstRow = rawData[0];
+      console.log('📊 Processing field data - First row keys:', Object.keys(firstRow));
+      console.log('📊 Processing field data - Sample values:', {
+        empresa: firstRow.empresa,
+        fundo: firstRow.fundo,
+        sector: firstRow.sector,
+        lote: firstRow.lote
+      });
+    }
+    
     // Extraer listas únicas
     const empresas = [...new Set(rawData.map(item => item.empresa).filter(Boolean))].sort();
     const fundos = [...new Set(rawData.map(item => item.fundo).filter(Boolean))].sort();
@@ -487,8 +523,8 @@ class SqlServerService {
    */
   async testConnection(): Promise<boolean> {
     try {
-      const result = await query<{ total: number }>('SELECT COUNT(*) as total FROM image.lote');
-      console.log(`✅ SQL Server connection OK (${result[0].total} lotes)`);
+      const result = await query<{ total: number }>('SELECT COUNT(*) as total FROM GROWER.LOT WHERE statusID = 1');
+      console.log(`✅ SQL Server connection OK (${result[0].total} lotes activos)`);
       return true;
     } catch (error) {
       console.error('❌ SQL Server connection test failed:', error);

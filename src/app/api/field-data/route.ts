@@ -22,14 +22,39 @@ export async function GET() {
         const responseTime = Date.now() - startTime;
         
         console.log(`✅ [field-data] SQL Server response in ${responseTime}ms`);
+        console.log(`📊 [field-data] Data summary:`, {
+          empresas: fieldData.empresa?.length || 0,
+          fundos: fieldData.fundo?.length || 0,
+          sectores: fieldData.sector?.length || 0,
+          lotes: fieldData.lote?.length || 0,
+          sampleEmpresas: fieldData.empresa?.slice(0, 3) || [],
+          sampleFundos: fieldData.fundo?.slice(0, 3) || []
+        });
         
-        return NextResponse.json({
+        // Preparar respuesta
+        const jsonStartTime = Date.now();
+        const responseData = {
           success: true,
           source: 'sql_server',
           data: fieldData,
           responseTime,
           timestamp: new Date().toISOString()
+        };
+        
+        const jsonPrepTime = Date.now() - jsonStartTime;
+        console.log(`📊 [field-data] JSON prepared in ${jsonPrepTime}ms`);
+        
+        const response = NextResponse.json(responseData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          },
         });
+        
+        const totalTime = Date.now() - startTime;
+        console.log(`📊 [field-data] Total response time: ${totalTime}ms`);
+        
+        return response;
       } catch (sqlError) {
         console.error('❌ [field-data] SQL Server error:', sqlError);
         

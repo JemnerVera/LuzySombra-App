@@ -96,10 +96,18 @@ export interface TestFormData {
   imagen: File;
 }
 
-export type TabType = 'analizar' | 'probar' | 'historial' | 'consolidada';
+export type TabType = 'analizar' | 'probar' | 'historial' | 'consolidada' | 'evaluacion-por-lote' | 'evaluacion-por-fecha' | 'evaluacion-detalle-planta' | 'detalle-por-evaluacion';
 
 export interface NotificationState {
   show: boolean;
   message: string;
   type: 'success' | 'error' | 'warning' | 'info';
+}
+
+// Navegación de detalle
+export interface DetalleNavigation {
+  fundo: string;
+  sector: string;
+  lote: string;
+  fecha?: string; // Para navegación a detalle de plantas
 }

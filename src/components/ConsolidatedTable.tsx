@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api';
 import { formatDate, exportToCSV } from '../utils/helpers';
-import { Download, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, RefreshCw, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useFieldData } from '../hooks/useFieldData';
+import { DetalleNavigation } from '../types';
 
 interface ConsolidatedTableProps {
   onNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  onNavigateToDetalle?: (navigation: DetalleNavigation) => void;
 }
 
 interface ConsolidatedRow {
@@ -26,7 +28,7 @@ interface ConsolidatedRow {
   porcentajeSombraProm: number | null;
 }
 
-const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification }) => {
+const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification, onNavigateToDetalle }) => {
   const [data, setData] = useState<ConsolidatedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
   const [filterSector, setFilterSector] = useState('');
   const [filterLote, setFilterLote] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 20;
   const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const isInitialMount = useRef(true);
@@ -58,7 +60,7 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
       if (filterSector) params.sector = filterSector;
       if (filterLote) params.lote = filterLote;
       
-      const response = await fetch(`/api/tabla-consolidada?${new URLSearchParams(params as Record<string, string>).toString()}`);
+      const response = await fetch(`/api/tabla-consolidada?${new URLSearchParams(Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))).toString()}`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -277,67 +279,85 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
       {/* Tabla */}
       <div className="bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                            <thead className="bg-gray-50 dark:bg-dark-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fundo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Sector</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Lote</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Variedad</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Estado Fenológico</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Días Cianamida</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Fecha Última Evaluación</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Mín</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Máx</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Luz Prom</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Mín</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Máx</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">% Sombra Prom</th>
-                  </tr>
-                </thead>
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700 text-xs">
+            <thead className="bg-gray-50 dark:bg-dark-700">
+              <tr>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Fundo</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Sector</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Lote</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Variedad</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Estado Fenológico</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Días Cianamida</th>
+                <th rowSpan={2} className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">Fecha Última Evaluación</th>
+                <th colSpan={3} className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">% Luz</th>
+                <th colSpan={3} className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider border-r border-gray-300 dark:border-dark-600">% Sombra</th>
+                <th rowSpan={2} className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-dark-300 uppercase tracking-wider">Ver Detalle</th>
+              </tr>
+              <tr>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300 border-r border-gray-300 dark:border-dark-600">Min</th>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300 border-r border-gray-300 dark:border-dark-600">Prom</th>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300 border-r border-gray-300 dark:border-dark-600">Max</th>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300 border-r border-gray-300 dark:border-dark-600">Min</th>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300 border-r border-gray-300 dark:border-dark-600">Prom</th>
+                <th className="px-1 py-1 text-center text-xs font-medium text-gray-500 dark:text-dark-300">Max</th>
+              </tr>
+            </thead>
             <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-200 dark:divide-dark-700">
               {loading ? (
                 <tr>
-                  <td colSpan={13} className="px-6 py-8 text-center">
+                  <td colSpan={14} className="px-6 py-8 text-center">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-500" />
                     <p className="text-gray-600 dark:text-dark-300">Cargando datos...</p>
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-6 py-8 text-center text-gray-500 dark:text-dark-400">
+                  <td colSpan={14} className="px-6 py-8 text-center text-gray-500 dark:text-dark-400">
                     No hay datos disponibles
                   </td>
                 </tr>
               ) : (
-                data.map((row, index) => (
+                                data.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.fundo}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.sector}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.lote}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.variedad || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.estadoFenologico || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{row.diasCianamida !== null ? row.diasCianamida : '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.fundo}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.sector}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.lote}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.variedad || '-'}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.estadoFenologico || '-'}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">{row.diasCianamida !== null ? row.diasCianamida : '-'}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">
                       {row.fechaUltimaEvaluacion ? formatDate(row.fechaUltimaEvaluacion) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
                       {row.porcentajeLuzMin !== null ? row.porcentajeLuzMin.toFixed(2) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {row.porcentajeLuzMax !== null ? row.porcentajeLuzMax.toFixed(2) : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
                       {row.porcentajeLuzProm !== null ? row.porcentajeLuzProm.toFixed(2) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
+                      {row.porcentajeLuzMax !== null ? row.porcentajeLuzMax.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
                       {row.porcentajeSombraMin !== null ? row.porcentajeSombraMin.toFixed(2) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
+                      {row.porcentajeSombraProm !== null ? row.porcentajeSombraProm.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
                       {row.porcentajeSombraMax !== null ? row.porcentajeSombraMax.toFixed(2) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {row.porcentajeSombraProm !== null ? row.porcentajeSombraProm.toFixed(2) : '-'}
+                    <td className="px-2 py-2 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => {
+                          if (onNavigateToDetalle) {
+                            onNavigateToDetalle({ fundo: row.fundo, sector: row.sector, lote: row.lote });
+                          }
+                        }}
+                        className="inline-flex items-center justify-center p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Ver detalle histórico"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -433,3 +453,4 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification })
 };
 
 export default ConsolidatedTable;
+

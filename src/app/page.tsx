@@ -7,12 +7,16 @@ import ImageUploadForm from '../components/ImageUploadForm';
 import ModelTestForm from '../components/ModelTestForm';
 import HistoryTable from '../components/HistoryTable';
 import ConsolidatedTable from '../components/ConsolidatedTable';
+import EvaluacionPorFecha from '../components/EvaluacionPorFecha';
+import EvaluacionDetallePlanta from '../components/EvaluacionDetallePlanta';
 import Notification from '../components/Notification';
+import { DetalleNavigation } from '../types';
 
 export default function Home() {
   const [currentTab, setCurrentTab] = useState<TabType>('analizar');
   const [hasUnsavedData, setHasUnsavedData] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
+  const [detalleNavigation, setDetalleNavigation] = useState<DetalleNavigation | null>(null);
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
@@ -93,8 +97,40 @@ export default function Home() {
           />
         );
       case 'consolidada':
+      case 'evaluacion-por-lote':
         return (
           <ConsolidatedTable 
+            onNotification={showNotification}
+            onNavigateToDetalle={(nav) => {
+              setDetalleNavigation(nav);
+              setCurrentTab('evaluacion-por-fecha');
+            }}
+          />
+        );
+      case 'evaluacion-por-fecha':
+        if (!detalleNavigation) {
+          return <div>Error: No se especificó el lote</div>;
+        }
+        return (
+          <EvaluacionPorFecha
+            navigation={detalleNavigation}
+            onBack={() => setCurrentTab('evaluacion-por-lote')}
+            onNavigateToDetallePlanta={(nav) => {
+              setDetalleNavigation(nav);
+              setCurrentTab('detalle-por-evaluacion');
+            }}
+            onNotification={showNotification}
+          />
+        );
+      case 'evaluacion-detalle-planta':
+      case 'detalle-por-evaluacion':
+        if (!detalleNavigation || !detalleNavigation.fecha) {
+          return <div>Error: No se especificó la fecha</div>;
+        }
+        return (
+          <EvaluacionDetallePlanta
+            navigation={detalleNavigation}
+            onBack={() => setCurrentTab('evaluacion-por-fecha')}
             onNotification={showNotification}
           />
         );

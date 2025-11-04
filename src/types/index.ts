@@ -96,7 +96,7 @@ export interface TestFormData {
   imagen: File;
 }
 
-export type TabType = 'analizar' | 'probar' | 'historial';
+export type TabType = 'analizar' | 'probar' | 'historial' | 'consolidada';
 
 export interface NotificationState {
   show: boolean;

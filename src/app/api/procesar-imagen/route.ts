@@ -5,6 +5,7 @@ import { TensorFlowService } from '../../../services/tensorflowService';
 import { createCanvas, loadImage } from 'canvas';
 import { parseFilename } from '../../../utils/filenameParser';
 import { extractDateTimeFromImageServer } from '../../../utils/exif-server';
+import { createThumbnail, estimateBase64Size } from '../../../utils/imageThumbnail';
 
 // Singleton instance for server-side TensorFlow
 let serverTensorFlowService: TensorFlowService | null = null;
@@ -104,6 +105,21 @@ export async function POST(request: NextRequest) {
       exifDateTime: exifDateTime
     };
 
+    // Crear thumbnail optimizado para guardar en BD (más pequeño y eficiente)
+    console.log('🖼️ Creando thumbnail optimizado...');
+    const originalSize = estimateBase64Size(tfResult.processedImageData);
+    console.log(`📊 Tamaño imagen original: ~${originalSize} KB`);
+    
+    const thumbnail = await createThumbnail(tfResult.processedImageData, 800, 600, 0.7);
+    const thumbnailSize = estimateBase64Size(thumbnail);
+    console.log(`📊 Tamaño thumbnail: ~${thumbnailSize} KB (reducción: ${Math.round((1 - thumbnailSize/originalSize) * 100)}%)`);
+    
+    // Agregar thumbnail al resultado para guardar en BD
+    const processingResultWithThumbnail = {
+      ...processingResult,
+      thumbnail: thumbnail
+    };
+
     // Save to data store (SQL Server and/or Google Sheets)
     const dataSource = process.env.DATA_SOURCE || 'sql'; // 'sql', 'sheets', 'hybrid'
     let sqlAnalisisId: number | null = null;
@@ -112,7 +128,7 @@ export async function POST(request: NextRequest) {
     // Guardar en SQL Server
     if (dataSource === 'sql' || dataSource === 'hybrid') {
       try {
-        sqlAnalisisId = await sqlServerService.saveProcessingResult(processingResult);
+        sqlAnalisisId = await sqlServerService.saveProcessingResult(processingResultWithThumbnail);
         console.log(`✅ Processing result saved to SQL Server (ID: ${sqlAnalisisId})`);
       } catch (sqlError) {
         console.error('⚠️ Error saving to SQL Server:', sqlError);

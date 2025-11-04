@@ -117,7 +117,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
               <span className="text-sm text-blue-700 dark:text-blue-300">
-                Conectando con Google Sheets y cargando datos...
+                Cargando historial desde SQL Server...
               </span>
             </div>
           </div>

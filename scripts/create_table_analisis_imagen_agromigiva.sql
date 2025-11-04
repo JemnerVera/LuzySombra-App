@@ -44,7 +44,6 @@ BEGIN
         
         -- Datos de la imagen
         filename NVARCHAR(500) NOT NULL,
-        filepath NVARCHAR(MAX) NULL,  -- Base64 puede ser muy largo
         fechaCaptura DATETIME NULL,
         
         -- Resultados del análisis
@@ -56,15 +55,13 @@ BEGIN
         longitud DECIMAL(11,8) NULL,
         
         -- Metadatos
-        processedImageUrl NVARCHAR(MAX) NULL,  -- Base64 o URL
+        processedImageUrl NVARCHAR(MAX) NULL,  -- Thumbnail optimizado en Base64 (JPEG, ~100-200KB)
         modeloVersion NVARCHAR(50) NULL DEFAULT 'heuristic_v1',
         
         -- Auditoría (según estándares AgroMigiva - LowerCamelCase)
         statusID INT NOT NULL DEFAULT 1,
         usuarioCreaID INT NOT NULL DEFAULT 1,
         fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-        usuarioModificaID INT NULL,
-        fechaModificacion DATETIME NULL,
         
         -- Constraints con nomenclatura estándar
         CONSTRAINT PK_Analisis_Imagen PRIMARY KEY (analisisID),

@@ -15,6 +15,7 @@ export interface ProcessingRecord {
   hora: string;
   imagen: string;
   nombre_archivo: string;
+  imagen_url?: string | null; // URL o Base64 de la imagen procesada
   empresa: string;
   fundo: string;
   sector: string;
@@ -46,6 +47,7 @@ interface AnalisisRow {
   analisisid: number;
   fecha_procesamiento: Date;
   nombre_archivo_original: string;
+  tieneImagen: number; // 1 si tiene imagen, 0 si no
   empresa: string;
   fundo: string;
   sector: string;
@@ -54,8 +56,8 @@ interface AnalisisRow {
   numero_planta: string | null;
   latitud: number | null;
   longitud: number | null;
-  porcentaje_luz: number;
-  porcentaje_sombra: number;
+  porcentajeLuz: number;
+  porcentajeSombra: number;
   dispositivo: string | null;
   software: string | null;
   direccion: string | null;
@@ -173,8 +175,8 @@ class SqlServerService {
 
       const limit = filters?.limit || 500;
 
-      // Build dynamic query with filters (usando abreviaturas para sector y lote)
-      let whereClause = 'WHERE 1=1';
+      // Build dynamic query with filters
+      let whereClause = 'WHERE a.statusID = 1';
       const params: Record<string, string> = {};
 
       if (filters?.empresa) {
@@ -194,11 +196,14 @@ class SqlServerService {
         params.lote = filters.lote;
       }
 
+      // NO incluir processedImageUrl en el SELECT principal para mejor rendimiento
+      // La imagen se carga solo cuando se necesita (lazy loading)
       const queryStr = `
         SELECT TOP ${limit}
           a.analisisID,
           a.fechaCreacion as fecha_procesamiento,
           a.filename as nombre_archivo_original,
+          CASE WHEN a.processedImageUrl IS NOT NULL THEN 1 ELSE 0 END as tieneImagen,
           g.businessName as empresa,
           f.Description as fundo,
           s.stage as sector,
@@ -216,8 +221,7 @@ class SqlServerService {
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
-        INNER JOIN GROWER.GROWERS g ON f.growerID = g.growerID
-        WHERE a.statusID = 1
+        INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
         ${whereClause}
         ORDER BY a.fechaCreacion DESC
       `;
@@ -229,12 +233,19 @@ class SqlServerService {
 
       const historial: ProcessingRecord[] = rows.map((row, index) => {
         const fecha = new Date(row.fecha_procesamiento);
+        // Construir URL para cargar imagen bajo demanda (lazy loading)
+        // La imagen se carga solo cuando el usuario hace click en ver
+        const imagenUrl = row.tieneImagen 
+          ? `/api/imagen/${row.analisisid}` // URL del endpoint para cargar imagen bajo demanda
+          : null;
+        
         return {
           id: row.analisisid.toString(),
           fecha: fecha.toLocaleDateString('es-ES'),
           hora: fecha.toLocaleTimeString('es-ES'),
           imagen: row.nombre_archivo_original,
           nombre_archivo: row.nombre_archivo_original,
+          imagen_url: imagenUrl, // URL para cargar imagen bajo demanda (no Base64 en el historial)
           empresa: row.empresa,
           fundo: row.fundo,
           sector: row.sector,
@@ -289,6 +300,7 @@ class SqlServerService {
     processed_image: string;
     timestamp: string;
     exifDateTime?: { date: string; time: string } | null;
+    thumbnail?: string; // Thumbnail optimizado para guardar en BD
   }): Promise<number> {
     try {
       console.log('💾 Saving processing result to SQL Server...');
@@ -388,7 +400,10 @@ class SqlServerService {
       request.input('hilera', sql.NVarChar(50), result.hilera || '');
       request.input('planta', sql.NVarChar(50), result.numero_planta || '');
       request.input('filename', sql.NVarChar(500), result.fileName);
-      request.input('filepath', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
+      
+      // Guardar thumbnail optimizado en processedImageUrl
+      const thumbnailBase64 = result.thumbnail || null;
+      request.input('processedImageUrl', sql.NVarChar(sql.MAX), thumbnailBase64);
       
       // Fecha de captura desde EXIF si está disponible
       let fechaCaptura = null;
@@ -408,19 +423,19 @@ class SqlServerService {
       request.input('porcentajeSombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
       request.input('latitud', sql.Decimal(10, 8), result.latitud);
       request.input('longitud', sql.Decimal(11, 8), result.longitud);
-      request.input('processedImageUrl', sql.NVarChar(sql.MAX), result.processed_image); // Base64 puede ser muy largo
       request.input('usuarioCreaID', sql.Int, userCreatedID);
 
-      console.log('💾 Ejecutando INSERT en image.Analisis_Imagen...');
+      const thumbnailInfo = thumbnailBase64 ? `con thumbnail (~${Math.round((thumbnailBase64.length * 3) / 4 / 1024)} KB)` : 'sin imagen';
+      console.log(`💾 Ejecutando INSERT en image.Analisis_Imagen ${thumbnailInfo}...`);
       const insertResult = await request.query(`
         INSERT INTO image.Analisis_Imagen (
-          lotID, hilera, planta, filename, filepath, fechaCaptura,
+          lotID, hilera, planta, filename, fechaCaptura,
           porcentajeLuz, porcentajeSombra, latitud, longitud,
           processedImageUrl, usuarioCreaID, statusID
         )
         OUTPUT INSERTED.analisisID
         VALUES (
-          @lotID, @hilera, @planta, @filename, @filepath, @fechaCaptura,
+          @lotID, @hilera, @planta, @filename, @fechaCaptura,
           @porcentajeLuz, @porcentajeSombra, @latitud, @longitud,
           @processedImageUrl, @usuarioCreaID, 1
         )

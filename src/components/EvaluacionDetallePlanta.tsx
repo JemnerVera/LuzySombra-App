@@ -19,6 +19,7 @@ interface PlantaRow {
   filename: string;
   fechaCaptura: string | null;
   processedImageUrl: string | null;
+  originalImageUrl: string | null;
 }
 
 const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({ 
@@ -29,7 +30,8 @@ const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({
   const [data, setData] = useState<PlantaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; filename: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; filename: string; hasOriginal: boolean; hasProcessed: boolean } | null>(null);
+  const [showOriginal, setShowOriginal] = useState(true); // Toggle entre original y procesada
 
   useEffect(() => {
     if (navigation.fecha) {
@@ -74,11 +76,16 @@ const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({
   };
 
   const handleImageClick = (row: PlantaRow) => {
-    if (row.processedImageUrl) {
+    // Priorizar imagen original sobre procesada
+    const imageUrl = row.originalImageUrl || row.processedImageUrl;
+    if (imageUrl) {
       setSelectedImage({
-        url: row.processedImageUrl,
-        filename: row.filename
+        url: imageUrl,
+        filename: row.filename,
+        hasOriginal: !!row.originalImageUrl,
+        hasProcessed: !!row.processedImageUrl
       });
+      setShowOriginal(!!row.originalImageUrl); // Mostrar original si existe, sino procesada
     } else {
       onNotification('No hay imagen disponible para esta evaluación', 'warning');
     }
@@ -178,9 +185,9 @@ const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({
                       <td className="px-4 py-3 whitespace-nowrap text-center">
                         <button
                           onClick={() => handleImageClick(row)}
-                          disabled={!row.processedImageUrl}
+                          disabled={!row.originalImageUrl && !row.processedImageUrl}
                           className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={row.processedImageUrl ? 'Ver imagen' : 'No hay imagen disponible'}
+                          title={row.originalImageUrl || row.processedImageUrl ? 'Ver imagen original' : 'No hay imagen disponible'}
                         >
                           <ImageIcon className="h-5 w-5 mr-1" />
                           Ver
@@ -196,43 +203,82 @@ const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({
       </div>
 
       {/* Modal de Imagen */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-          <div className="bg-white dark:bg-dark-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Imagen: {selectedImage.filename}
-              </h2>
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+      {selectedImage && (() => {
+        const currentRow = data.find(r => r.filename === selectedImage.filename);
+        const currentImageUrl = showOriginal && currentRow?.originalImageUrl 
+          ? currentRow.originalImageUrl 
+          : currentRow?.processedImageUrl || selectedImage.url;
+        
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+            <div className="bg-white dark:bg-dark-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Imagen: {selectedImage.filename}
+                  </h2>
+                  {/* Toggle entre original y procesada */}
+                  {selectedImage.hasOriginal && selectedImage.hasProcessed && (
+                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                      <button
+                        onClick={() => setShowOriginal(true)}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          showOriginal
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                        }`}
+                      >
+                        Original
+                      </button>
+                      <button
+                        onClick={() => setShowOriginal(false)}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          !showOriginal
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                        }`}
+                      >
+                        Procesada
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
-              <img
-                src={selectedImage.url}
-                alt={selectedImage.filename}
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
-              />
-            </div>
+              {/* Content */}
+              <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
+                <img
+                  src={currentImageUrl}
+                  alt={selectedImage.filename}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end p-6 border-t border-gray-200 dark:border-dark-700">
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Cerrar
-              </button>
+              {/* Footer */}
+              <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-dark-700">
+                <p className="text-sm text-gray-500 dark:text-dark-400">
+                  {showOriginal && currentRow?.originalImageUrl 
+                    ? 'Imagen original (comprimida, 400x300)' 
+                    : 'Imagen procesada con Machine Learning'}
+                </p>
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 };

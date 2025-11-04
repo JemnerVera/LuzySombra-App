@@ -49,42 +49,45 @@ export async function GET(request: NextRequest) {
     const lotID = lotResult[0].lotID;
 
     // Obtener las entradas individuales para esa fecha
-    const rows = await query<{
-      analisisID: number;
-      hilera: string | null;
-      planta: string | null;
-      porcentajeLuz: number;
-      porcentajeSombra: number;
-      filename: string;
-      fechaCaptura: Date | null;
-      processedImageUrl: string | null;
-    }>(`
-      SELECT 
-        ai.analisisID,
-        ai.hilera,
-        ai.planta,
-        ai.porcentajeLuz,
-        ai.porcentajeSombra,
-        ai.filename,
-        ai.fechaCaptura,
-        ai.processedImageUrl
-      FROM image.Analisis_Imagen ai WITH (NOLOCK)
-      WHERE ai.lotID = @lotID 
-        AND ai.statusID = 1
-        AND CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE) = CAST(@fecha AS DATE)
-      ORDER BY ai.hilera, ai.planta, ai.fechaCreacion
-    `, { lotID, fecha });
+            const rows = await query<{
+          analisisID: number;
+          hilera: string | null;
+          planta: string | null;
+          porcentajeLuz: number;
+          porcentajeSombra: number;
+          filename: string;
+          fechaCaptura: Date | null;
+          processedImageUrl: string | null;
+          originalImageUrl: string | null;
+        }>(`
+          SELECT
+            ai.analisisID,
+            ai.hilera,
+            ai.planta,
+            ai.porcentajeLuz,
+            ai.porcentajeSombra,
+            ai.filename,
+            ai.fechaCaptura,
+            ai.processedImageUrl,
+            ai.originalImageUrl
+          FROM image.Analisis_Imagen ai WITH (NOLOCK)
+          WHERE ai.lotID = @lotID
+            AND ai.statusID = 1
+            AND CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE) = CAST(@fecha AS DATE)
+          ORDER BY ai.hilera, ai.planta, ai.fechaCreacion
+        `, { lotID, fecha });
 
-    const data = rows.map(row => ({
-      analisisID: row.analisisID,
-      hilera: row.hilera || '-',
-      planta: row.planta || '-',
-      porcentajeLuz: row.porcentajeLuz,
-      porcentajeSombra: row.porcentajeSombra,
-      filename: row.filename,
-      fechaCaptura: row.fechaCaptura?.toISOString() || null,
-      processedImageUrl: row.processedImageUrl || null,
-    }));
+        const data = rows.map(row => ({
+          analisisID: row.analisisID,
+          hilera: row.hilera || '-',
+          planta: row.planta || '-',
+          porcentajeLuz: row.porcentajeLuz,
+          porcentajeSombra: row.porcentajeSombra,
+          filename: row.filename,
+          fechaCaptura: row.fechaCaptura?.toISOString() || null,
+          processedImageUrl: row.processedImageUrl || null,
+          originalImageUrl: row.originalImageUrl || null,
+        }));
 
     console.log(`✅ [tabla-consolidada/detalle-planta] Obtenidas ${data.length} plantas para lotID ${lotID}, fecha ${fecha}`);
 

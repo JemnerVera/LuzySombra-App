@@ -325,9 +325,19 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification, o
                     <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.variedad || '-'}</td>
                     <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">{row.estadoFenologico || '-'}</td>
                     <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">{row.diasCianamida !== null ? row.diasCianamida : '-'}</td>
-                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">
-                      {row.fechaUltimaEvaluacion ? formatDate(row.fechaUltimaEvaluacion) : '-'}
-                    </td>
+                                          <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white">
+                       {row.fechaUltimaEvaluacion && row.fechaUltimaEvaluacion.trim() !== '' 
+                         ? (() => {
+                             try {
+                               const date = new Date(row.fechaUltimaEvaluacion);
+                               if (isNaN(date.getTime())) return '-';
+                               return formatDate(row.fechaUltimaEvaluacion);
+                             } catch {
+                               return '-';
+                             }
+                           })()
+                         : '-'}
+                      </td>
                     <td className="px-1 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-white text-center">
                       {row.porcentajeLuzMin !== null ? row.porcentajeLuzMin.toFixed(2) : '-'}
                     </td>

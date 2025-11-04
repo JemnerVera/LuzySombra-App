@@ -54,11 +54,11 @@ Crea un archivo `.env.local` con:
 
 ```bash
 # SQL Server AgroMigiva Configuration
-SQL_SERVER=***REMOVED***
-SQL_DATABASE=***REMOVED***
+SQL_SERVER=your_server_ip_or_hostname
+SQL_DATABASE=your_database_name
 SQL_PORT=1433
-SQL_USER=***REMOVED***
-SQL_PASSWORD=your_password_here
+SQL_USER=your_sql_user
+SQL_PASSWORD=your_sql_password
 SQL_ENCRYPT=true
 
 # Data Source (sql | google_sheets)

@@ -1,6 +1,6 @@
 # 📚 Catálogo de Schemas - Tablas Existentes AgroMigiva
 ## Base de Datos
-*****REMOVED***** en servidor `***REMOVED***`
+*****REMOVED***** (configurar servidor en `.env.local`)
 **Generado automáticamente** el 2025-11-02 19:59:09
 
 ---

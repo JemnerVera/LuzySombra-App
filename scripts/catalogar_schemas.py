@@ -325,7 +325,7 @@ def generate_markdown_catalog(tables_data: Dict[str, Dict], output_file: str):
     md_content = []
     md_content.append("# 📚 Catálogo de Schemas - Tablas Existentes AgroMigiva\n")
     md_content.append("## Base de Datos\n")
-    md_content.append("*****REMOVED***** en servidor `***REMOVED***`\n")
+    md_content.append("*****REMOVED***** (configurar servidor en `.env.local`)\n")
     md_content.append("**Generado automáticamente** el " + 
                       __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n")
     md_content.append("\n---\n")

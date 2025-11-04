@@ -77,16 +77,33 @@ export const apiService = {
     return Promise.all(promises);
   },
 
-  // Get processing history
-  getHistory: async (): Promise<ApiResponse<HistoryRecord[]>> => {
-    const response = await api.get('/api/historial');
-    // El backend devuelve { success: true, procesamientos: [...] }
-    // pero el frontend espera { success: true, data: [...] }
+  // Get processing history with pagination
+  getHistory: async (params?: { page?: number; pageSize?: number; empresa?: string; fundo?: string; sector?: string; lote?: string }): Promise<ApiResponse<HistoryRecord[]>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    if (params?.empresa) queryParams.append('empresa', params.empresa);
+    if (params?.fundo) queryParams.append('fundo', params.fundo);
+    if (params?.sector) queryParams.append('sector', params.sector);
+    if (params?.lote) queryParams.append('lote', params.lote);
+    
+    const url = `/api/historial${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await api.get(url);
+    
+    // El backend devuelve { success: true, procesamientos: [...], total, page, pageSize, totalPages }
+    // Retornamos también la información de paginación
     if (response.data.success && response.data.procesamientos) {
       return {
         success: true,
-        data: response.data.procesamientos
-      };
+        data: response.data.procesamientos,
+        // Incluir información de paginación
+        pagination: {
+          total: response.data.total,
+          page: response.data.page,
+          pageSize: response.data.pageSize,
+          totalPages: response.data.totalPages
+        }
+      } as any;
     }
     return response.data;
   },

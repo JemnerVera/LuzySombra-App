@@ -322,6 +322,225 @@ class SqlServerService {
   }
 
   /**
+   * Obtiene la tabla consolidada de lotes con información de variedad, estado fenológico,
+   * días de cianamida, y estadísticas de luz/sombra
+   */
+  async getConsolidatedTable(filters?: {
+    fundo?: string;
+    sector?: string;
+    lote?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
+    success: boolean;
+    data: Array<{
+      fundo: string;
+      sector: string;
+      lote: string;
+      variedad: string | null;
+      estadoFenologico: string | null;
+      diasCianamida: number | null;
+      fechaUltimaEvaluacion: string | null;
+      porcentajeLuzMin: number | null;
+      porcentajeLuzMax: number | null;
+      porcentajeLuzProm: number | null;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    try {
+      const startTime = Date.now();
+      
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 50;
+      const offset = (page - 1) * pageSize;
+
+      // Construir WHERE clause para filtros
+      const whereConditions: string[] = [];
+      const params: Record<string, unknown> = {};
+
+      if (filters?.fundo) {
+        whereConditions.push('f.Description = @fundo');
+        params.fundo = filters.fundo;
+      }
+
+      if (filters?.sector) {
+        whereConditions.push('s.stage = @sector');
+        params.sector = filters.sector;
+      }
+
+      if (filters?.lote) {
+        whereConditions.push('l.name = @lote');
+        params.lote = filters.lote;
+      }
+
+      // Agregar filtros de estado activo
+      whereConditions.push('l.statusID = 1');
+      whereConditions.push('s.statusID = 1');
+      whereConditions.push('f.statusID = 1');
+
+      const whereClause = whereConditions.length > 0 
+        ? 'WHERE ' + whereConditions.join(' AND ')
+        : '';
+
+      // Query principal consolidado
+      // Nota: Estado fenológico se deja como NULL por ahora ya que no hay relación directa
+      // entre PPP.ESTADOFENOLOGICO y GROWER.LOT en las tablas disponibles
+      const consolidatedQuery = `
+        WITH CianamidaData AS (
+          -- Query de cianamida proporcionado por PROD - Solo la más reciente por lote
+          SELECT 
+            LOTID,
+            DIAS,
+            CAMPAIGNID,
+            ROW_NUMBER() OVER (PARTITION BY LOTID ORDER BY FECHAPROGRAMACION DESC) AS rn
+          FROM (
+            SELECT 
+              A.LOTID,
+              D.FECHAPROGRAMACION,
+              DATEDIFF(DAY, D.FECHAPROGRAMACION, GETDATE()) AS DIAS,
+              A.CAMPAIGNID
+            FROM PPP.PROYECCION A WITH (NOLOCK)
+            INNER JOIN PPP.PROYECCIONDETALLEFITOSANIDAD B WITH (NOLOCK) 
+              ON B.PROYECCIONID = A.PROYECCIONID
+            INNER JOIN PPP.PROGRAMACIONFITOSANIDADDETALLE C WITH (NOLOCK) 
+              ON C.PROYECCIONDETALLEFITOSANIDADID = B.PROYECCIONDETALLEFITOSANIDADID
+            INNER JOIN PPP.PROGRAMACION D WITH (NOLOCK) 
+              ON D.PROGRAMACIONID = C.PROGRAMACIONID
+            INNER JOIN PROPER.PROGRAMACIONFITOSANIDADMOVIMIENTOS E WITH (NOLOCK) 
+              ON E.PROGRAMACIONID = D.PROGRAMACIONID
+            CROSS APPLY (
+              SELECT VALUE AS PRODUCTID 
+              FROM STRING_SPLIT((SELECT VALOR FROM PROPER.PARAMETROS WHERE CLAVE = 'IDS_CIANAMIDA'), ',')
+            ) AS CIANAMIDA
+            WHERE B.PRODUCTID = CIANAMIDA.PRODUCTID 
+              AND B.FASECULTIVOID = 1
+          ) AS CianamidaRaw
+        ),
+        CianamidaFinal AS (
+          SELECT LOTID, DIAS, CAMPAIGNID
+          FROM CianamidaData
+          WHERE rn = 1
+        ),
+        ImagenStats AS (
+          -- Estadísticas de luz/sombra desde image.Analisis_Imagen
+          SELECT 
+            lotID,
+            MIN(porcentajeLuz) AS porcentajeLuzMin,
+            MAX(porcentajeLuz) AS porcentajeLuzMax,
+            AVG(CAST(porcentajeLuz AS FLOAT)) AS porcentajeLuzProm,
+            MAX(COALESCE(fechaCaptura, fechaCreacion)) AS fechaUltimaEvaluacion
+          FROM image.Analisis_Imagen WITH (NOLOCK)
+          WHERE statusID = 1
+          GROUP BY lotID
+        )
+        SELECT 
+          f.Description AS fundo,
+          s.stage AS sector,
+          l.name AS lote,
+          v.name AS variedad,
+          NULL AS estadoFenologico, -- TODO: Relacionar con PPP.ESTADOFENOLOGICO cuando se identifique la relación
+          cd.DIAS AS diasCianamida,
+          CAST(img.fechaUltimaEvaluacion AS VARCHAR) AS fechaUltimaEvaluacion,
+          img.porcentajeLuzMin,
+          img.porcentajeLuzMax,
+          CAST(img.porcentajeLuzProm AS DECIMAL(5,2)) AS porcentajeLuzProm
+        FROM GROWER.LOT l WITH (NOLOCK)
+        INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+        LEFT JOIN GROWER.PLANTATION p WITH (NOLOCK) 
+          ON l.lotID = p.lotID 
+          AND p.statusID = 1
+        LEFT JOIN GROWER.VARIETY v WITH (NOLOCK) 
+          ON p.varietyID = v.varietyID 
+          AND v.statusID = 1
+        LEFT JOIN CianamidaFinal cd ON l.lotID = cd.LOTID
+        LEFT JOIN ImagenStats img ON l.lotID = img.lotID
+        ${whereClause}
+        GROUP BY 
+          f.Description,
+          s.stage,
+          l.name,
+          v.name,
+          cd.DIAS,
+          img.fechaUltimaEvaluacion,
+          img.porcentajeLuzMin,
+          img.porcentajeLuzMax,
+          img.porcentajeLuzProm
+        ORDER BY f.Description, s.stage, l.name
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `;
+
+      // Query para contar total (sin OFFSET/FETCH)
+      const countQuery = `
+        WITH CianamidaData AS (
+          SELECT DISTINCT A.LOTID
+          FROM PPP.PROYECCION A WITH (NOLOCK)
+          INNER JOIN PPP.PROYECCIONDETALLEFITOSANIDAD B WITH (NOLOCK) 
+            ON B.PROYECCIONID = A.PROYECCIONID
+          INNER JOIN PPP.PROGRAMACIONFITOSANIDADDETALLE C WITH (NOLOCK) 
+            ON C.PROYECCIONDETALLEFITOSANIDADID = B.PROYECCIONDETALLEFITOSANIDADID
+          INNER JOIN PPP.PROGRAMACION D WITH (NOLOCK) 
+            ON D.PROGRAMACIONID = C.PROGRAMACIONID
+          INNER JOIN PROPER.PROGRAMACIONFITOSANIDADMOVIMIENTOS E WITH (NOLOCK) 
+            ON E.PROGRAMACIONID = D.PROGRAMACIONID
+          CROSS APPLY (
+            SELECT VALUE AS PRODUCTID 
+            FROM STRING_SPLIT((SELECT VALOR FROM PROPER.PARAMETROS WHERE CLAVE = 'IDS_CIANAMIDA'), ',')
+          ) AS CIANAMIDA
+          WHERE B.PRODUCTID = CIANAMIDA.PRODUCTID 
+            AND B.FASECULTIVOID = 1
+        )
+        SELECT COUNT(DISTINCT l.lotID) AS total
+        FROM GROWER.LOT l WITH (NOLOCK)
+        INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+        ${whereClause}
+      `;
+
+      params.offset = offset;
+      params.pageSize = pageSize;
+
+      const [rows, countResult] = await Promise.all([
+        query<{
+          fundo: string;
+          sector: string;
+          lote: string;
+          variedad: string | null;
+          estadoFenologico: string | null;
+          diasCianamida: number | null;
+          fechaUltimaEvaluacion: string | null;
+          porcentajeLuzMin: number | null;
+          porcentajeLuzMax: number | null;
+          porcentajeLuzProm: number | null;
+        }>(consolidatedQuery, params),
+        query<{ total: number }>(countQuery, params)
+      ]);
+
+      const total = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / pageSize);
+
+      const fetchTime = Date.now() - startTime;
+      console.log(`📊 Consolidated table fetch completed in ${fetchTime}ms (${rows.length} records, total: ${total})`);
+
+      return {
+        success: true,
+        data: rows,
+        total,
+        page,
+        pageSize,
+        totalPages
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo tabla consolidada:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Guarda el resultado de un procesamiento de imagen en SQL Server
    */
   async saveProcessingResult(result: {

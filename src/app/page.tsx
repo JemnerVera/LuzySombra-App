@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import ImageUploadForm from '../components/ImageUploadForm';
 import ModelTestForm from '../components/ModelTestForm';
 import HistoryTable from '../components/HistoryTable';
+import ConsolidatedTable from '../components/ConsolidatedTable';
 import Notification from '../components/Notification';
 
 export default function Home() {
@@ -88,6 +89,12 @@ export default function Home() {
       case 'historial':
         return (
           <HistoryTable 
+            onNotification={showNotification}
+          />
+        );
+      case 'consolidada':
+        return (
+          <ConsolidatedTable 
             onNotification={showNotification}
           />
         );

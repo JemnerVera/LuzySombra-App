@@ -5,5 +5,6 @@ export const UI_CONFIG = {
     { id: 'analizar', label: 'Analizar Imágenes', icon: 'upload' },
     { id: 'probar', label: 'Probar Modelo', icon: 'eye' },
     { id: 'historial', label: 'Historial', icon: 'bar-chart-3' },
+    { id: 'consolidada', label: 'Tabla Consolidada', icon: 'table' },
   ] as const,
 };

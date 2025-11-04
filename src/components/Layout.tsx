@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
-import { Upload, Eye, BarChart3, Sun, Moon } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon } from 'lucide-react';
 
 interface LayoutProps {
   currentTab: TabType;
@@ -35,6 +35,8 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <Eye className="h-5 w-5" />;
       case 'bar-chart-3':
         return <BarChart3 className="h-5 w-5" />;
+      case 'table':
+        return <Table className="h-5 w-5" />;
       default:
         return null;
     }

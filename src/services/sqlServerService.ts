@@ -328,7 +328,8 @@ class SqlServerService {
   /**
    * Obtiene la tabla consolidada de lotes
    * Usa la vista vwc_CianamidaFenologia para cianamida y estado fenológico
-   * Calcula estadísticas de ImagenStats en el backend
+   * Usa image.LoteEvaluacion para estadísticas de luz/sombra (tabla precalculada)
+   * Esta tabla debe estar actualizada mediante sp_CalcularLoteEvaluacion
    */
   async getConsolidatedTable(filters?: {
     fundo?: string;
@@ -412,8 +413,9 @@ class SqlServerService {
         ? 'WHERE ' + whereConditions.join(' AND ')
         : '';
 
-      // Query optimizada: primero paginamos los lotes, luego consultamos la vista solo para esos lotes
-      // Esto evita que SQL Server evalúe toda la vista antes de filtrar
+      // Query optimizada: usa image.LoteEvaluacion (tabla precalculada) en lugar de calcular ImagenStats
+      // Esto es mucho más rápido porque usa datos precalculados en lugar de agregar en tiempo real
+      // IMPORTANTE: Usa LEFT JOINs para incluir lotes sin fenología/cianamida/evaluaciones
       const consolidatedQuery = `
         WITH LotesPaginados AS (
           -- Primero obtener SOLO los lotes de la página actual (optimización clave)
@@ -429,31 +431,6 @@ class SqlServerService {
           ORDER BY f.Description, s.stage, l.name
           OFFSET @offset ROWS
           FETCH NEXT @pageSize ROWS ONLY
-        ),
-        CianamidaFenologia AS (
-          -- Consultar la vista SOLO para los lotes de esta página (evita evaluación completa)
-          SELECT 
-            cf.lotID,
-            cf.estadoFenologico,
-            cf.diasCianamida
-          FROM dbo.vwc_CianamidaFenologia cf WITH (NOLOCK)
-          INNER JOIN LotesPaginados lp ON cf.lotID = lp.lotID
-        ),
-        ImagenStats AS (
-          -- Calcular estadísticas SOLO para los lotes de esta página (muy rápido)
-          SELECT 
-            ai.lotID,
-            MIN(ai.porcentajeLuz) AS porcentajeLuzMin,
-            MAX(ai.porcentajeLuz) AS porcentajeLuzMax,
-            AVG(CAST(ai.porcentajeLuz AS FLOAT)) AS porcentajeLuzProm,
-            MIN(ai.porcentajeSombra) AS porcentajeSombraMin,
-            MAX(ai.porcentajeSombra) AS porcentajeSombraMax,
-            AVG(CAST(ai.porcentajeSombra AS FLOAT)) AS porcentajeSombraProm,
-            MAX(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaUltimaEvaluacion
-          FROM image.Analisis_Imagen ai WITH (NOLOCK)
-          INNER JOIN LotesPaginados lp ON ai.lotID = lp.lotID
-          WHERE ai.statusID = 1
-          GROUP BY ai.lotID
         )
         SELECT 
           lp.fundo,
@@ -463,16 +440,16 @@ class SqlServerService {
           cf.estadoFenologico,
           cf.diasCianamida,
           CASE 
-            WHEN img.fechaUltimaEvaluacion IS NOT NULL 
-            THEN CONVERT(VARCHAR(23), img.fechaUltimaEvaluacion, 126)
+            WHEN le.fechaUltimaEvaluacion IS NOT NULL 
+            THEN CONVERT(VARCHAR(23), le.fechaUltimaEvaluacion, 126)
             ELSE NULL 
           END AS fechaUltimaEvaluacion,
-          img.porcentajeLuzMin,
-          img.porcentajeLuzMax,
-          CAST(img.porcentajeLuzProm AS DECIMAL(5,2)) AS porcentajeLuzProm,
-          img.porcentajeSombraMin,
-          img.porcentajeSombraMax,
-          CAST(img.porcentajeSombraProm AS DECIMAL(5,2)) AS porcentajeSombraProm
+          le.porcentajeLuzMin,
+          le.porcentajeLuzMax,
+          CAST(le.porcentajeLuzPromedio AS DECIMAL(5,2)) AS porcentajeLuzProm,
+          le.porcentajeSombraMin,
+          le.porcentajeSombraMax,
+          CAST(le.porcentajeSombraPromedio AS DECIMAL(5,2)) AS porcentajeSombraProm
         FROM LotesPaginados lp
         LEFT JOIN GROWER.PLANTATION p WITH (NOLOCK) 
           ON lp.lotID = p.lotID 
@@ -480,8 +457,11 @@ class SqlServerService {
         LEFT JOIN GROWER.VARIETY v WITH (NOLOCK) 
           ON p.varietyID = v.varietyID 
           AND v.statusID = 1
-        LEFT JOIN CianamidaFenologia cf ON lp.lotID = cf.lotID
-        LEFT JOIN ImagenStats img ON lp.lotID = img.lotID
+        LEFT JOIN dbo.vwc_CianamidaFenologia cf WITH (NOLOCK) 
+          ON lp.lotID = cf.lotID
+        LEFT JOIN image.LoteEvaluacion le WITH (NOLOCK) 
+          ON lp.lotID = le.lotID 
+          AND le.statusID = 1
         ORDER BY lp.fundo, lp.sector, lp.lote
       `;
 
@@ -739,6 +719,22 @@ class SqlServerService {
       const saveTime = Date.now() - startTime;
 
       console.log(`✅ Processing result saved to SQL Server in ${saveTime}ms (ID: ${analisisID})`);
+
+      // 4. Actualizar image.LoteEvaluacion para mantener sincronizado
+      try {
+        console.log(`📊 Actualizando estadísticas de lote para lotID ${lotID}...`);
+        const updateStartTime = Date.now();
+        await query(`
+          EXEC image.sp_CalcularLoteEvaluacion @LotID = @lotID
+        `, { lotID });
+        const updateTime = Date.now() - updateStartTime;
+        console.log(`✅ Estadísticas de lote actualizadas en ${updateTime}ms`);
+      } catch (updateError) {
+        // No fallar si la actualización de estadísticas falla (puede ser que la tabla no exista aún)
+        console.warn('⚠️ Error actualizando image.LoteEvaluacion (continuando):', updateError);
+        console.warn('⚠️ Nota: Esto puede ser normal si la tabla image.LoteEvaluacion aún no existe.');
+        console.warn('⚠️ Ejecuta el script: scripts/create_table_lote_evaluacion.sql');
+      }
 
       // Clear cache to force refresh on next load
       this.historialCache = null;

@@ -481,6 +481,225 @@ class SqlServerService {
     };
   }
 
+  async getConsolidatedTable(filters?: {
+    fundo?: string;
+    sector?: string;
+    lote?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
+    success: boolean;
+    data: Array<{
+      fundo: string;
+      sector: string;
+      lote: string;
+      variedad: string | null;
+      estadoFenologico: string | null;
+      diasCianamida: number | null;
+      fechaUltimaEvaluacion: string | null;
+      porcentajeLuzMin: number | null;
+      porcentajeLuzMax: number | null;
+      porcentajeLuzProm: number | null;
+      porcentajeSombraMin: number | null;
+      porcentajeSombraMax: number | null;
+      porcentajeSombraProm: number | null;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    try {
+      const startTime = Date.now();
+      console.log('📊 [getConsolidatedTable] Iniciando...');
+      
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 50;
+      const offset = (page - 1) * pageSize;
+
+      const whereConditions: string[] = [];
+      const params: Record<string, unknown> = {};
+
+      whereConditions.push('l.statusID = 1');
+      whereConditions.push('s.statusID = 1');
+      whereConditions.push('f.statusID = 1');
+
+      if (filters?.fundo) {
+        whereConditions.push('f.Description = @fundo');
+        params.fundo = filters.fundo;
+      }
+
+      if (filters?.sector) {
+        whereConditions.push('s.stage = @sector');
+        params.sector = filters.sector;
+      }
+
+      if (filters?.lote) {
+        whereConditions.push('l.name = @lote');
+        params.lote = filters.lote;
+      }
+
+      const whereClause = whereConditions.length > 0 
+        ? 'WHERE ' + whereConditions.join(' AND ')
+        : '';
+
+      const consolidatedQuery = `
+        WITH LotesPaginados AS (
+          SELECT 
+            l.lotID,
+            f.Description AS fundo,
+            s.stage AS sector,
+            l.name AS lote
+          FROM GROWER.LOT l WITH (NOLOCK)
+          INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+          INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+          ${whereClause}
+          ORDER BY f.Description, s.stage, l.name
+          OFFSET @offset ROWS
+          FETCH NEXT @pageSize ROWS ONLY
+        )
+        SELECT 
+          lp.fundo,
+          lp.sector,
+          lp.lote,
+          v.name AS variedad,
+          cf.estadoFenologico,
+          cf.diasCianamida,
+          CASE 
+            WHEN le.fechaUltimaEvaluacion IS NOT NULL 
+            THEN CONVERT(VARCHAR(23), le.fechaUltimaEvaluacion, 126)
+            ELSE NULL 
+          END AS fechaUltimaEvaluacion,
+          le.porcentajeLuzMin,
+          le.porcentajeLuzMax,
+          CAST(le.porcentajeLuzPromedio AS DECIMAL(5,2)) AS porcentajeLuzProm,
+          le.porcentajeSombraMin,
+          le.porcentajeSombraMax,
+          CAST(le.porcentajeSombraPromedio AS DECIMAL(5,2)) AS porcentajeSombraProm
+        FROM LotesPaginados lp
+        LEFT JOIN GROWER.PLANTATION p WITH (NOLOCK) 
+          ON lp.lotID = p.lotID 
+          AND p.statusID = 1
+        LEFT JOIN GROWER.VARIETY v WITH (NOLOCK) 
+          ON p.varietyID = v.varietyID 
+          AND v.statusID = 1
+        LEFT JOIN dbo.vwc_CianamidaFenologia cf WITH (NOLOCK) 
+          ON lp.lotID = cf.lotID
+        LEFT JOIN image.LoteEvaluacion le WITH (NOLOCK) 
+          ON lp.lotID = le.lotID 
+          AND le.statusID = 1
+        ORDER BY lp.fundo, lp.sector, lp.lote
+      `;
+
+      const countQuery = `
+        SELECT COUNT(DISTINCT l.lotID) AS total
+        FROM GROWER.LOT l WITH (NOLOCK)
+        INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+        ${whereClause}
+      `;
+
+      params.offset = offset;
+      params.pageSize = pageSize;
+
+      const countResult = await query<{ total: number }>(countQuery, params);
+      const rows = await query<{
+        fundo: string;
+        sector: string;
+        lote: string;
+        variedad: string | null;
+        estadoFenologico: string | null;
+        diasCianamida: number | null;
+        fechaUltimaEvaluacion: string | null;
+        porcentajeLuzMin: number | null;
+        porcentajeLuzMax: number | null;
+        porcentajeLuzProm: number | null;
+        porcentajeSombraMin: number | null;
+        porcentajeSombraMax: number | null;
+        porcentajeSombraProm: number | null;
+      }>(consolidatedQuery, params);
+
+      const total = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / pageSize);
+
+      const fetchTime = Date.now() - startTime;
+      console.log(`📊 Consolidated table fetch completed in ${fetchTime}ms (${rows.length} records, total: ${total})`);
+
+      return {
+        success: true,
+        data: rows,
+        total,
+        page,
+        pageSize,
+        totalPages
+      };
+    } catch (error) {
+      console.error('❌ [getConsolidatedTable] Error obteniendo tabla consolidada:', error);
+      throw error;
+    }
+  }
+
+  async getLoteDetalleHistorial(lotID: number): Promise<{
+    success: boolean;
+    data: Array<{
+      fecha: string;
+      luzMin: number | null;
+      luzMax: number | null;
+      luzProm: number | null;
+      sombraMin: number | null;
+      sombraMax: number | null;
+      sombraProm: number | null;
+    }>;
+  }> {
+    try {
+      console.log(`📊 [getLoteDetalleHistorial] Obteniendo detalle histórico para lotID: ${lotID}`);
+      
+      const rows = await query<{
+        fecha: Date;
+        luzMin: number;
+        luzMax: number;
+        luzProm: number;
+        sombraMin: number;
+        sombraMax: number;
+        sombraProm: number;
+      }>(`
+        SELECT 
+          CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE) AS fecha,
+          MIN(ai.porcentajeLuz) AS luzMin,
+          MAX(ai.porcentajeLuz) AS luzMax,
+          AVG(CAST(ai.porcentajeLuz AS FLOAT)) AS luzProm,
+          MIN(ai.porcentajeSombra) AS sombraMin,
+          MAX(ai.porcentajeSombra) AS sombraMax,
+          AVG(CAST(ai.porcentajeSombra AS FLOAT)) AS sombraProm
+        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        WHERE ai.lotID = @lotID 
+          AND ai.statusID = 1
+        GROUP BY CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE)
+        ORDER BY fecha DESC
+      `, { lotID });
+
+      const data = rows.map(row => ({
+        fecha: row.fecha.toISOString().split('T')[0],
+        luzMin: row.luzMin,
+        luzMax: row.luzMax,
+        luzProm: row.luzProm,
+        sombraMin: row.sombraMin,
+        sombraMax: row.sombraMax,
+        sombraProm: row.sombraProm,
+      }));
+
+      console.log(`✅ [getLoteDetalleHistorial] Obtenidos ${data.length} registros para lotID ${lotID}`);
+
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      console.error('❌ [getLoteDetalleHistorial] Error:', error);
+      throw error;
+    }
+  }
+
   clearCache(): void {
     this.fieldDataCache = null;
     this.historialCache = null;

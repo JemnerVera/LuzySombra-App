@@ -11,6 +11,10 @@ import historialRoutes from './routes/historial';
 import imageProcessingRoutes from './routes/image-processing';
 import healthRoutes from './routes/health';
 import testDbRoutes from './routes/test-db';
+import tablaConsolidadaRoutes from './routes/tabla-consolidada';
+import tablaConsolidadaDetalleRoutes from './routes/tabla-consolidada-detalle';
+import tablaConsolidadaDetallePlantaRoutes from './routes/tabla-consolidada-detalle-planta';
+import imagenRoutes from './routes/imagen';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +34,10 @@ app.use('/api/historial', historialRoutes);
 app.use('/api/procesar-imagen', imageProcessingRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/test-db', testDbRoutes);
+app.use('/api/tabla-consolidada', tablaConsolidadaRoutes);
+app.use('/api/tabla-consolidada/detalle', tablaConsolidadaDetalleRoutes);
+app.use('/api/tabla-consolidada/detalle-planta', tablaConsolidadaDetallePlantaRoutes);
+app.use('/api/imagen', imagenRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {

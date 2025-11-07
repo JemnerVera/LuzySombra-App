@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { query } from '../lib/db';
 import { sqlServerService } from '../services/sqlServerService';
 
 const router = express.Router();
@@ -9,17 +10,42 @@ const router = express.Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const lotID = req.query.lotID ? parseInt(req.query.lotID as string) : undefined;
+    const { fundo, sector, lote } = req.query;
 
-    if (!lotID || isNaN(lotID)) {
+    if (!fundo || !sector || !lote) {
       return res.status(400).json({
         success: false,
-        error: 'lotID es requerido y debe ser un número válido'
+        error: 'Faltan parámetros requeridos: fundo, sector, lote'
       });
     }
 
-    console.log(`📊 [tabla-consolidada/detalle] Obteniendo detalle histórico para lotID: ${lotID}`);
+    console.log(`📊 [tabla-consolidada/detalle] Obteniendo lotID para: ${fundo} - ${sector} - ${lote}`);
 
+    // Buscar el lotID desde el nombre del lote, sector y fundo
+    const lotResult = await query<{ lotID: number }>(`
+      SELECT l.lotID
+      FROM GROWER.LOT l WITH (NOLOCK)
+      INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+      INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+      WHERE f.Description = @fundo
+        AND s.stage = @sector
+        AND l.name = @lote
+        AND l.statusID = 1
+        AND s.statusID = 1
+        AND f.statusID = 1
+    `, { fundo, sector, lote });
+
+    if (!lotResult || lotResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Lote no encontrado'
+      });
+    }
+
+    const lotID = lotResult[0].lotID;
+    console.log(`📊 [tabla-consolidada/detalle] lotID encontrado: ${lotID}`);
+
+    // Obtener el detalle histórico
     const result = await sqlServerService.getLoteDetalleHistorial(lotID);
 
     res.json(result);

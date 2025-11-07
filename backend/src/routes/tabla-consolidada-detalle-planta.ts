@@ -9,24 +9,39 @@ const router = express.Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const lotID = req.query.lotID ? parseInt(req.query.lotID as string) : undefined;
-    const fecha = req.query.fecha as string;
+    const { fundo, sector, lote, fecha } = req.query;
 
-    if (!lotID || isNaN(lotID)) {
+    if (!fundo || !sector || !lote || !fecha) {
       return res.status(400).json({
         success: false,
-        error: 'lotID es requerido y debe ser un número válido'
+        error: 'Faltan parámetros requeridos: fundo, sector, lote, fecha'
       });
     }
 
-    if (!fecha) {
-      return res.status(400).json({
+    console.log(`📊 [tabla-consolidada/detalle-planta] Obteniendo plantas para: ${fundo} - ${sector} - ${lote} - ${fecha}`);
+
+    // Buscar el lotID
+    const lotResult = await query<{ lotID: number }>(`
+      SELECT l.lotID
+      FROM GROWER.LOT l WITH (NOLOCK)
+      INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+      INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+      WHERE f.Description = @fundo
+        AND s.stage = @sector
+        AND l.name = @lote
+        AND l.statusID = 1
+        AND s.statusID = 1
+        AND f.statusID = 1
+    `, { fundo, sector, lote });
+
+    if (!lotResult || lotResult.length === 0) {
+      return res.status(404).json({
         success: false,
-        error: 'fecha es requerida (formato: YYYY-MM-DD)'
+        error: 'Lote no encontrado'
       });
     }
 
-    console.log(`📊 [tabla-consolidada/detalle-planta] Obteniendo plantas para lotID: ${lotID}, fecha: ${fecha}`);
+    const lotID = lotResult[0].lotID;
 
     const rows = await query<{
       hilera: string | null;

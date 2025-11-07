@@ -28,7 +28,7 @@ const config: sql.config = {
     // Encriptar para servidor remoto (AgroMigiva), pero permitir desactivar para desarrollo local
     encrypt: process.env.SQL_ENCRYPT !== 'false',
     requestTimeout: 60000, // 60 segundos timeout para requests (para queries complejas)
-    connectionTimeout: 30000, // 30 segundos timeout para establecer conexión
+    connectTimeout: 30000, // 30 segundos timeout para establecer conexión
   },
   
   // Pool de conexiones
@@ -66,8 +66,8 @@ export async function query<T = any>(
     const connection = await getConnection();
     const request = connection.request();
     
-    // Configurar timeout del request (60 segundos por defecto, puede ser sobrescrito por config)
-    request.timeout = 60000;
+    // El timeout se configura en el config.options.requestTimeout
+    // No es necesario configurarlo aquí ya que se establece en la configuración
     
     // Agregar parámetros si existen
     if (params) {

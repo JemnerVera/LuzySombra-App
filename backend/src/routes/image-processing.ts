@@ -5,7 +5,7 @@ import { sqlServerService } from '../services/sqlServerService';
 import { imageProcessingService } from '../services/imageProcessingService';
 import { parseFilename } from '../utils/filenameParser';
 import { extractDateTimeFromImageServer } from '../utils/exif-server';
-import { createThumbnail, estimateBase64Size } from '../utils/imageThumbnail';
+import { createThumbnail } from '../utils/imageThumbnail';
 
 // Configurar multer para manejar archivos en memoria
 const upload = multer({
@@ -31,9 +31,6 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
 
     const { empresa, fundo, sector, lote, hilera, numero_planta, latitud, longitud } = req.body;
 
-    console.log('🚀 Processing image:', req.file.originalname);
-    console.log('📋 Data:', { empresa, fundo, sector, lote });
-
     const file = req.file;
     const imageBuffer = file.buffer;
     
@@ -41,10 +38,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     const originalImageBase64 = `data:${file.mimetype || 'image/jpeg'};base64,${imageBuffer.toString('base64')}`;
     
     // Crear thumbnail comprimido de la imagen original
-    console.log('🖼️ Creando thumbnail comprimido de imagen original...');
     const originalThumbnail = await createThumbnail(originalImageBase64, 400, 300, 0.5);
-    const originalThumbnailSize = estimateBase64Size(originalThumbnail);
-    console.log(`📊 Tamaño thumbnail original: ~${originalThumbnailSize} KB`);
     
     // Load image using canvas (Node.js compatible)
     const img = await loadImage(imageBuffer);
@@ -56,8 +50,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     ctx.drawImage(img, 0, 0);
     const imageDataResult = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Process with heuristic algorithm (NO TensorFlow needed)
-    console.log('🧠 Procesando imagen con algoritmo heurístico (sin TensorFlow)...');
+    // Process with heuristic algorithm
     const processingResult = await imageProcessingService.classifyImagePixels(imageDataResult);
 
     // Extract data from filename (if available)
@@ -69,11 +62,8 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     let exifDateTime = null;
     try {
       exifDateTime = await extractDateTimeFromImageServer(imageBuffer, file.originalname);
-      if (exifDateTime) {
-        console.log(`📅 EXIF date extracted: ${exifDateTime.date} ${exifDateTime.time}`);
-      }
     } catch (error) {
-      console.log('⚠️ Could not extract EXIF date/time:', error);
+      // EXIF extraction failed, continue without date
     }
 
     // Create processing result
@@ -96,39 +86,30 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       exifDateTime: exifDateTime
     };
 
-    // Crear thumbnail optimizado para guardar en BD
-    console.log('🖼️ Creando thumbnail optimizado...');
-    const originalSize = estimateBase64Size(processingResult.processedImageData);
-    console.log(`📊 Tamaño imagen procesada: ~${originalSize} KB`);
-    
-    const thumbnail = await createThumbnail(processingResult.processedImageData, 800, 600, 0.7);
-    const thumbnailSize = estimateBase64Size(thumbnail);
-    console.log(`📊 Tamaño thumbnail: ~${thumbnailSize} KB`);
+        // Crear thumbnail optimizado para guardar en BD
+        const thumbnail = await createThumbnail(processingResult.processedImageData, 800, 600, 0.7);
 
-    // Agregar thumbnails al resultado
-    const resultWithThumbnail = {
-      ...result,
-      thumbnail: thumbnail,
-      originalThumbnail: originalThumbnail
-    };
+        // Agregar thumbnails al resultado
+        const resultWithThumbnail = {
+          ...result,
+          thumbnail: thumbnail,
+          originalThumbnail: originalThumbnail
+        };
 
-    // Save to SQL Server
-    const dataSource = process.env.DATA_SOURCE || 'sql';
-    let sqlAnalisisId: number | null = null;
+        // Save to SQL Server
+        const dataSource = process.env.DATA_SOURCE || 'sql';
+        let sqlAnalisisId: number | null = null;
 
-    if (dataSource === 'sql' || dataSource === 'hybrid') {
-      try {
-        sqlAnalisisId = await sqlServerService.saveProcessingResult(resultWithThumbnail);
-        console.log(`✅ Processing result saved to SQL Server (ID: ${sqlAnalisisId})`);
-      } catch (sqlError) {
-        console.error('⚠️ Error saving to SQL Server:', sqlError);
-        if (dataSource === 'sql') {
-          throw sqlError;
+        if (dataSource === 'sql' || dataSource === 'hybrid') {
+          try {
+            sqlAnalisisId = await sqlServerService.saveProcessingResult(resultWithThumbnail);
+          } catch (sqlError) {
+            console.error('❌ Error saving to SQL Server:', sqlError);
+            if (dataSource === 'sql') {
+              throw sqlError;
+            }
+          }
         }
-      }
-    }
-
-    console.log('✅ Image processing completed:', result.fileName);
 
     res.json({
       ...result,
@@ -166,14 +147,11 @@ testModelRouter.post('/', upload.single('file'), async (req: Request, res: Respo
     ctx.drawImage(img, 0, 0);
     const imageDataResult = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Process with heuristic algorithm (NO TensorFlow needed)
-    console.log('🧠 Testing model with heuristic algorithm...');
+    // Process with heuristic algorithm
     const processingResult = await imageProcessingService.classifyImagePixels(imageDataResult);
 
     // Convert processed image to base64
     const processedImageData = processingResult.processedImageData;
-
-    console.log('✅ Model test completed:', file.originalname);
 
     res.json({
       success: true,

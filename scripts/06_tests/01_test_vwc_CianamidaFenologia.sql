@@ -1,8 +1,41 @@
 -- =====================================================
--- Script de Prueba: Verificar Query de Cianamida y Estado Fenologico
--- Descripcion: Ejecuta un SELECT con la misma logica que tendra la vista
+-- SCRIPT: Test de Vista vwc_CianamidaFenologia
+-- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Tipo: Test / Verificación
+-- Propósito: Ejecutar query con la misma lógica que tendrá la vista
 -- para verificar que los datos son correctos antes de crear la vista
--- Vista: vwc_CianamidaFenologia (estandar: vwc_ para vistas compuestas)
+-- Vista: vwc_CianamidaFenologia (estándar: vwc_ para vistas compuestas)
+-- =====================================================
+-- 
+-- OBJETOS CREADOS:
+--   ❌ Ninguno (solo consultas SELECT de prueba)
+-- 
+-- OBJETOS MODIFICADOS:
+--   ❌ Ninguno (solo lectura)
+-- 
+-- DEPENDENCIAS:
+--   ⚠️  Requiere las mismas tablas que vwc_CianamidaFenologia:
+--      - GROWER.LOT
+--      - PPP.PROYECCION
+--      - PPP.PROYECCIONDETALLEFITOSANIDAD
+--      - PPP.PROGRAMACIONFITOSANIDADDETALLE
+--      - PPP.PROGRAMACION
+--      - PROPER.PROGRAMACIONFITOSANIDADMOVIMIENTOS
+--      - PROPER.PARAMETROS
+--      - PPP.ESTADOFENOLOGICO
+--      - evalAgri.evaluacionPlagaEnfermedad
+--      - evalAgri.EstadoFenologico
+-- 
+-- ORDEN DE EJECUCIÓN:
+--   Ejecutar ANTES de crear la vista para validar lógica
+-- 
+-- CONTENIDO:
+--   - Query de prueba con límite de 50 registros
+--   - Misma lógica que la vista vwc_CianamidaFenologia
+--   - Útil para debugging y validación
+-- 
+-- NOTA: Este es un script de TEST, no crea objetos de producción
+-- 
 -- =====================================================
 
 -- Query de prueba (límite de 50 registros para revisión rápida)

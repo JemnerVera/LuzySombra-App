@@ -1,10 +1,41 @@
 -- =====================================================
--- Vista: Cianamida y Estado Fenologico por Lote
--- Descripcion: Vista compuesta que consolida la informacion de dias desde cianamida
--- y estado fenologico por lote, usando el query de PROD para cianamida
--- Prioriza estado fenologico desde cianamida, fallback a evaluaciones
+-- SCRIPT: Crear Vista vwc_CianamidaFenologia
+-- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: dbo
+-- Propósito: Vista compuesta que consolida información de días desde cianamida
+-- y estado fenológico por lote. Prioriza estado fenológico desde cianamida,
+-- fallback a evaluaciones.
 -- Estándares: LowerCamelCase, prefijo vwc_ para vistas compuestas
+-- =====================================================
+-- 
+-- OBJETOS CREADOS:
+--   ✅ Vistas:
+--      - dbo.vwc_CianamidaFenologia
+--   ✅ Extended Properties:
+--      - Documentación de vista y columnas
+-- 
+-- OBJETOS MODIFICADOS:
+--   ❌ Ninguno
+-- 
+-- DEPENDENCIAS:
+--   ⚠️  Requiere: GROWER.LOT (tabla existente)
+--   ⚠️  Requiere: PPP.PROYECCION (tabla existente)
+--   ⚠️  Requiere: PPP.PROYECCIONDETALLEFITOSANIDAD (tabla existente)
+--   ⚠️  Requiere: PPP.PROGRAMACIONFITOSANIDADDETALLE (tabla existente)
+--   ⚠️  Requiere: PPP.PROGRAMACION (tabla existente)
+--   ⚠️  Requiere: PROPER.PROGRAMACIONFITOSANIDADMOVIMIENTOS (tabla existente)
+--   ⚠️  Requiere: PROPER.PARAMETROS (tabla existente) - para IDs_CIANAMIDA
+--   ⚠️  Requiere: PPP.ESTADOFENOLOGICO (tabla existente)
+--   ⚠️  Requiere: evalAgri.evaluacionPlagaEnfermedad (tabla existente)
+--   ⚠️  Requiere: evalAgri.EstadoFenologico (tabla existente)
+-- 
+-- ORDEN DE EJECUCIÓN:
+--   Puede ejecutarse en cualquier momento (no depende de schema image)
+-- 
+-- USADO POR:
+--   - getConsolidatedTable (query consolidada - fuente de fenología/cianamida)
+--   - src/services/sqlServerService.ts (getConsolidatedTable)
+-- 
 -- =====================================================
 
 IF EXISTS (SELECT * FROM sys.views WHERE object_id = OBJECT_ID(N'[dbo].[vwc_CianamidaFenologia]'))

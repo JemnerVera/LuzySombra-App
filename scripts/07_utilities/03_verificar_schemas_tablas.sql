@@ -1,8 +1,37 @@
 -- =====================================================
--- SCRIPT: Verificar Schemas de Todas las Tablas Existentes
+-- SCRIPT: Verificar Schemas de Tablas Existentes
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Servidor: 10.1.10.4
--- Propósito: Catalogar estructuras de todas las tablas que usaremos
+-- Tipo: Utilidad / Verificación
+-- Propósito: Catalogar estructuras de todas las tablas existentes que usaremos
+-- =====================================================
+-- 
+-- OBJETOS CREADOS:
+--   ❌ Ninguno (solo consultas SELECT)
+-- 
+-- OBJETOS MODIFICADOS:
+--   ❌ Ninguno (solo lectura)
+-- 
+-- DEPENDENCIAS:
+--   ⚠️  Consulta tablas existentes:
+--      - MAST.USERS
+--      - GROWER.LOT
+--      - GROWER.STAGE
+--      - GROWER.FARMS
+--      - GROWER.GROWERS
+--      - GROWER.PLANTATION
+--      - GROWER.VARIETY
+--      - Y otras tablas relacionadas
+-- 
+-- ORDEN DE EJECUCIÓN:
+--   Puede ejecutarse en cualquier momento (solo lectura)
+-- 
+-- CONTENIDO:
+--   - Consultas INFORMATION_SCHEMA para verificar estructura de tablas
+--   - Útil para debugging y documentación
+-- 
+-- NOTA: Este script es SOLO DE LECTURA, no modifica nada
+-- 
 -- =====================================================
 
 USE BD_PACKING_AGROMIGIVA_DESA;

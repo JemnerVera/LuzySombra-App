@@ -5,6 +5,39 @@
 -- Schema: image
 -- Propósito: Almacenar resultados de análisis de imágenes luz/sombra
 -- =====================================================
+-- 
+-- OBJETOS CREADOS:
+--   ✅ Schema:
+--      - image (si no existe)
+--   ✅ Tablas:
+--      - image.Analisis_Imagen
+--   ✅ Índices:
+--      - IDX_Analisis_Imagen_FECHA_01 (NONCLUSTERED)
+--      - IDX_Analisis_Imagen_LOT_01 (NONCLUSTERED)
+--      - IDX_Analisis_Imagen_UBICACION_01 (NONCLUSTERED)
+--   ✅ Constraints:
+--      - PK_Analisis_Imagen (PRIMARY KEY)
+--      - FK_Analisis_Imagen_LOT_01 (FOREIGN KEY → GROWER.LOT)
+--      - UQ_Analisis_Imagen_FILENAME_LOT_01 (UNIQUE)
+--   ✅ Extended Properties:
+--      - Documentación de tabla y columnas principales
+-- 
+-- OBJETOS MODIFICADOS:
+--   ❌ Ninguno
+-- 
+-- DEPENDENCIAS:
+--   ⚠️  Requiere: GROWER.LOT (tabla existente)
+--   ⚠️  Requiere: MAST.USERS (tabla existente) - para usuarioCreaID
+-- 
+-- ORDEN DE EJECUCIÓN:
+--   1. Este script debe ejecutarse PRIMERO (crea schema image)
+--   2. Luego pueden ejecutarse otros scripts del schema image
+-- 
+-- USADO POR:
+--   - Backend: src/services/sqlServerService.ts (saveProcessingResult)
+--   - API: src/app/api/procesar-imagen/route.ts
+--   - Query consolidada: getConsolidatedTable (indirectamente vía image.LoteEvaluacion)
+-- 
 -- IMPORTANTE: Ejecutar con usuario con permisos de CREATE TABLE
 -- Usuario recomendado: ucown_powerbi_desa
 -- =====================================================
@@ -55,7 +88,8 @@ BEGIN
         longitud DECIMAL(11,8) NULL,
         
         -- Metadatos
-        processedImageUrl NVARCHAR(MAX) NULL,  -- Thumbnail optimizado en Base64 (JPEG, ~100-200KB)
+        processedImageUrl NVARCHAR(MAX) NULL,  -- Thumbnail optimizado en Base64 (JPEG, ~100-200KB) - Imagen procesada con ML
+        originalImageUrl NVARCHAR(MAX) NULL,   -- Imagen original en Base64 (antes del procesamiento ML). Thumbnail comprimido (400x300, calidad 0.5, ~50-100KB)
         modeloVersion NVARCHAR(50) NULL DEFAULT 'heuristic_v1',
         
         -- Auditoría (según estándares AgroMigiva - LowerCamelCase)
@@ -183,6 +217,22 @@ EXEC sp_addextendedproperty
     @level0type = N'SCHEMA', @level0name = N'image',
     @level1type = N'TABLE', @level1name = N'Analisis_Imagen',
     @level2type = N'COLUMN', @level2name = N'longitud';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', 
+    @value = N'Thumbnail optimizado en Base64 (JPEG, ~100-200KB) para minimizar impacto en BD. Imagen procesada con Machine Learning (colores ML aplicados).', 
+    @level0type = N'SCHEMA', @level0name = N'image',
+    @level1type = N'TABLE', @level1name = N'Analisis_Imagen',
+    @level2type = N'COLUMN', @level2name = N'processedImageUrl';
+GO
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', 
+    @value = N'Imagen original en Base64 (antes del procesamiento con Machine Learning). Thumbnail altamente comprimido (400x300, calidad 0.5, ~50-100KB) para minimizar impacto en BD. La imagen procesada (con colores ML) se guarda en processedImageUrl.', 
+    @level0type = N'SCHEMA', @level0name = N'image',
+    @level1type = N'TABLE', @level1name = N'Analisis_Imagen',
+    @level2type = N'COLUMN', @level2name = N'originalImageUrl';
+GO
 
 EXEC sp_addextendedproperty 
     @name = N'MS_Description', 

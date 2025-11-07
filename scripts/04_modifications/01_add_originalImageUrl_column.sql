@@ -1,7 +1,32 @@
 -- =====================================================
 -- SCRIPT: Agregar columna originalImageUrl a image.Analisis_Imagen
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Schema: image
 -- Propósito: Guardar la imagen original antes del procesamiento ML
+-- =====================================================
+-- 
+-- OBJETOS CREADOS:
+--   ❌ Ninguno
+-- 
+-- OBJETOS MODIFICADOS:
+--   ✅ Tablas:
+--      - image.Analisis_Imagen (agrega columna originalImageUrl)
+--   ✅ Extended Properties:
+--      - Documentación de columna originalImageUrl
+-- 
+-- DEPENDENCIAS:
+--   ⚠️  Requiere: image.Analisis_Imagen (tabla debe existir)
+-- 
+-- ORDEN DE EJECUCIÓN:
+--   Después de ejecutar create_table_analisis_imagen.sql
+-- 
+-- USADO POR:
+--   - Backend: src/app/api/procesar-imagen/route.ts (guarda imagen original comprimida)
+--   - Frontend: src/components/EvaluacionDetallePlanta.tsx (muestra imagen original)
+-- 
+-- NOTA: Esta columna almacena thumbnail comprimido (400x300, calidad 0.5, ~50-100KB)
+-- para minimizar impacto en BD mientras permite visualizar imagen original.
+-- 
 -- =====================================================
 
 USE BD_PACKING_AGROMIGIVA_DESA;

@@ -1,5 +1,6 @@
 // Server-side EXIF extraction for Node.js
-import * as piexif from 'piexifjs';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const piexif = require('piexifjs');
 
 export interface DateTimeInfo {
   date: string;

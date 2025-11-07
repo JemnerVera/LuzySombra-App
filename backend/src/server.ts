@@ -15,6 +15,8 @@ import tablaConsolidadaRoutes from './routes/tabla-consolidada';
 import tablaConsolidadaDetalleRoutes from './routes/tabla-consolidada-detalle';
 import tablaConsolidadaDetallePlantaRoutes from './routes/tabla-consolidada-detalle-planta';
 import imagenRoutes from './routes/imagen';
+import estadisticasRoutes from './routes/estadisticas';
+import { testModelRouter, checkGpsInfoRouter } from './routes/image-processing';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,6 +40,9 @@ app.use('/api/tabla-consolidada', tablaConsolidadaRoutes);
 app.use('/api/tabla-consolidada/detalle', tablaConsolidadaDetalleRoutes);
 app.use('/api/tabla-consolidada/detalle-planta', tablaConsolidadaDetallePlantaRoutes);
 app.use('/api/imagen', imagenRoutes);
+app.use('/api/estadisticas', estadisticasRoutes);
+app.use('/api/test-model', testModelRouter);
+app.use('/api/check-gps-info', checkGpsInfoRouter);
 
 // Ruta raíz
 app.get('/', (req, res) => {

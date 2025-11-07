@@ -1,0 +1,60 @@
+// Server-side EXIF extraction for Node.js
+import * as piexif from 'piexifjs';
+
+export interface DateTimeInfo {
+  date: string;
+  time: string;
+}
+
+// Extract date and time from EXIF data on server-side
+export const extractDateTimeFromImageServer = async (file: Buffer, filename: string): Promise<DateTimeInfo | null> => {
+  try {
+    const binary = file.toString('binary');
+    
+    // Extract EXIF data
+    const exifData = piexif.load(binary);
+    
+    if (!exifData || !exifData['0th'] || !exifData['Exif']) {
+      console.log(`❌ No EXIF data found for ${filename}`);
+      return null;
+    }
+
+    // Try different EXIF date fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateTime = (exifData as any)['0th']?.[piexif.ImageIFD.DateTime];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateTimeOriginal = (exifData as any)['Exif']?.[piexif.ExifIFD.DateTimeOriginal];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateTimeDigitized = (exifData as any)['Exif']?.[piexif.ExifIFD.DateTimeDigitized];
+    
+    const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
+    
+    if (dateTimeValue && typeof dateTimeValue === 'string') {
+      // EXIF date format: "YYYY:MM:DD HH:MM:SS"
+      const [datePart, timePart] = dateTimeValue.split(' ');
+      if (datePart && timePart) {
+        // Convert to more readable format
+        const [year, month, day] = datePart.split(':');
+        const [hour, minute, second] = timePart.split(':');
+        
+        const date = `${day}/${month}/${year}`;
+        const time = `${hour}:${minute}:${second}`;
+        
+        const result: DateTimeInfo = { date, time };
+        
+        console.log(`📅 Date/Time found for ${filename}: ${date} ${time}`);
+        return result;
+      } else {
+        console.log(`❌ Invalid date format for ${filename}: ${dateTimeValue}`);
+        return null;
+      }
+    } else {
+      console.log(`❌ No date/time data found for ${filename}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`❌ Error processing EXIF date for ${filename}:`, error);
+    return null;
+  }
+};
+

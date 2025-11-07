@@ -15,6 +15,11 @@ if (missingVars.length > 0) {
   );
 }
 
+// Log de configuración solo en modo desarrollo
+if (process.env.NODE_ENV === 'development') {
+  console.log(`🔧 [DB] Conectando a SQL Server: ${process.env.SQL_SERVER}/${process.env.SQL_DATABASE}`);
+}
+
 const config: sql.config = {
   user: process.env.SQL_USER!,
   password: process.env.SQL_PASSWORD!,
@@ -29,6 +34,8 @@ const config: sql.config = {
     encrypt: process.env.SQL_ENCRYPT !== 'false',
     requestTimeout: 60000, // 60 segundos timeout para requests (para queries complejas)
     connectTimeout: 30000, // 30 segundos timeout para establecer conexión
+    // Evitar warning de TLS ServerName con IP: usar hostname si es IP
+    // Para IPs privadas, trustServerCertificate ya está en true, así que esto es solo para evitar el warning
   },
   
   // Pool de conexiones
@@ -39,17 +46,45 @@ const config: sql.config = {
   },
 };
 
+// Constantes para evitar problemas de TypeScript con config.options
+const CONNECT_TIMEOUT = config.options?.connectTimeout || 30000;
+const REQUEST_TIMEOUT = config.options?.requestTimeout || 60000;
+const ENCRYPT = config.options?.encrypt ?? (process.env.SQL_ENCRYPT !== 'false');
+const TRUST_SERVER_CERT = config.options?.trustServerCertificate ?? true;
+
 let pool: sql.ConnectionPool | null = null;
+let connectionAttempts = 0;
+const maxConnectionAttempts = 3;
 
 /**
  * Obtiene una conexión del pool de SQL Server
  */
 export async function getConnection(): Promise<sql.ConnectionPool> {
-  if (!pool) {
-    pool = await sql.connect(config);
-    console.log('✅ Conectado a SQL Server:', config.database);
+  if (pool && pool.connected) {
+    return pool;
   }
-  return pool;
+
+  connectionAttempts++;
+  
+  try {
+    pool = await sql.connect(config);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ [DB] Conectado a SQL Server: ${config.server}/${config.database}`);
+    }
+    
+    connectionAttempts = 0; // Reset counter on success
+    return pool;
+  } catch (error: any) {
+    console.error(`❌ [DB] Error conectando a SQL Server:`, error.message || error);
+    
+    if (error.code === 'ESOCKET') {
+      console.error(`   💡 Verificar: VPN conectada, firewall, servidor accesible`);
+    }
+    
+    pool = null;
+    throw error;
+  }
 }
 
 /**
@@ -64,10 +99,14 @@ export async function query<T = any>(
 ): Promise<T[]> {
   try {
     const connection = await getConnection();
-    const request = connection.request();
     
-    // El timeout se configura en el config.options.requestTimeout
-    // No es necesario configurarlo aquí ya que se establece en la configuración
+    // Verificar que la conexión esté activa
+    if (!connection.connected) {
+      pool = null; // Forzar reconexión
+      await getConnection();
+    }
+    
+    const request = connection.request();
     
     // Agregar parámetros si existen
     if (params) {
@@ -78,12 +117,14 @@ export async function query<T = any>(
     
     const result = await request.query(queryText);
     return result.recordset as T[];
-  } catch (error) {
-    console.error('❌ Error en query SQL:', error);
-    // Mejorar mensaje de error para timeouts
-    if (error instanceof Error && error.message.includes('timeout')) {
-      throw new Error(`Timeout ejecutando query SQL (60s). La query puede ser muy pesada o la base de datos no responde.`);
+  } catch (error: any) {
+    console.error(`❌ [DB] Error en query:`, error.message || error);
+    
+    // Si es error de conexión, resetear pool
+    if (error.code === 'ESOCKET' || error.code === 'ECONNRESET') {
+      pool = null;
     }
+    
     throw error;
   }
 }

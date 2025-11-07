@@ -42,17 +42,28 @@ npm run install:all
 
 ## 🔧 Configuración
 
-### Backend
+### Paso 1: Conectar VPN (Obligatorio para desarrollo)
+
+**⚠️ IMPORTANTE:** Debes estar conectado a la VPN antes de ejecutar el backend.
+
+1. Conectar a FortiClient VPN:
+   - Nombre: VPN-AGRO
+   - Usuario: jverac
+   - Contraseña: bz7371Xa
+2. Verificar que la VPN esté conectada
+3. Ver `backend/CONFIGURACION_VPN.md` para más detalles
+
+### Paso 2: Configurar Backend
 
 1. Crear archivo `.env` en `backend/`:
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=your_server_ip_or_hostname
-SQL_DATABASE=your_database_name
+SQL_SERVER=10.1.10.4
+SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
 SQL_PORT=1433
-SQL_USER=your_sql_user
-SQL_PASSWORD=your_sql_password
+SQL_USER=ucown_powerbi_desa
+SQL_PASSWORD=D3s4Own03
 SQL_ENCRYPT=true
 
 # Server Configuration
@@ -62,6 +73,8 @@ FRONTEND_URL=http://localhost:3000
 # Data Source (sql | google_sheets)
 DATA_SOURCE=sql
 ```
+
+**⚠️ NOTA:** Las credenciales de VPN NO van en `.env`. La VPN se conecta con FortiClient antes de ejecutar el backend.
 
 ### Frontend
 
@@ -193,18 +206,59 @@ npm run preview          # Preview del build
 
 ## 🚀 Deploy en Azure
 
+### ⚠️ Importante: VPN en Azure
+
+En Azure **NO necesitas** configurar VPN manualmente como en desarrollo local. La conexión se maneja a nivel de infraestructura mediante:
+- Azure Virtual Network (VNet) Integration
+- VPN Site-to-Site
+- ExpressRoute
+
+**Contactar al equipo de infraestructura** para configurar el acceso a la red interna.
+
 ### Backend (Azure App Service)
-1. Configurar variables de entorno en Azure Portal
-2. Deploy mediante Git o Azure DevOps
-3. Configurar conexión a SQL Server
+
+1. **Crear Azure App Service:**
+   - Runtime: Node.js 18 LTS
+   - OS: Linux (recomendado)
+
+2. **Configurar Variables de Entorno (Application Settings):**
+   ```
+   SQL_SERVER=10.1.10.4
+   SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+   SQL_PORT=1433
+   SQL_USER=ucown_powerbi_desa
+   SQL_PASSWORD=D3s4Own03
+   SQL_ENCRYPT=true
+   PORT=3001
+   FRONTEND_URL=https://tu-frontend.azurestaticapps.net
+   DATA_SOURCE=sql
+   NODE_ENV=production
+   ```
+
+3. **Configurar VNet Integration:**
+   - App Service → Networking → VNet integration
+   - Conectar a VNet con acceso a la red interna
+
+4. **Configurar Startup Command:**
+   ```
+   node backend/dist/server.js
+   ```
+
+5. **Deploy:** Git, Azure DevOps, o Azure CLI
 
 ### Frontend (Azure Static Web Apps)
-1. Conectar repositorio a Azure Static Web Apps
-2. Configurar build settings:
+
+1. **Crear Azure Static Web App**
+2. **Conectar repositorio**
+3. **Configurar build settings:**
    - App location: `frontend`
    - Build command: `npm run build`
    - Output location: `dist`
-3. Deploy automático en cada push
+4. **Deploy automático** en cada push
+
+### Documentación Completa
+
+Ver `docs/DEPLOY_AZURE.md` para guía detallada de deploy.
 
 ## 🔒 Seguridad
 

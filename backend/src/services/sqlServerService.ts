@@ -72,12 +72,8 @@ class SqlServerService {
   async getFieldData(): Promise<FieldData> {
     try {
       if (this.fieldDataCache && (Date.now() - this.fieldDataCache.timestamp) < this.cacheTimeout) {
-        console.log('📊 Using cached field data from SQL Server');
         return this.fieldDataCache.data;
       }
-
-      console.log('📊 Fetching field data from SQL Server...');
-      const startTime = Date.now();
 
       const rows = await query<JerarquiaRow>(`
         SELECT 
@@ -100,11 +96,7 @@ class SqlServerService {
         ORDER BY g.businessName, f.Description, s.stage, l.name
       `);
 
-      const fetchTime = Date.now() - startTime;
-      console.log(`📊 SQL Server fetch completed in ${fetchTime}ms (${rows.length} records)`);
-
       if (rows.length === 0) {
-        console.warn('⚠️ No data found in SQL Server, returning empty structure');
         return {
           empresa: [],
           fundo: [],
@@ -120,8 +112,6 @@ class SqlServerService {
         data: processedData,
         timestamp: Date.now()
       };
-
-      console.log(`✅ Field data processed: ${processedData.empresa.length} empresas, ${processedData.fundo.length} fundos`);
 
       return processedData;
     } catch (error) {
@@ -144,7 +134,6 @@ class SqlServerService {
       const page = filters?.page || 1;
 
       if (!filters?.empresa && !filters?.fundo && !filters?.sector && !filters?.lote && !filters?.page && this.historialCache && (Date.now() - this.historialCache.timestamp) < this.cacheTimeout) {
-        console.log('📊 Using cached history data from SQL Server');
         const cachedData = this.historialCache.data;
         if (page === 1) {
           return { 
@@ -158,8 +147,6 @@ class SqlServerService {
         }
       }
 
-      console.log('📊 Fetching history data from SQL Server...');
-      const startTime = Date.now();
       const offset = (page - 1) * pageSize;
 
       let whereClause = 'WHERE a.statusID = 1';
@@ -230,9 +217,6 @@ class SqlServerService {
       params.pageSize = pageSize;
 
       const rows = await query<AnalisisRow>(queryStr, params);
-
-      const fetchTime = Date.now() - startTime;
-      console.log(`📊 SQL Server history fetch completed in ${fetchTime}ms (${rows.length} records)`);
 
       const historial: ProcessingRecord[] = rows.map((row) => {
         const fecha = new Date(row.fecha_procesamiento);
@@ -306,9 +290,6 @@ class SqlServerService {
     originalThumbnail?: string;
   }): Promise<number> {
     try {
-      console.log('💾 Saving processing result to SQL Server...');
-      const startTime = Date.now();
-
       const empresaResult = await query<{ growerID: string }>(`
         SELECT growerID FROM GROWER.GROWERS 
         WHERE businessName = @empresa AND statusID = 1
@@ -413,9 +394,6 @@ class SqlServerService {
       `);
 
       const analisisID = insertResult.recordset[0].analisisID;
-      const saveTime = Date.now() - startTime;
-
-      console.log(`✅ Processing result saved to SQL Server in ${saveTime}ms (ID: ${analisisID})`);
 
       try {
         await query(`EXEC image.sp_CalcularLoteEvaluacion @LotID = @lotID`, { lotID });
@@ -510,9 +488,6 @@ class SqlServerService {
     totalPages: number;
   }> {
     try {
-      const startTime = Date.now();
-      console.log('📊 [getConsolidatedTable] Iniciando...');
-      
       const page = filters?.page || 1;
       const pageSize = filters?.pageSize || 50;
       const offset = (page - 1) * pageSize;
@@ -622,9 +597,6 @@ class SqlServerService {
       const total = countResult[0]?.total || 0;
       const totalPages = Math.ceil(total / pageSize);
 
-      const fetchTime = Date.now() - startTime;
-      console.log(`📊 Consolidated table fetch completed in ${fetchTime}ms (${rows.length} records, total: ${total})`);
-
       return {
         success: true,
         data: rows,
@@ -652,8 +624,6 @@ class SqlServerService {
     }>;
   }> {
     try {
-      console.log(`📊 [getLoteDetalleHistorial] Obteniendo detalle histórico para lotID: ${lotID}`);
-      
       const rows = await query<{
         fecha: Date;
         luzMin: number;
@@ -755,13 +725,11 @@ class SqlServerService {
   clearCache(): void {
     this.fieldDataCache = null;
     this.historialCache = null;
-    console.log('🗑️ SQL Server service cache cleared');
   }
 
   async testConnection(): Promise<boolean> {
     try {
-      const result = await query<{ total: number }>('SELECT COUNT(*) as total FROM GROWER.LOT WHERE statusID = 1');
-      console.log(`✅ SQL Server connection OK (${result[0].total} lotes activos)`);
+      await query<{ total: number }>('SELECT COUNT(*) as total FROM GROWER.LOT WHERE statusID = 1');
       return true;
     } catch (error) {
       console.error('❌ SQL Server connection test failed:', error);

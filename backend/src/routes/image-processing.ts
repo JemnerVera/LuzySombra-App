@@ -7,8 +7,6 @@ import { parseFilename } from '../utils/filenameParser';
 import { extractDateTimeFromImageServer } from '../utils/exif-server';
 import { createThumbnail, estimateBase64Size } from '../utils/imageThumbnail';
 
-const router = express.Router();
-
 // Configurar multer para manejar archivos en memoria
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -16,6 +14,12 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
+
+const router = express.Router();
+
+// Export additional routers for test-model and check-gps-info
+export const testModelRouter = express.Router();
+export const checkGpsInfoRouter = express.Router();
 
 router.post('/', upload.single('file'), async (req: Request, res: Response) => {
   try {
@@ -140,6 +144,128 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
   }
 });
 
+// Test model endpoint (doesn't save to DB)
+testModelRouter.post('/', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file provided'
+      });
+    }
+
+    const file = req.file;
+    const imageBuffer = file.buffer;
+    
+    // Load image using canvas (Node.js compatible)
+    const img = await loadImage(imageBuffer);
+    
+    // Create canvas and get ImageData
+    const canvas = createCanvas(img.width, img.height);
+    const ctx = canvas.getContext('2d');
+    
+    ctx.drawImage(img, 0, 0);
+    const imageDataResult = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Process with heuristic algorithm (NO TensorFlow needed)
+    console.log('🧠 Testing model with heuristic algorithm...');
+    const processingResult = await imageProcessingService.classifyImagePixels(imageDataResult);
+
+    // Convert processed image to base64
+    const processedImageData = processingResult.processedImageData;
+
+    console.log('✅ Model test completed:', file.originalname);
+
+    res.json({
+      success: true,
+      fileName: file.originalname,
+      porcentaje_luz: processingResult.lightPercentage,
+      porcentaje_sombra: processingResult.shadowPercentage,
+      processed_image: processedImageData,
+      empresa: 'Prueba del Modelo',
+      fundo: 'Backend Heuristic',
+      hilera: '',
+      numero_planta: '',
+      latitud: null,
+      longitud: null
+    });
+  } catch (error) {
+    console.error('❌ Error testing model:', error);
+    res.status(500).json({
+      error: 'Error testing model',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Check GPS info from image
+checkGpsInfoRouter.post('/', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file provided'
+      });
+    }
+
+    const file = req.file;
+    const imageBuffer = file.buffer;
+    
+    // Extract GPS coordinates from EXIF
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const piexif = require('piexifjs');
+      const binary = imageBuffer.toString('binary');
+      const exifData = piexif.load(binary);
+      
+      if (exifData && exifData.GPS) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gps = exifData.GPS as any;
+        
+        if (gps[piexif.GPSIFD.GPSLatitude] && gps[piexif.GPSIFD.GPSLongitude]) {
+          // Convert DMS to decimal degrees
+          const latArray = gps[piexif.GPSIFD.GPSLatitude];
+          const latRef = gps[piexif.GPSIFD.GPSLatitudeRef] || 'N';
+          const lonArray = gps[piexif.GPSIFD.GPSLongitude];
+          const lonRef = gps[piexif.GPSIFD.GPSLongitudeRef] || 'E';
+          
+          const lat = (latArray[0][0] / latArray[0][1]) + 
+                      (latArray[1][0] / latArray[1][1]) / 60 + 
+                      (latArray[2][0] / latArray[2][1]) / 3600;
+          const lon = (lonArray[0][0] / lonArray[0][1]) + 
+                      (lonArray[1][0] / lonArray[1][1]) / 60 + 
+                      (lonArray[2][0] / lonArray[2][1]) / 3600;
+          
+          const finalLat = latRef === 'S' ? -lat : lat;
+          const finalLon = lonRef === 'W' ? -lon : lon;
+          
+          return res.json({
+            success: true,
+            hasGps: true,
+            coordinates: {
+              lat: finalLat,
+              lng: finalLon
+            }
+          });
+        }
+      }
+      
+      return res.json({
+        success: true,
+        hasGps: false
+      });
+    } catch (error) {
+      console.error('❌ Error checking GPS info:', error);
+      return res.json({
+        success: true,
+        hasGps: false
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error processing GPS check:', error);
+    res.status(500).json({
+      error: 'Error checking GPS info',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;
-
-

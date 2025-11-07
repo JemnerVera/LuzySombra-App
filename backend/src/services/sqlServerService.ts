@@ -700,6 +700,58 @@ class SqlServerService {
     }
   }
 
+  /**
+   * Get statistics
+   */
+  async getStatistics(): Promise<any> {
+    try {
+      const pool = await connectDb();
+      
+      // Get total number of analyses
+      const totalAnalisisResult = await pool.request().query(`
+        SELECT COUNT(*) as total
+        FROM image.Analisis_Imagen
+      `);
+      const totalAnalisis = totalAnalisisResult.recordset[0]?.total || 0;
+      
+      // Get total number of lots
+      const totalLotesResult = await pool.request().query(`
+        SELECT COUNT(DISTINCT CONCAT(f.farmID, '-', s.stageID, '-', l.lotID)) as total
+        FROM image.Analisis_Imagen ai
+        INNER JOIN [AgroMigiva].[dbo].[Lot] l ON ai.loteID = l.lotID
+        INNER JOIN [AgroMigiva].[dbo].[Stage] s ON l.stageID = s.stageID
+        INNER JOIN [AgroMigiva].[dbo].[Farm] f ON s.farmID = f.farmID
+      `);
+      const totalLotes = totalLotesResult.recordset[0]?.total || 0;
+      
+      // Get average light percentage
+      const avgLuzResult = await pool.request().query(`
+        SELECT AVG(porcentaje_luz) as promedio
+        FROM image.Analisis_Imagen
+        WHERE porcentaje_luz IS NOT NULL
+      `);
+      const promedioLuz = avgLuzResult.recordset[0]?.promedio || 0;
+      
+      // Get average shadow percentage
+      const avgSombraResult = await pool.request().query(`
+        SELECT AVG(porcentaje_sombra) as promedio
+        FROM image.Analisis_Imagen
+        WHERE porcentaje_sombra IS NOT NULL
+      `);
+      const promedioSombra = avgSombraResult.recordset[0]?.promedio || 0;
+      
+      return {
+        totalAnalisis,
+        totalLotes,
+        promedioLuz: Math.round(promedioLuz * 100) / 100,
+        promedioSombra: Math.round(promedioSombra * 100) / 100
+      };
+    } catch (error) {
+      console.error('❌ Error getting statistics:', error);
+      throw error;
+    }
+  }
+
   clearCache(): void {
     this.fieldDataCache = null;
     this.historialCache = null;

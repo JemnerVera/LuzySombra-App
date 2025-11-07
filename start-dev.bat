@@ -1,9 +1,9 @@
 @echo off
-REM Script para iniciar backend y frontend en desarrollo
-REM Requiere: Node.js y npm instalados
-
+cls
 echo ========================================
 echo   Agricola Luz-Sombra - Desarrollo
+echo   Backend: Node.js + Express
+echo   Frontend: React + Vite
 echo ========================================
 echo.
 
@@ -26,17 +26,6 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo [INFO] Verificando dependencias...
 echo.
-
-REM Verificar dependencias del root
-if not exist "node_modules\" (
-    echo [INFO] Instalando dependencias del root...
-    call npm install
-    if %ERRORLEVEL% NEQ 0 (
-        echo [ERROR] Error al instalar dependencias del root
-        pause
-        exit /b 1
-    )
-)
 
 REM Verificar dependencias del backend
 if not exist "backend\node_modules\" (
@@ -70,10 +59,41 @@ echo.
 echo Backend:  http://localhost:3001
 echo Frontend: http://localhost:3000
 echo.
-echo Presiona Ctrl+C para detener los servidores
+
+REM Detener procesos anteriores si existen
+echo [INFO] Deteniendo procesos anteriores...
+taskkill /F /IM node.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+REM Iniciar backend en nueva ventana CMD
+echo [INFO] Iniciando backend...
+start "Backend - Agricola Luz-Sombra" cmd /k "cd /d %~dp0backend && npm run dev"
+
+REM Esperar un poco para que el backend inicie
+timeout /t 3 /nobreak >nul
+
+REM Iniciar frontend en nueva ventana CMD
+echo [INFO] Iniciando frontend...
+start "Frontend - Agricola Luz-Sombra" cmd /k "cd /d %~dp0frontend && npm run dev"
+
+REM Esperar a que los servidores estén listos
 echo.
+echo [INFO] Esperando a que los servidores estén listos...
+timeout /t 8 /nobreak >nul
 
-REM Iniciar backend y frontend con concurrently
-call npm run dev
+REM Abrir navegador
+echo [INFO] Abriendo navegador...
+start http://localhost:3000
 
-pause
+echo.
+echo ========================================
+echo   Servidores iniciados correctamente!
+echo ========================================
+echo.
+echo Backend:  http://localhost:3001
+echo Frontend: http://localhost:3000
+echo.
+echo Presiona cualquier tecla para cerrar esta ventana
+echo (Los servidores continuarán ejecutándose en las ventanas separadas)
+echo.
+pause >nul

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
@@ -21,19 +21,19 @@
   },
   "devDependencies": {
     "@esbuild/win32-x64": "^0.25.12",
+    "@eslint/js": "^9.39.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.12",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2",
+    "typescript-eslint": "^8.46.4",
     "vite": "^5.4.6"
   }
 }

@@ -17,6 +17,8 @@ import tablaConsolidadaDetallePlantaRoutes from './routes/tabla-consolidada-deta
 import imagenRoutes from './routes/imagen';
 import estadisticasRoutes from './routes/estadisticas';
 import { testModelRouter, checkGpsInfoRouter } from './routes/image-processing';
+import authRoutes from './routes/auth';
+import photoUploadRoutes from './routes/photoUpload';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +45,10 @@ app.use('/api/imagen', imagenRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/test-model', testModelRouter);
 app.use('/api/check-gps-info', checkGpsInfoRouter);
+
+// NUEVAS RUTAS PARA AGRICQR
+app.use('/api/auth', authRoutes);
+app.use('/api/photos', photoUploadRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {

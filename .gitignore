@@ -128,3 +128,7 @@ INSTALACION_*.md
 # Documentación y scripts SQL
 docs/
 scripts/
+
+# Azure Publish Settings (contiene credenciales)
+*.PublishSettings.txt
+*.publishsettings

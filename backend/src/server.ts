@@ -1,9 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 
 // Cargar variables de entorno
-dotenv.config();
+// Buscar .env.local en la raíz del proyecto (un nivel arriba de backend/)
+const rootPath = path.resolve(process.cwd(), '..');
+dotenv.config({ path: path.join(rootPath, '.env.local') });
+dotenv.config({ path: path.join(rootPath, '.env') }); // Fallback a .env si .env.local no existe
+dotenv.config(); // También buscar en backend/.env.local y backend/.env (fallback)
 
 // Importar rutas
 import fieldDataRoutes from './routes/field-data';
@@ -19,6 +24,8 @@ import estadisticasRoutes from './routes/estadisticas';
 import { testModelRouter, checkGpsInfoRouter } from './routes/image-processing';
 import authRoutes from './routes/auth';
 import photoUploadRoutes from './routes/photoUpload';
+import consolidarAlertasRoutes from './routes/alertas/consolidar';
+import enviarAlertasRoutes from './routes/alertas/enviar';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -49,6 +56,10 @@ app.use('/api/check-gps-info', checkGpsInfoRouter);
 // NUEVAS RUTAS PARA AGRICQR
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', photoUploadRoutes);
+
+// RUTAS PARA ALERTAS
+app.use('/api/alertas/consolidar', consolidarAlertasRoutes);
+app.use('/api/alertas/enviar', enviarAlertasRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {

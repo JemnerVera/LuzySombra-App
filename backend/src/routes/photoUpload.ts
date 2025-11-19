@@ -82,10 +82,11 @@ router.post('/upload',
       // 8. Process with heuristic algorithm (REUTILIZA servicio existente)
       const processingResult = await imageProcessingService.classifyImagePixels(imageDataResult);
 
-      // 9. Extract data from filename (si está disponible)
+      // 9. Usar información de la planta desde la BD (prioridad sobre filename)
+      // Si no hay hilera en plantInfo, intentar extraer del filename como fallback
       const filenameData = parseFilename(file.originalname);
-      const finalHilera = filenameData.hilera || '';
-      const finalNumeroPlanta = filenameData.planta || plantId; // Usar plantId si no hay en filename
+      const finalHilera = plantInfo.hilera || filenameData.hilera || '';
+      const finalNumeroPlanta = plantInfo.numero_planta || filenameData.planta || plantId;
 
       // 10. Extract date/time from EXIF o usar timestamp proporcionado
       let exifDateTime = null;
@@ -185,34 +186,130 @@ router.post('/upload',
 );
 
 /**
- * Función auxiliar: Obtener información de planta desde plantId
- * Busca el último registro en image.Analisis_Imagen con ese plantId (columna "planta")
- * y obtiene empresa/fundo/sector/lote desde el lotID asociado
+ * Función auxiliar: Obtener información completa de planta desde plantId
+ * 
+ * Estrategia de búsqueda (en orden de prioridad):
+ * 1. Buscar en GROWER.PLANT - tabla de plantas con lotID, numberLine (hilera), position (planta)
+ * 2. Buscar en evalAgri.evaluacionPlagaEnfermedad - tabla de evaluaciones con Planta, lotID, Hilera
+ * 3. Buscar en image.Analisis_Imagen - análisis previos con ese plantId
+ * 
+ * Retorna toda la información necesaria para guardar en image.Analisis_Imagen:
+ * - lotID, empresa, fundo, sector, lote, hilera, numero_planta
  */
 async function getPlantInfoFromPlantId(plantId: string): Promise<{
+  lotID: number;
   empresa: string;
   fundo: string;
   sector: string;
   lote: string;
+  hilera: string;
+  numero_planta: string;
 } | null> {
   try {
-    // Buscar el último análisis con ese plantId (columna "planta")
-    const analysisResult = await query<{
-      lotID: number;
-    }>(`
-      SELECT TOP 1 ai.lotID
-      FROM image.Analisis_Imagen ai WITH (NOLOCK)
-      WHERE ai.planta = @plantId
-        AND ai.statusID = 1
-      ORDER BY ai.fechaCreacion DESC
-    `, { plantId });
+    let lotID: number | null = null;
+    let hilera: string = '';
+    let numero_planta: string = plantId; // Por defecto usar el plantId como numero_planta
 
-    if (!analysisResult || analysisResult.length === 0) {
-      console.warn(`⚠️ getPlantInfoFromPlantId: No se encontró análisis previo para plantId=${plantId}`);
-      return null;
+    // ESTRATEGIA 1: Buscar en GROWER.PLANT
+    // Estructura real: plantID (int), plantationID (int), numberLine (int), position (int)
+    // Necesitamos JOIN con GROWER.PLANTATION para obtener lotID
+    try {
+      // Convertir plantId string a int (puede venir como "00805221" pero en BD es 805221)
+      const plantIdInt = parseInt(plantId, 10);
+      
+      if (isNaN(plantIdInt)) {
+        console.warn(`⚠️ getPlantInfoFromPlantId: plantId "${plantId}" no es un número válido`);
+      } else {
+        const plantResult = await query<{
+          lotID: number;
+          numberLine: number | null;
+          position: number | null;
+        }>(`
+          SELECT TOP 1 
+            pl.lotID,
+            p.numberLine,
+            p.position
+          FROM GROWER.PLANT p WITH (NOLOCK)
+          INNER JOIN GROWER.PLANTATION pl WITH (NOLOCK) ON p.plantationID = pl.plantationID
+          WHERE p.plantID = @plantIdInt
+            AND p.statusID = 1
+            AND pl.statusID = 1
+        `, { plantIdInt });
+
+        if (plantResult && plantResult.length > 0) {
+          lotID = plantResult[0].lotID;
+          hilera = plantResult[0].numberLine?.toString() || '';
+          numero_planta = plantResult[0].position?.toString() || plantId;
+          console.log(`✅ getPlantInfoFromPlantId: Encontrado en GROWER.PLANT para plantId=${plantId} (int: ${plantIdInt}), lotID=${lotID}, hilera=${hilera}, position=${numero_planta}`);
+        }
+      }
+    } catch (plantError: any) {
+      // Si la tabla no existe (error 208) o hay error, continuar silenciosamente
+      if (plantError?.number === 208) {
+        // Tabla no existe, continuar silenciosamente
+      } else {
+        console.warn(`⚠️ getPlantInfoFromPlantId: Error buscando en GROWER.PLANT:`, plantError.message);
+      }
     }
 
-    const lotID = analysisResult[0].lotID;
+    // ESTRATEGIA 2: Buscar en evalAgri.evaluacionPlagaEnfermedad
+    // Esta tabla tiene columnas: lotID, Planta (plantId), Hilera, estadoID
+    if (!lotID) {
+      try {
+        const evaluationResult = await query<{
+          lotID: number;
+          Hilera: string | null;
+        }>(`
+          SELECT TOP 1 
+            ep.lotID,
+            ep.Hilera
+          FROM evalAgri.evaluacionPlagaEnfermedad ep WITH (NOLOCK)
+          WHERE ep.Planta = @plantId
+            AND ep.estadoID = 1
+          ORDER BY ep.Fecha DESC
+        `, { plantId });
+
+        if (evaluationResult && evaluationResult.length > 0) {
+          lotID = evaluationResult[0].lotID;
+          hilera = evaluationResult[0].Hilera || '';
+          console.log(`✅ getPlantInfoFromPlantId: Encontrado en evalAgri.evaluacionPlagaEnfermedad para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
+        }
+      } catch (evaluationError: any) {
+        console.warn(`⚠️ getPlantInfoFromPlantId: Error buscando en evalAgri.evaluacionPlagaEnfermedad:`, evaluationError.message);
+      }
+    }
+
+    // ESTRATEGIA 3: Buscar en image.Analisis_Imagen (análisis previos)
+    if (!lotID) {
+      const analysisResult = await query<{
+        lotID: number;
+        hilera: string | null;
+      }>(`
+        SELECT TOP 1 
+          ai.lotID,
+          ai.hilera
+        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        WHERE ai.planta = @plantId
+          AND ai.statusID = 1
+        ORDER BY ai.fechaCreacion DESC
+      `, { plantId });
+
+      if (analysisResult && analysisResult.length > 0) {
+        lotID = analysisResult[0].lotID;
+        hilera = analysisResult[0].hilera || '';
+        console.log(`✅ getPlantInfoFromPlantId: Encontrado en image.Analisis_Imagen para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
+      }
+    }
+
+    // Si no se encontró lotID con ninguna estrategia
+    if (!lotID) {
+      console.warn(`⚠️ getPlantInfoFromPlantId: No se encontró lotID para plantId=${plantId}`);
+      console.warn(`   Estrategias intentadas:`);
+      console.warn(`   1. GROWER.PLANT (tabla puede no existir)`);
+      console.warn(`   2. evalAgri.evaluacionPlagaEnfermedad (no hay evaluaciones previas)`);
+      console.warn(`   3. image.Analisis_Imagen (no hay análisis previos)`);
+      return null;
+    }
 
     // Obtener empresa/fundo/sector/lote desde lotID
     const lotInfo = await query<{
@@ -242,7 +339,19 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       return null;
     }
 
-    return lotInfo[0];
+    const result = {
+      lotID,
+      empresa: lotInfo[0].empresa,
+      fundo: lotInfo[0].fundo,
+      sector: lotInfo[0].sector,
+      lote: lotInfo[0].lote,
+      hilera,
+      numero_planta
+    };
+
+    console.log(`✅ getPlantInfoFromPlantId: Información completa encontrada para plantId=${plantId}:`, result);
+
+    return result;
   } catch (error) {
     console.error('❌ Error getting plant info:', error);
     return null;

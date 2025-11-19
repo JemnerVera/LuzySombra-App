@@ -30,7 +30,8 @@
     "jsonwebtoken": "^9.0.2",
     "mssql": "^11.0.1",
     "multer": "^1.4.5-lts.1",
-    "piexifjs": "^1.0.6"
+    "piexifjs": "^1.0.6",
+    "resend": "^6.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -124,3 +124,7 @@ SOLUCION_*.md
 ESTADO_*.md
 HABILITAR_*.md
 INSTALACION_*.md
+
+# Documentación y scripts SQL
+docs/
+scripts/

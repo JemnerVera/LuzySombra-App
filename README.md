@@ -59,11 +59,11 @@ npm run install:all
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=10.1.10.4
-SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+SQL_SERVER=your_server_ip_or_hostname
+SQL_DATABASE=your_database_name
 SQL_PORT=1433
-SQL_USER=ucown_powerbi_desa
-SQL_PASSWORD=D3s4Own03
+SQL_USER=your_sql_user
+SQL_PASSWORD=your_sql_password
 SQL_ENCRYPT=true
 
 # Server Configuration
@@ -223,11 +223,11 @@ En Azure **NO necesitas** configurar VPN manualmente como en desarrollo local. L
 
 2. **Configurar Variables de Entorno (Application Settings):**
    ```
-   SQL_SERVER=10.1.10.4
-   SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+   SQL_SERVER=your_server_ip_or_hostname
+   SQL_DATABASE=your_database_name
    SQL_PORT=1433
-   SQL_USER=ucown_powerbi_desa
-   SQL_PASSWORD=D3s4Own03
+   SQL_USER=your_sql_user
+   SQL_PASSWORD=your_sql_password
    SQL_ENCRYPT=true
    PORT=3001
    FRONTEND_URL=https://tu-frontend.azurestaticapps.net

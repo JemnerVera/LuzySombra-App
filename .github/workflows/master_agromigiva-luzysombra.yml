@@ -23,11 +23,24 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test
+      - name: Build backend
         working-directory: ./backend
         run: |
           npm ci
           npm run build
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net' }}
+
+      - name: Copy frontend to backend public folder
+        run: |
+          mkdir -p backend/public
+          cp -r frontend/dist/* backend/public/
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

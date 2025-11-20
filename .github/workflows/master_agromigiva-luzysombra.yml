@@ -34,8 +34,8 @@ jobs:
         run: |
           npm ci
           npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net' }}
+        # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)
+        # En desarrollo: usar VITE_API_URL=http://localhost:3001 en .env.local
 
       - name: Copy frontend to backend public folder
         run: |

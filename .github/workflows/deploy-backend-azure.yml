@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: luzsombra-backend
+  AZURE_WEBAPP_NAME: agromigiva-luzysombra
   NODE_VERSION: '18.x'
 
 jobs:

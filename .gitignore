@@ -124,3 +124,15 @@ SOLUCION_*.md
 ESTADO_*.md
 HABILITAR_*.md
 INSTALACION_*.md
+
+# Documentación y scripts SQL
+docs/
+scripts/
+
+# Azure Publish Settings (contiene credenciales)
+*.PublishSettings.txt
+*.publishsettings
+
+# Vercel (no se usa)
+.vercel/
+vercel.json

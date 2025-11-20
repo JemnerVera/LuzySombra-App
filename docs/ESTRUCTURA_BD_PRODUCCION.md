@@ -37,6 +37,19 @@ growers (empresa)
 - **`grower.varietyGrower`**: Relación variedad-empresa
 - **`grower.varietysGrower`**: Variedades por empresa (tabla alternativa)
 
+#### Tabla de Plantas Individuales
+- **`grower.plant`**: ⭐ Plantas individuales por plantación
+  - Columnas clave:
+    - `plantID` (PK, int): ID único de la planta (ej: 805221)
+    - `plant` (int): ID alternativo de la planta
+    - `plantationID` (FK, int): Referencia a `grower.plantation.plantationID`
+    - `numberLine` (int): Número de hilera (ej: 58)
+    - `position` (int): Posición en la hilera (ej: 61)
+    - `datePlant` (datetime): Fecha de plantación
+    - `statusID` (int): Estado (1 = activo)
+  - **Relación**: `plant.plantationID` → `plantation.plantationID` → `plantation.lotID` → `lot.lotID`
+  - **Uso**: Mapeo de `plantID` (desde QR) a `lotID`, `hilera` y `position`
+
 #### Otras Tablas Relevantes
 - `grower.campaign`: Campañas agrícolas
 - `grower.crops`: Cultivos
@@ -44,7 +57,6 @@ growers (empresa)
 - `grower.district`: Distritos
 - `grower.LoteFenologia`: Fenología por lote
 - `grower.material`: Materiales
-- `grower.plant`: Plantas
 - `grower.projectedWeek`: Semanas proyectadas
 - `grower.sizes`: Calibres
 - `grower.sizeGrower`: Calibres por empresa
@@ -140,6 +152,21 @@ grower.lot
       └─ grower.variety
 ```
 
+### PlantID → Lote (Mapeo para AgriQR)
+```sql
+grower.plant (plantID: int)
+  └─ grower.plantation (plantationID)
+      └─ grower.lot (lotID)
+          └─ grower.stage (stageID)
+              └─ grower.farms (farmID)
+                  └─ grower.growers (growerID)
+```
+**Campos obtenidos desde `plantID`**:
+- `lotID`: Desde `plant.plantationID` → `plantation.lotID`
+- `hilera`: Desde `plant.numberLine`
+- `numero_planta`: Desde `plant.position`
+- `empresa/fundo/sector/lote`: Desde jerarquía `lot` → `stage` → `farms` → `growers`
+
 ### Lote → Fenología
 ```sql
 grower.lot
@@ -205,6 +232,32 @@ SELECT
 FROM phytosanitary.lotCyanamideDate lcd
 INNER JOIN grower.lot l ON lcd.lotID = l.lotID
 ORDER BY lcd.date DESC;
+```
+
+### Query 4: Obtener información completa desde plantID (para AgriQR)
+```sql
+-- Obtener lotID, hilera y position desde plantID
+SELECT 
+    pl.lotID,
+    p.numberLine AS hilera,
+    p.position AS numero_planta,
+    l.name AS lote,
+    s.stage AS sector,
+    f.Description AS fundo,
+    g.businessName AS empresa
+FROM GROWER.PLANT p WITH (NOLOCK)
+INNER JOIN GROWER.PLANTATION pl WITH (NOLOCK) ON p.plantationID = pl.plantationID
+INNER JOIN GROWER.LOT l WITH (NOLOCK) ON pl.lotID = l.lotID
+INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+INNER JOIN GROWER.GROWERS g WITH (NOLOCK) ON s.growerID = g.growerID
+WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221")
+  AND p.statusID = 1
+  AND pl.statusID = 1
+  AND l.statusID = 1
+  AND s.statusID = 1
+  AND f.statusID = 1
+  AND g.statusID = 1;
 ```
 
 ---

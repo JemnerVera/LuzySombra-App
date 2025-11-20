@@ -1,0 +1,39 @@
+{
+  "name": "agricola-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "axios": "^1.13.2",
+    "exif-js": "^2.3.0",
+    "lucide-react": "^0.545.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-image-crop": "^11.0.10",
+    "react-router-dom": "^6.26.0"
+  },
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.25.12",
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.11",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^5.4.6"
+  }
+}

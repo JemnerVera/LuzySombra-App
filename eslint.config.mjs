@@ -1,25 +1,17 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// ESLint configuration for monorepo
+// Individual projects have their own ESLint configs
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default [
   {
     ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-    ],
-  },
+      'node_modules/**',
+      'backend/node_modules/**',
+      'frontend/node_modules/**',
+      'backend/dist/**',
+      'frontend/dist/**',
+      '.next/**',
+      'out/**',
+      'build/**'
+    ]
+  }
 ];
-
-export default eslintConfig;

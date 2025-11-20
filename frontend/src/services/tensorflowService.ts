@@ -43,15 +43,15 @@ export class TensorFlowService {
       // Load TensorFlow.js dynamically
       const tensorflow = await loadTensorFlow();
       
-      // Set backend to CPU for Vercel compatibility and speed
+      // Set backend to CPU for better performance
       await tensorflow.setBackend('cpu');
       await tensorflow.ready();
       
-      // Optimize for Vercel: disable memory growth
+      // Optimize memory usage: disable memory growth
       tensorflow.env().set('WEBGL_PACK', false);
       tensorflow.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0);
       
-      console.log('✅ TensorFlow.js initialized (Vercel optimized)');
+      console.log('✅ TensorFlow.js initialized');
     } catch (error) {
       console.error('❌ Error initializing TensorFlow.js:', error);
       throw error;
@@ -75,7 +75,7 @@ export class TensorFlowService {
       tensorflow.disposeVariables();
 
       // Create a simple sequential model
-      // Create multi-feature model for better precision (efficient for Vercel)
+      // Create multi-feature model for better precision
       this.model = tensorflow.sequential({
         layers: [
           // Input layer - multiple features

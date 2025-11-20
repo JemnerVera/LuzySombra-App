@@ -155,15 +155,26 @@ app.use(cors({
 
 ---
 
-## 📊 Frontend (Opcional - Después)
+## 📊 Frontend (PENDIENTE - Necesario para ver la aplicación)
 
 ### **Azure Static Web Apps**
 
 - [ ] Crear Azure Static Web App
-- [ ] Conectar repositorio
-- [ ] Configurar build settings
-- [ ] Configurar variables de entorno (VITE_API_URL)
-- [ ] Deploy automático
+  - Name: `luzsombra-frontend` (o el nombre que prefieras)
+  - Source: GitHub
+  - Repository: `LuzySombra-App`
+  - Branch: `master`
+  - App location: `frontend`
+  - Output location: `dist`
+- [ ] Verificar que GitHub Secret se creó automáticamente (`AZURE_STATIC_WEB_APPS_API_TOKEN_...`)
+- [ ] Configurar variable de entorno en Static Web App:
+  - `VITE_API_URL=https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net`
+- [ ] Actualizar `FRONTEND_URL` en App Service (backend):
+  - `FRONTEND_URL=https://luzsombra-frontend.azurestaticapps.net`
+- [ ] Verificar que el workflow `.github/workflows/deploy-frontend-azure.yml` se ejecute
+- [ ] Probar la aplicación en: `https://luzsombra-frontend.azurestaticapps.net`
+
+**📄 Ver documentación completa:** `docs/DEPLOY_FRONTEND_AZURE.md`
 
 ---
 

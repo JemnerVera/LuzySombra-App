@@ -61,14 +61,30 @@ app.use('/api/photos', photoUploadRoutes);
 app.use('/api/alertas/consolidar', consolidarAlertasRoutes);
 app.use('/api/alertas/enviar', enviarAlertasRoutes);
 
-// Ruta raíz
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Agricola Backend API',
-    version: '1.0.0',
-    status: 'running'
+// Servir archivos estáticos del frontend (si existen)
+const frontendPath = path.join(__dirname, '../public');
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+  
+  // Para SPA: todas las rutas que no sean /api/* sirven index.html
+  app.get('*', (req, res, next) => {
+    // Si es una ruta de API, continuar
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    // Si no, servir index.html (para React Router)
+    res.sendFile(path.join(frontendPath, 'index.html'));
   });
-});
+} else {
+  // Si no hay frontend, mostrar mensaje de API
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Agricola Backend API',
+      version: '1.0.0',
+      status: 'running'
+    });
+  });
+}
 
 // Manejo de errores
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

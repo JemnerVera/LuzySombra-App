@@ -3,6 +3,7 @@ name: Deploy Backend to Azure App Service
 on:
   push:
     branches:
+      - master
       - main
     paths:
       - 'backend/**'

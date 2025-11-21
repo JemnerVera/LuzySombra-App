@@ -253,11 +253,27 @@ app.use(cors({
 - [x] Agregar todas las variables (ver sección 2)
 - [x] Click **"Save"** (reiniciará el App Service)
 
-### **Paso 5: Configurar VNet Integration** ⚠️
+### **Paso 5: Configurar VNet Integration** ⚠️ **URGENTE - REQUERIDO**
 
-- [ ] Verificar con IT/DBA si Azure está en la misma red
-- [ ] Si SÍ: Habilitar VNet Integration
-- [ ] Si NO: Usar Web Service o solicitar VNet
+**Problema actual:** Azure no puede conectarse a SQL Server `10.1.10.4:1433`
+
+**Opciones:**
+
+**A) Si Azure está en la misma red privada:**
+- [ ] Azure Portal → App Service → Networking → VNet integration
+- [ ] Click en "Add VNet integration"
+- [ ] Seleccionar VNet existente conectada a red privada
+- [ ] Seleccionar subnet
+- [ ] Guardar y reiniciar App Service
+- [ ] Probar conexión: `ping 10.1.10.4` desde Console
+- [ ] Verificar que SQL Server funciona
+
+**B) Si NO está en la misma red:**
+- [ ] Contactar a IT/DBA para:
+  - Configurar VNet + VPN Gateway, O
+  - Agregar endpoints al Web Service existente
+- [ ] Ver documentación: `docs/SOLUCION_CONECTIVIDAD_SQL_AZURE.md`
+- [ ] Ver especificación Web Service: `docs/ESPECIFICACION_IT_WEBSERVICE.md`
 
 ### **Paso 6: Commit y Push** ⚠️
 

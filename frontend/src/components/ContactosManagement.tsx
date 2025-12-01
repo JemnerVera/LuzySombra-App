@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../services/api';
 import { useFieldData } from '../hooks/useFieldData';
-import { Plus, Edit, Trash2, RefreshCw, Save, X, Users, Mail, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Save, X, Users, Mail, Phone, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Contacto {
   contactoID: number;
@@ -33,6 +33,16 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // Filtros y búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTipo, setFilterTipo] = useState<string>('');
+  const [filterFundo, setFilterFundo] = useState<string>('');
+  const [filterActivo, setFilterActivo] = useState<string>('');
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [formData, setFormData] = useState<Partial<Contacto>>({
     nombre: '',
     email: '',
@@ -182,7 +192,60 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
     return colors[tipo] || colors['General'];
   };
 
-  // Obtener fundos y sectores disponibles
+  // Filtrar y paginar contactos
+  const filteredContactos = useMemo(() => {
+    return contactos.filter(contacto => {
+      // Búsqueda por texto
+      const matchesSearch = !searchTerm || 
+        contacto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contacto.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contacto.telefono?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contacto.rol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contacto.fundoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contacto.sectorNombre?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro por tipo
+      const matchesTipo = !filterTipo || contacto.tipo === filterTipo;
+      
+      // Filtro por fundo
+      const matchesFundo = !filterFundo || 
+        (filterFundo === 'todos' && !contacto.fundoID) ||
+        (filterFundo !== 'todos' && contacto.fundoID === filterFundo);
+      
+      // Filtro por activo
+      const matchesActivo = !filterActivo || 
+        (filterActivo === 'activo' && contacto.activo) ||
+        (filterActivo === 'inactivo' && !contacto.activo);
+      
+      return matchesSearch && matchesTipo && matchesFundo && matchesActivo;
+    });
+  }, [contactos, searchTerm, filterTipo, filterFundo, filterActivo]);
+
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredContactos.length / itemsPerPage);
+  const paginatedContactos = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredContactos.slice(startIndex, endIndex);
+  }, [filteredContactos, currentPage, itemsPerPage]);
+
+  // Resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterTipo, filterFundo, filterActivo]);
+
+  // Obtener fundos únicos de los contactos para el filtro
+  const fundosUnicos = useMemo(() => {
+    const fundosMap = new Map<string, string>();
+    contactos.forEach(contacto => {
+      if (contacto.fundoID && contacto.fundoNombre) {
+        fundosMap.set(contacto.fundoID, contacto.fundoNombre);
+      }
+    });
+    return Array.from(fundosMap.entries()).map(([id, nombre]) => ({ id, nombre }));
+  }, [contactos]);
+
+  // Obtener fundos y sectores disponibles para el formulario
   const fundos = fieldData?.fundo || [];
   const sectores = formData.fundoID 
     ? fieldData?.hierarchical?.[Object.keys(fieldData.hierarchical)[0]]?.[formData.fundoID] 
@@ -453,6 +516,79 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
         </div>
       )}
 
+      {/* Filtros y Búsqueda */}
+      <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-dark-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Barra de búsqueda */}
+          <div className="lg:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, email, teléfono, rol..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Filtro por tipo */}
+          <div>
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="General">General</option>
+              <option value="Admin">Admin</option>
+              <option value="Agronomo">Agrónomo</option>
+              <option value="Manager">Manager</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Tecnico">Técnico</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          {/* Filtro por fundo */}
+          <div>
+            <select
+              value={filterFundo}
+              onChange={(e) => setFilterFundo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todos los fundos</option>
+              <option value="todos">Sin filtro (Todos)</option>
+              {fundosUnicos.map((fundo) => (
+                <option key={fundo.id} value={fundo.id}>
+                  {fundo.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por estado */}
+          <div>
+            <select
+              value={filterActivo}
+              onChange={(e) => setFilterActivo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Información de resultados */}
+        <div className="mt-3 text-sm text-gray-600 dark:text-dark-400">
+          Mostrando {paginatedContactos.length} de {filteredContactos.length} contactos
+          {filteredContactos.length !== contactos.length && ` (de ${contactos.length} total)`}
+        </div>
+      </div>
+
       {/* Tabla de Contactos */}
       <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -483,14 +619,16 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-              {contactos.length === 0 ? (
+              {paginatedContactos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-dark-400">
-                    No hay contactos configurados. Crea uno nuevo para comenzar.
+                    {filteredContactos.length === 0 && contactos.length > 0
+                      ? 'No se encontraron contactos con los filtros aplicados.'
+                      : 'No hay contactos configurados. Crea uno nuevo para comenzar.'}
                   </td>
                 </tr>
               ) : (
-                contactos.map((contacto) => (
+                paginatedContactos.map((contacto) => (
                   <tr key={contacto.contactoID} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -590,6 +728,33 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="bg-gray-50 dark:bg-dark-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-dark-700">
+            <div className="text-sm text-gray-700 dark:text-dark-300">
+              Página {currentPage} de {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 bg-white dark:bg-dark-900 border border-gray-300 dark:border-dark-700 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 bg-white dark:bg-dark-900 border border-gray-300 dark:border-dark-700 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

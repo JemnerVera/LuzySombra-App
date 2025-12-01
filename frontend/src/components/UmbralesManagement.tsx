@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../services/api';
-import { Plus, Edit, Trash2, RefreshCw, Save, X, Gauge } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Save, X, Gauge, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Umbral {
   umbralID: number;
@@ -32,6 +32,16 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // Filtros y búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTipo, setFilterTipo] = useState<string>('');
+  const [filterVariedad, setFilterVariedad] = useState<string>('');
+  const [filterActivo, setFilterActivo] = useState<string>('');
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [formData, setFormData] = useState<Partial<Umbral>>({
     tipo: 'CriticoRojo',
     minPorcentajeLuz: 0,
@@ -193,6 +203,46 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
         return tipo;
     }
   };
+
+  // Filtrar y paginar umbrales
+  const filteredUmbrales = useMemo(() => {
+    return umbrales.filter(umbral => {
+      // Búsqueda por texto
+      const matchesSearch = !searchTerm || 
+        umbral.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        umbral.variedadNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getTipoLabel(umbral.tipo).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        umbral.colorHex?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro por tipo
+      const matchesTipo = !filterTipo || umbral.tipo === filterTipo;
+      
+      // Filtro por variedad
+      const matchesVariedad = !filterVariedad || 
+        (filterVariedad === 'global' && umbral.variedadID === null) ||
+        (filterVariedad !== 'global' && umbral.variedadID?.toString() === filterVariedad);
+      
+      // Filtro por activo
+      const matchesActivo = !filterActivo || 
+        (filterActivo === 'activo' && umbral.activo) ||
+        (filterActivo === 'inactivo' && !umbral.activo);
+      
+      return matchesSearch && matchesTipo && matchesVariedad && matchesActivo;
+    });
+  }, [umbrales, searchTerm, filterTipo, filterVariedad, filterActivo]);
+
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredUmbrales.length / itemsPerPage);
+  const paginatedUmbrales = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUmbrales.slice(startIndex, endIndex);
+  }, [filteredUmbrales, currentPage, itemsPerPage]);
+
+  // Resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterTipo, filterVariedad, filterActivo]);
 
   if (loading) {
     return (
@@ -399,6 +449,75 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
         </div>
       )}
 
+      {/* Filtros y Búsqueda */}
+      <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-dark-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Barra de búsqueda */}
+          <div className="lg:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por descripción, variedad, tipo o color..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Filtro por tipo */}
+          <div>
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="CriticoRojo">🚨 Crítico Rojo</option>
+              <option value="CriticoAmarillo">⚠️ Crítico Amarillo</option>
+              <option value="Normal">✅ Normal</option>
+            </select>
+          </div>
+
+          {/* Filtro por variedad */}
+          <div>
+            <select
+              value={filterVariedad}
+              onChange={(e) => setFilterVariedad(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todas las variedades</option>
+              <option value="global">Global (Todas)</option>
+              {variedades.map((v) => (
+                <option key={v.varietyID} value={v.varietyID.toString()}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por estado */}
+          <div>
+            <select
+              value={filterActivo}
+              onChange={(e) => setFilterActivo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Información de resultados */}
+        <div className="mt-3 text-sm text-gray-600 dark:text-dark-400">
+          Mostrando {paginatedUmbrales.length} de {filteredUmbrales.length} umbrales
+          {filteredUmbrales.length !== umbrales.length && ` (de ${umbrales.length} total)`}
+        </div>
+      </div>
+
       {/* Tabla de Umbrales */}
       <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -432,14 +551,16 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-              {umbrales.length === 0 ? (
+              {paginatedUmbrales.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-dark-400">
-                    No hay umbrales configurados. Crea uno nuevo para comenzar.
+                    {filteredUmbrales.length === 0 && umbrales.length > 0
+                      ? 'No se encontraron umbrales con los filtros aplicados.'
+                      : 'No hay umbrales configurados. Crea uno nuevo para comenzar.'}
                   </td>
                 </tr>
               ) : (
-                umbrales.map((umbral) => (
+                paginatedUmbrales.map((umbral) => (
                   <tr key={umbral.umbralID} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoColor(umbral.tipo)}`}>
@@ -502,6 +623,33 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="bg-gray-50 dark:bg-dark-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-dark-700">
+            <div className="text-sm text-gray-700 dark:text-dark-300">
+              Página {currentPage} de {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 bg-white dark:bg-dark-900 border border-gray-300 dark:border-dark-700 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 bg-white dark:bg-dark-900 border border-gray-300 dark:border-dark-700 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

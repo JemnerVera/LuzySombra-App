@@ -33,7 +33,7 @@ GO
 -- =====================================================
 -- 1. Verificar/Crear Schema evalImagen
 -- =====================================================
--- NOTA: El schema evalImagen se crea en 01_image.AnalisisImagen.sql
+-- NOTA: El schema evalImagen se crea en 01_evalImagen.AnalisisImagen.sql
 -- Este script asume que el schema ya existe
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'evalImagen')
 BEGIN

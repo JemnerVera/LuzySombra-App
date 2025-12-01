@@ -12,6 +12,7 @@
 --      - IDX_Contacto_Email (UNIQUE)
 --      - IDX_Contacto_Activo (NONCLUSTERED, filtered)
 --      - IDX_Contacto_Tipo (NONCLUSTERED, filtered)
+--      - IDX_Contacto_FundoSector (NONCLUSTERED, filtered)
 --   ✅ Constraints:
 --      - PK_Contacto (PRIMARY KEY)
 --      - CK_Contacto_Estado (CHECK)
@@ -80,7 +81,14 @@ BEGIN
         CONSTRAINT PK_Contacto PRIMARY KEY CLUSTERED (contactoID),
         CONSTRAINT UQ_Contacto_Email UNIQUE (email),
         CONSTRAINT CK_Contacto_Tipo CHECK (tipo IN ('General', 'Admin', 'Agronomo', 'Manager', 'Supervisor', 'Tecnico', 'Otro')),
-        CONSTRAINT CK_Contacto_Email CHECK (email LIKE '%@%.%'), -- Validación básica de email
+        CONSTRAINT CK_Contacto_Email CHECK (
+            email LIKE '%_@_%._%' 
+            AND email NOT LIKE '%..%' 
+            AND email NOT LIKE '%@%@%'
+            AND LEN(email) >= 5
+            AND LEFT(email, 1) != '@'
+            AND RIGHT(email, 1) != '@'
+        ), -- Validación mejorada de email
         CONSTRAINT FK_Contacto_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
         CONSTRAINT FK_Contacto_Stage FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
         CONSTRAINT FK_Contacto_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
@@ -122,6 +130,15 @@ BEGIN
     ON evalImagen.Contacto(tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)
     WHERE statusID = 1 AND activo = 1;
     PRINT '[OK] Índice IDX_Contacto_Tipo creado';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_FundoSector' AND object_id = OBJECT_ID('evalImagen.Contacto'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IDX_Contacto_FundoSector
+    ON evalImagen.Contacto(fundoID, sectorID, activo)
+    WHERE statusID = 1 AND activo = 1;
+    PRINT '[OK] Índice IDX_Contacto_FundoSector creado';
 END
 GO
 

@@ -12,6 +12,7 @@
 --      - IDX_Alerta_LotID (NONCLUSTERED, filtered)
 --      - IDX_Alerta_Estado (NONCLUSTERED, filtered)
 --      - IDX_Alerta_TipoUmbral (NONCLUSTERED, filtered)
+--      - IDX_Alerta_FechaCreacion (NONCLUSTERED, filtered)
 --   ✅ Constraints:
 --      - PK_Alerta (PRIMARY KEY)
 --      - FK_Alerta_LOT (FOREIGN KEY → GROWER.LOT)
@@ -27,24 +28,26 @@
 --      - Documentación de tabla y columnas principales
 -- 
 -- OBJETOS MODIFICADOS:
---   ❌ Ninguno (FK a evalImagen.Mensaje se crea después en create_table_mensaje.sql)
--- 
+--   ❌ Ninguno
+--
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir)
+--   ⚠️  Requiere: Schema evalImagen (debe existir)
 --   ⚠️  Requiere: GROWER.LOT (tabla existente)
 --   ⚠️  Requiere: evalImagen.LoteEvaluacion (debe ejecutarse después)
 --   ⚠️  Requiere: evalImagen.UmbralLuz (debe ejecutarse después)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
 --   ⚠️  Requiere: MAST.USERS (tabla existente)
---   ⚠️  Requiere: evalImagen.Mensaje (FK circular - se agrega después)
--- 
+--
 -- ORDEN DE EJECUCIÓN:
---   4 de 5 - Después de crear evalImagen.LoteEvaluacion y evalImagen.UmbralLuz
--- 
+--   4 de 8 - Después de crear evalImagen.LoteEvaluacion y evalImagen.UmbralLuz
+--
 -- USADO POR:
---   - evalImagen.Mensaje (FK desde mensajeID)
+--   - evalImagen.MensajeAlerta (relación N:N con Mensaje)
 --   - Backend: lógica de generación de alertas
 --   - Dashboard de alertas (futuro)
+--
+-- NOTA: La relación con Mensaje se maneja a través de evalImagen.MensajeAlerta
+--       (no hay FK directa para evitar dependencia circular)
 -- 
 -- =====================================================
 
@@ -75,7 +78,6 @@ BEGIN
         fechaResolucion DATETIME NULL,
         
         -- Contexto adicional
-        mensajeID INT NULL,
         usuarioResolvioID INT NULL,
         notas NVARCHAR(500) NULL,
         
@@ -129,6 +131,15 @@ BEGIN
     ON evalImagen.Alerta(tipoUmbral, severidad, fechaCreacion DESC)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_Alerta_TipoUmbral creado';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Alerta_FechaCreacion' AND object_id = OBJECT_ID('evalImagen.Alerta'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IDX_Alerta_FechaCreacion
+    ON evalImagen.Alerta(fechaCreacion DESC)
+    WHERE statusID = 1;
+    PRINT '[OK] Índice IDX_Alerta_FechaCreacion creado';
 END
 GO
 

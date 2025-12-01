@@ -913,7 +913,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
       throw error;
     }
   }
-}
 
   /**
    * Obtiene todas las alertas con información detallada para dashboard

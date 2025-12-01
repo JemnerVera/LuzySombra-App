@@ -74,7 +74,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Generar JWT token
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+    const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
 
     const token = jwt.sign(
       {
@@ -84,7 +84,7 @@ router.post('/login', async (req: Request, res: Response) => {
         permisos: userService.getPermissions(usuario.rol)
       },
       jwtSecret,
-      { expiresIn }
+      { expiresIn } as jwt.SignOptions
     );
 
     // Calcular expiración en segundos
@@ -180,7 +180,7 @@ router.post('/refresh', authenticateWebUser, async (req: Request, res: Response)
   try {
     const user = (req as any).user;
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+    const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
 
     // Verificar que el usuario sigue activo
     const usuario = await userService.findByUsername(user.username);
@@ -201,7 +201,7 @@ router.post('/refresh', authenticateWebUser, async (req: Request, res: Response)
         permisos: userService.getPermissions(usuario.rol)
       },
       jwtSecret,
-      { expiresIn }
+      { expiresIn } as jwt.SignOptions
     );
 
     const expiresInSeconds = expiresIn === '24h' ? 86400 : 

@@ -15,8 +15,10 @@
 --      - IDX_Contacto_FundoSector (NONCLUSTERED, filtered)
 --   ✅ Constraints:
 --      - PK_Contacto (PRIMARY KEY)
---      - CK_Contacto_Estado (CHECK)
+--      - FK_Contacto_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_Contacto_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - CK_Contacto_Tipo (CHECK)
+--      - CK_Contacto_Email (CHECK)
 --      - UQ_Contacto_Email (UNIQUE)
 --   ✅ Extended Properties:
 --      - Documentación de tabla y columnas principales
@@ -25,7 +27,7 @@
 --   ❌ Ninguno
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir)
+--   ⚠️  Requiere: Schema evalImagen (debe existir)
 -- 
 -- ORDEN DE EJECUCIÓN:
 --   Puede ejecutarse en cualquier momento (no tiene dependencias)
@@ -70,13 +72,11 @@ BEGIN
         
         -- Estado
         activo BIT NOT NULL DEFAULT 1,
-        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-        fechaActualizacion DATETIME NULL,
-        usuarioCreaID INT NULL,
-        usuarioActualizaID INT NULL,
-        
-        -- Auditoría
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
         
         CONSTRAINT PK_Contacto PRIMARY KEY CLUSTERED (contactoID),
         CONSTRAINT UQ_Contacto_Email UNIQUE (email),
@@ -92,7 +92,7 @@ BEGIN
         CONSTRAINT FK_Contacto_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
         CONSTRAINT FK_Contacto_Stage FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
         CONSTRAINT FK_Contacto_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_Contacto_UsuarioActualiza FOREIGN KEY (usuarioActualizaID) REFERENCES MAST.USERS(userID)
+        CONSTRAINT FK_Contacto_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID)
     );
     
     PRINT '[OK] Tabla evalImagen.Contacto creada';

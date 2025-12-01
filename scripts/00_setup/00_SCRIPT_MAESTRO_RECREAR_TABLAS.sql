@@ -19,8 +19,8 @@
 --    ✅ 05_evalImagen.Mensaje.sql              (depende de evalImagen.Alerta)
 --    ✅ 06_evalImagen.Contacto.sql             (independiente)
 --    ✅ 07_evalImagen.Dispositivo.sql          (independiente)
---    ✅ 08_evalImagen.UsuarioWeb.sql          (independiente - autenticación usuarios web)
---    ✅ 09_evalImagen.MensajeAlerta.sql        (depende de evalImagen.Mensaje + evalImagen.Alerta)
+--    ✅ 08_evalImagen.MensajeAlerta.sql        (depende de evalImagen.Mensaje + evalImagen.Alerta)
+--    ✅ 08_image.UsuarioWeb.sql                (independiente - autenticación usuarios web)
 -- 
 -- 2️⃣ STORED PROCEDURES (03_stored_procedures):
 --    ✅ 01_sp_CalcularLoteEvaluacion.sql   (depende de evalImagen.LoteEvaluacion)

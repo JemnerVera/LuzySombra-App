@@ -20,6 +20,8 @@
 --      - FK_Alerta_Umbral (FOREIGN KEY → evalImagen.UmbralLuz)
 --      - FK_Alerta_Variety (FOREIGN KEY → GROWER.VARIETY)
 --      - FK_Alerta_UsuarioResolvio (FOREIGN KEY → MAST.USERS)
+--      - FK_Alerta_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_Alerta_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - CK_Alerta_Estado (CHECK)
 --      - CK_Alerta_TipoUmbral (CHECK)
 --      - CK_Alerta_Severidad (CHECK)
@@ -73,7 +75,6 @@ BEGIN
         
         -- Estado de la alerta
         estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
         fechaEnvio DATETIME NULL,
         fechaResolucion DATETIME NULL,
         
@@ -81,8 +82,12 @@ BEGIN
         usuarioResolvioID INT NULL,
         notas NVARCHAR(500) NULL,
         
-        -- Auditoría
+        -- Auditoría (según estándares AgroMigiva)
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
         
         CONSTRAINT PK_Alerta PRIMARY KEY CLUSTERED (alertaID),
         CONSTRAINT FK_Alerta_LOT FOREIGN KEY (lotID) REFERENCES GROWER.LOT(lotID),
@@ -90,6 +95,8 @@ BEGIN
         CONSTRAINT FK_Alerta_Umbral FOREIGN KEY (umbralID) REFERENCES evalImagen.UmbralLuz(umbralID),
         CONSTRAINT FK_Alerta_Variety FOREIGN KEY (variedadID) REFERENCES GROWER.VARIETY(varietyID),
         CONSTRAINT FK_Alerta_UsuarioResolvio FOREIGN KEY (usuarioResolvioID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_Alerta_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_Alerta_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
         CONSTRAINT CK_Alerta_Estado CHECK (estado IN ('Pendiente', 'Enviada', 'Resuelta', 'Ignorada')),
         CONSTRAINT CK_Alerta_TipoUmbral CHECK (tipoUmbral IN ('CriticoRojo', 'CriticoAmarillo', 'Normal')),
         CONSTRAINT CK_Alerta_Severidad CHECK (severidad IN ('Critica', 'Advertencia', 'Info')),

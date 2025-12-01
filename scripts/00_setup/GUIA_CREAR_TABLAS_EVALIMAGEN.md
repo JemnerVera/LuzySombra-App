@@ -32,7 +32,7 @@ scripts/01_tables/
 
 ### **1. Tabla Base (crea el schema)**
 ```
-01_image.Analisis_Imagen.sql
+01_evalImagen.AnalisisImagen.sql
 ```
 - ✅ Crea el schema `evalImagen` si no existe
 - ✅ Crea la tabla `evalImagen.AnalisisImagen`
@@ -40,42 +40,42 @@ scripts/01_tables/
 
 ### **2. Tablas de Configuración**
 ```
-02_image.UmbralLuz.sql
+02_evalImagen.UmbralLuz.sql
 ```
 - ✅ Crea `evalImagen.UmbralLuz` (umbrales de luz/sombra)
 - ⚠️ Requerida por `LoteEvaluacion` y `Alerta`
 
 ### **3. Tabla de Evaluación**
 ```
-03_image.LoteEvaluacion.sql
+03_evalImagen.LoteEvaluacion.sql
 ```
 - ✅ Crea `evalImagen.LoteEvaluacion` (estadísticas agregadas por lote)
 - ⚠️ Requiere: `UmbralLuz`, `GROWER.LOT`, `GROWER.VARIETY`, `GROWER.FARMS`, `GROWER.STAGE`
 
 ### **4. Tabla de Alertas**
 ```
-04_image.Alerta.sql
+04_evalImagen.Alerta.sql
 ```
 - ✅ Crea `evalImagen.Alerta` (alertas generadas por umbrales)
 - ⚠️ Requiere: `LoteEvaluacion`, `UmbralLuz`
 
 ### **5. Tabla de Mensajes**
 ```
-05_image.Mensaje.sql
+05_evalImagen.Mensaje.sql
 ```
 - ✅ Crea `evalImagen.Mensaje` (logs de mensajes enviados)
 - ⚠️ Requiere: `Alerta`, `GROWER.FARMS`
 
 ### **6. Tabla de Contactos**
 ```
-06_image.Contacto.sql
+06_evalImagen.Contacto.sql
 ```
 - ✅ Crea `evalImagen.Contacto` (destinatarios de alertas)
 - ⚠️ Requiere: `GROWER.FARMS`, `GROWER.STAGE`
 
 ### **7. Tabla de Dispositivos**
 ```
-07_image.Dispositivo.sql
+07_evalImagen.Dispositivo.sql
 ```
 - ✅ Crea `evalImagen.Dispositivo` (dispositivos Android autorizados)
 - ⚠️ No tiene dependencias de otras tablas del schema
@@ -114,7 +114,7 @@ Si prefieres ejecutar cada script individualmente:
 1. **Abrir SSMS** y conectarse al servidor
 2. **Seleccionar la base de datos:** `BD_PACKING_AGROMIGIVA_DESA`
 3. **Ejecutar cada script en orden:**
-   - Abrir `scripts/01_tables/01_image.Analisis_Imagen.sql`
+   - Abrir `scripts/01_tables/01_evalImagen.AnalisisImagen.sql`
    - Ejecutar (F5)
    - Verificar que no haya errores
    - Repetir con el siguiente script
@@ -182,8 +182,8 @@ ORDER BY TABLE_NAME, INDEX_NAME;
 ## ⚠️ Errores Comunes
 
 ### **Error: "Schema 'evalImagen' does not exist"**
-- **Causa:** El script `01_image.Analisis_Imagen.sql` no se ejecutó primero
-- **Solución:** Ejecutar `01_image.Analisis_Imagen.sql` primero (crea el schema)
+- **Causa:** El script `01_evalImagen.AnalisisImagen.sql` no se ejecutó primero
+- **Solución:** Ejecutar `01_evalImagen.AnalisisImagen.sql` primero (crea el schema)
 
 ### **Error: "Foreign key constraint failed"**
 - **Causa:** Se ejecutó un script antes de crear la tabla referenciada

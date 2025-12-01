@@ -313,7 +313,7 @@ Los tokens tienen payloads diferentes, por lo que no hay confusión:
 - `backend/src/routes/auth-web.ts` → Nuevo
 - `backend/src/middleware/auth-web.ts` → Nuevo
 - `backend/src/services/userService.ts` → Nuevo
-- `scripts/01_tables/08_image.UsuarioWeb.sql` → Nuevo
+- `scripts/01_tables/09_evalImagen.UsuarioWeb.sql` → Nuevo
 
 ---
 

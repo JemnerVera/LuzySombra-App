@@ -59,9 +59,9 @@ Este documento detalla paso a paso cómo implementar un sistema completo de aute
 
 **Razón:** `MAST.USERS` se usa para diferentes propósitos en el sistema y puede complicar la implementación. Es mejor tener una tabla dedicada para autenticación web.
 
-**Script:** `scripts/01_tables/08_image.UsuarioWeb.sql`
+**Script:** `scripts/01_tables/09_evalImagen.UsuarioWeb.sql`
 
-**Ver script completo:** `scripts/01_tables/08_image.UsuarioWeb.sql`
+**Ver script completo:** `scripts/01_tables/09_evalImagen.UsuarioWeb.sql`
 
 **Campos principales:**
 - `usuarioID` (PK) - ID único del usuario

@@ -11,8 +11,8 @@ Estándares: `docs/ESTANDARES_CODIFICACION_BD_MIGIVA.md`
 ## ✅ CORRECCIONES REALIZADAS
 
 ### 1. Schema Correcto
-- ✅ **Corregido:** `02_image.UmbralLuz.sql` - Ahora crea `evalImagen` (antes creaba `image`)
-- ✅ **Corregido:** `07_image.Dispositivo.sql` - Ahora crea `evalImagen` (antes creaba `image`)
+- ✅ **Corregido:** `02_evalImagen.UmbralLuz.sql` - Ahora crea `evalImagen` (antes creaba `image`)
+- ✅ **Corregido:** `07_evalImagen.Dispositivo.sql` - Ahora crea `evalImagen` (antes creaba `image`)
 - ✅ **Actualizado:** Comentarios en todos los scripts ahora dicen `evalImagen` (no `image`)
 
 ---
@@ -151,15 +151,15 @@ Estándares: `docs/ESTANDARES_CODIFICACION_BD_MIGIVA.md`
 ## 🔧 ORDEN DE EJECUCIÓN
 
 ```
-1. 01_image.Analisis_Imagen.sql      (crea schema evalImagen)
-2. 02_image.UmbralLuz.sql
-3. 03_image.LoteEvaluacion.sql
-4. 04_image.Alerta.sql
-5. 05_image.Mensaje.sql
-6. 06_image.Contacto.sql
-7. 07_image.Dispositivo.sql
+1. 01_evalImagen.AnalisisImagen.sql      (crea schema evalImagen)
+2. 02_evalImagen.UmbralLuz.sql
+3. 03_evalImagen.LoteEvaluacion.sql
+4. 04_evalImagen.Alerta.sql
+5. 05_evalImagen.Mensaje.sql
+6. 06_evalImagen.Contacto.sql
+7. 07_evalImagen.Dispositivo.sql
 8. 08_evalImagen.MensajeAlerta.sql
-9. 08_image.UsuarioWeb.sql
+9. 09_evalImagen.UsuarioWeb.sql
 ```
 
 ---

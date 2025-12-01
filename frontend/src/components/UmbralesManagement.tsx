@@ -14,7 +14,7 @@ interface Umbral {
   orden: number;
   activo: boolean;
   fechaCreacion: string;
-  fechaActualizacion: string | null;
+  fechaModificacion: string | null;
 }
 
 interface Variedad {
@@ -107,7 +107,7 @@ const UmbralesManagement: React.FC<UmbralesManagementProps> = ({ onNotification 
 
       const response = await apiService.updateUmbral(id, {
         ...formData,
-        usuarioActualizaID: 1 // TODO: Obtener del contexto de usuario
+        usuarioModificaID: 1 // TODO: Obtener del contexto de usuario
       });
 
       if (response.success) {

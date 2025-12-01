@@ -13,6 +13,7 @@ import UmbralesManagement from './components/UmbralesManagement';
 import ContactosManagement from './components/ContactosManagement';
 import AlertasDashboard from './components/AlertasDashboard';
 import StatisticsDashboard from './components/StatisticsDashboard';
+import DispositivosManagement from './components/DispositivosManagement';
 import Notification from './components/Notification';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';

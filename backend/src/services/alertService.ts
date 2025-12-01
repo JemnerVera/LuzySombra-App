@@ -915,5 +915,232 @@ Por favor, revisa el lote y toma las acciones necesarias.
   }
 }
 
+  /**
+   * Obtiene todas las alertas con información detallada para dashboard
+   */
+  async getAllAlertas(filters?: {
+    estado?: 'Pendiente' | 'Enviada' | 'Resuelta' | 'Ignorada';
+    tipoUmbral?: 'CriticoRojo' | 'CriticoAmarillo' | 'Normal';
+    fundoID?: string;
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
+    alertas: Array<Alerta & {
+      loteNombre?: string;
+      fundoNombre?: string;
+      sectorNombre?: string;
+      variedadNombre?: string;
+      umbralDescripcion?: string;
+      umbralColor?: string;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    try {
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 50;
+      const offset = (page - 1) * pageSize;
+
+      const condiciones: string[] = ['a.statusID = 1'];
+      const params: Record<string, unknown> = {};
+
+      if (filters?.estado) {
+        condiciones.push('a.estado = @estado');
+        params.estado = filters.estado;
+      }
+      if (filters?.tipoUmbral) {
+        condiciones.push('a.tipoUmbral = @tipoUmbral');
+        params.tipoUmbral = filters.tipoUmbral;
+      }
+      if (filters?.fundoID) {
+        condiciones.push('le.fundoID = @fundoID');
+        params.fundoID = filters.fundoID;
+      }
+      if (filters?.fechaDesde) {
+        condiciones.push('a.fechaCreacion >= @fechaDesde');
+        params.fechaDesde = filters.fechaDesde;
+      }
+      if (filters?.fechaHasta) {
+        condiciones.push('a.fechaCreacion <= @fechaHasta');
+        params.fechaHasta = filters.fechaHasta;
+      }
+
+      const whereClause = condiciones.length > 0 ? 'WHERE ' + condiciones.join(' AND ') : '';
+
+      // Query para obtener alertas con información relacionada
+      const rows = await query<Alerta & {
+        loteNombre?: string;
+        fundoNombre?: string;
+        sectorNombre?: string;
+        variedadNombre?: string;
+        umbralDescripcion?: string;
+        umbralColor?: string;
+        notas?: string | null;
+      }>(`
+        SELECT 
+          a.alertaID,
+          a.lotID,
+          a.loteEvaluacionID,
+          a.umbralID,
+          a.variedadID,
+          a.porcentajeLuzEvaluado,
+          a.tipoUmbral,
+          a.severidad,
+          a.estado,
+          a.fechaCreacion,
+          a.fechaEnvio,
+          a.fechaResolucion,
+          a.notas,
+          l.name AS loteNombre,
+          f.Description AS fundoNombre,
+          s.stage AS sectorNombre,
+          v.name AS variedadNombre,
+          u.descripcion AS umbralDescripcion,
+          u.colorHex AS umbralColor
+        FROM evalImagen.Alerta a
+        LEFT JOIN GROWER.LOT l ON a.lotID = l.lotID
+        LEFT JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+        LEFT JOIN GROWER.FARMS f ON le.fundoID = f.farmID
+        LEFT JOIN GROWER.STAGE s ON le.sectorID = s.stageID
+        LEFT JOIN GROWER.VARIETY v ON a.variedadID = v.varietyID
+        LEFT JOIN evalImagen.UmbralLuz u ON a.umbralID = u.umbralID
+        ${whereClause}
+        ORDER BY a.fechaCreacion DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `, { ...params, offset, pageSize });
+
+      // Query para contar total
+      const countResult = await query<{ total: number }>(`
+        SELECT COUNT(*) AS total
+        FROM evalImagen.Alerta a
+        LEFT JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+        ${whereClause}
+      `, params);
+
+      const total = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / pageSize);
+
+      return {
+        alertas: rows,
+        total,
+        page,
+        pageSize,
+        totalPages
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo alertas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Resuelve una alerta (marca como resuelta)
+   */
+  async resolverAlerta(alertaID: number, usuarioResolvioID: number, notas?: string): Promise<boolean> {
+    try {
+      await query(`
+        UPDATE evalImagen.Alerta
+        SET estado = 'Resuelta',
+            fechaResolucion = GETDATE(),
+            usuarioResolvioID = @usuarioResolvioID,
+            notas = @notas
+        WHERE alertaID = @alertaID
+          AND statusID = 1
+      `, { alertaID, usuarioResolvioID, notas: notas || null });
+
+      console.log(`✅ Alerta ${alertaID} resuelta exitosamente`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error resolviendo alerta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ignora una alerta (marca como ignorada)
+   */
+  async ignorarAlerta(alertaID: number, usuarioResolvioID: number, notas?: string): Promise<boolean> {
+    try {
+      await query(`
+        UPDATE evalImagen.Alerta
+        SET estado = 'Ignorada',
+            fechaResolucion = GETDATE(),
+            usuarioResolvioID = @usuarioResolvioID,
+            notas = @notas
+        WHERE alertaID = @alertaID
+          AND statusID = 1
+      `, { alertaID, usuarioResolvioID, notas: notas || null });
+
+      console.log(`✅ Alerta ${alertaID} ignorada exitosamente`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error ignorando alerta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene estadísticas de alertas
+   */
+  async getEstadisticasAlertas(): Promise<{
+    total: number;
+    porEstado: Record<string, number>;
+    porTipo: Record<string, number>;
+    porSeveridad: Record<string, number>;
+    ultimas24Horas: number;
+  }> {
+    try {
+      const stats = await query<{
+        estado: string;
+        tipoUmbral: string;
+        severidad: string;
+        total: number;
+        ultimas24Horas: number;
+      }>(`
+        SELECT 
+          estado,
+          tipoUmbral,
+          severidad,
+          COUNT(*) AS total,
+          SUM(CASE WHEN fechaCreacion >= DATEADD(HOUR, -24, GETDATE()) THEN 1 ELSE 0 END) AS ultimas24Horas
+        FROM evalImagen.Alerta
+        WHERE statusID = 1
+        GROUP BY estado, tipoUmbral, severidad
+      `);
+
+      const porEstado: Record<string, number> = {};
+      const porTipo: Record<string, number> = {};
+      const porSeveridad: Record<string, number> = {};
+      let total = 0;
+      let ultimas24Horas = 0;
+
+      stats.forEach(stat => {
+        total += stat.total;
+        ultimas24Horas += stat.ultimas24Horas;
+        
+        porEstado[stat.estado] = (porEstado[stat.estado] || 0) + stat.total;
+        porTipo[stat.tipoUmbral] = (porTipo[stat.tipoUmbral] || 0) + stat.total;
+        porSeveridad[stat.severidad] = (porSeveridad[stat.severidad] || 0) + stat.total;
+      });
+
+      return {
+        total,
+        porEstado,
+        porTipo,
+        porSeveridad,
+        ultimas24Horas
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas de alertas:', error);
+      throw error;
+    }
+  }
+}
+
 export const alertService = new AlertService();
 

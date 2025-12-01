@@ -19,7 +19,8 @@
 --    ✅ 05_evalImagen.Mensaje.sql              (depende de evalImagen.Alerta)
 --    ✅ 06_evalImagen.Contacto.sql             (independiente)
 --    ✅ 07_evalImagen.Dispositivo.sql          (independiente)
---    ✅ 08_evalImagen.MensajeAlerta.sql        (depende de evalImagen.Mensaje + evalImagen.Alerta)
+--    ✅ 08_evalImagen.UsuarioWeb.sql          (independiente - autenticación usuarios web)
+--    ✅ 09_evalImagen.MensajeAlerta.sql        (depende de evalImagen.Mensaje + evalImagen.Alerta)
 -- 
 -- 2️⃣ STORED PROCEDURES (03_stored_procedures):
 --    ✅ 01_sp_CalcularLoteEvaluacion.sql   (depende de evalImagen.LoteEvaluacion)
@@ -58,7 +59,8 @@ PRINT '  4. scripts/01_tables/04_evalImagen.Alerta.sql';
 PRINT '  5. scripts/01_tables/05_evalImagen.Mensaje.sql';
 PRINT '  6. scripts/01_tables/06_evalImagen.Contacto.sql';
 PRINT '  7. scripts/01_tables/07_evalImagen.Dispositivo.sql';
-PRINT '  8. scripts/01_tables/08_evalImagen.MensajeAlerta.sql';
+PRINT '  8. scripts/01_tables/08_evalImagen.UsuarioWeb.sql';
+PRINT '  9. scripts/01_tables/09_evalImagen.MensajeAlerta.sql';
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '  PASO 2: CREAR STORED PROCEDURES (03_stored_procedures)';

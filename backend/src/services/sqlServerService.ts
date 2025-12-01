@@ -125,6 +125,10 @@ class SqlServerService {
     fundo?: string;
     sector?: string;
     lote?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
+    porcentajeLuzMin?: number;
+    porcentajeLuzMax?: number;
     limit?: number;
     page?: number;
     pageSize?: number;
@@ -167,6 +171,22 @@ class SqlServerService {
       if (filters?.lote) {
         whereClause += ' AND l.name = @lote';
         params.lote = filters.lote;
+      }
+      if (filters?.fechaDesde) {
+        whereClause += ' AND a.fechaCreacion >= @fechaDesde';
+        params.fechaDesde = filters.fechaDesde;
+      }
+      if (filters?.fechaHasta) {
+        whereClause += ' AND a.fechaCreacion <= @fechaHasta';
+        params.fechaHasta = filters.fechaHasta;
+      }
+      if (filters?.porcentajeLuzMin !== undefined) {
+        whereClause += ' AND a.porcentajeLuz >= @porcentajeLuzMin';
+        params.porcentajeLuzMin = filters.porcentajeLuzMin;
+      }
+      if (filters?.porcentajeLuzMax !== undefined) {
+        whereClause += ' AND a.porcentajeLuz <= @porcentajeLuzMax';
+        params.porcentajeLuzMax = filters.porcentajeLuzMax;
       }
 
       const countQuery = `
@@ -675,46 +695,147 @@ class SqlServerService {
    */
   async getStatistics(): Promise<any> {
     try {
-      const pool = await connectDb();
-      
       // Get total number of analyses
-      const totalAnalisisResult = await pool.request().query(`
+      const totalAnalisisResult = await query<{ total: number }>(`
         SELECT COUNT(*) as total
         FROM evalImagen.AnalisisImagen
+        WHERE statusID = 1
       `);
-      const totalAnalisis = totalAnalisisResult.recordset[0]?.total || 0;
+      const totalAnalisis = totalAnalisisResult[0]?.total || 0;
       
       // Get total number of lots
-      const totalLotesResult = await pool.request().query(`
-        SELECT COUNT(DISTINCT CONCAT(f.farmID, '-', s.stageID, '-', l.lotID)) as total
-        FROM evalImagen.AnalisisImagen ai
-        INNER JOIN [AgroMigiva].[dbo].[Lot] l ON ai.loteID = l.lotID
-        INNER JOIN [AgroMigiva].[dbo].[Stage] s ON l.stageID = s.stageID
-        INNER JOIN [AgroMigiva].[dbo].[Farm] f ON s.farmID = f.farmID
+      const totalLotesResult = await query<{ total: number }>(`
+        SELECT COUNT(DISTINCT a.lotID) as total
+        FROM evalImagen.AnalisisImagen a
+        WHERE a.statusID = 1
       `);
-      const totalLotes = totalLotesResult.recordset[0]?.total || 0;
+      const totalLotes = totalLotesResult[0]?.total || 0;
       
       // Get average light percentage
-      const avgLuzResult = await pool.request().query(`
-        SELECT AVG(porcentaje_luz) as promedio
+      const avgLuzResult = await query<{ promedio: number }>(`
+        SELECT AVG(CAST(porcentajeLuz AS FLOAT)) as promedio
         FROM evalImagen.AnalisisImagen
-        WHERE porcentaje_luz IS NOT NULL
+        WHERE porcentajeLuz IS NOT NULL AND statusID = 1
       `);
-      const promedioLuz = avgLuzResult.recordset[0]?.promedio || 0;
+      const promedioLuz = avgLuzResult[0]?.promedio || 0;
       
       // Get average shadow percentage
-      const avgSombraResult = await pool.request().query(`
-        SELECT AVG(porcentaje_sombra) as promedio
+      const avgSombraResult = await query<{ promedio: number }>(`
+        SELECT AVG(CAST(porcentajeSombra AS FLOAT)) as promedio
         FROM evalImagen.AnalisisImagen
-        WHERE porcentaje_sombra IS NOT NULL
+        WHERE porcentajeSombra IS NOT NULL AND statusID = 1
       `);
-      const promedioSombra = avgSombraResult.recordset[0]?.promedio || 0;
-      
+      const promedioSombra = avgSombraResult[0]?.promedio || 0;
+
+      // Get statistics by fundo
+      const statsPorFundo = await query<{
+        fundo: string;
+        total: number;
+        promedioLuz: number;
+        promedioSombra: number;
+      }>(`
+        SELECT 
+          f.Description AS fundo,
+          COUNT(*) as total,
+          AVG(CAST(a.porcentajeLuz AS FLOAT)) as promedioLuz,
+          AVG(CAST(a.porcentajeSombra AS FLOAT)) as promedioSombra
+        FROM evalImagen.AnalisisImagen a
+        INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
+        INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+        INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+        WHERE a.statusID = 1
+        GROUP BY f.Description
+        ORDER BY total DESC
+      `);
+
+      // Get statistics by month (last 12 months)
+      const statsPorMes = await query<{
+        mes: string;
+        total: number;
+        promedioLuz: number;
+      }>(`
+        SELECT 
+          FORMAT(a.fechaCreacion, 'yyyy-MM') AS mes,
+          COUNT(*) as total,
+          AVG(CAST(a.porcentajeLuz AS FLOAT)) as promedioLuz
+        FROM evalImagen.AnalisisImagen a
+        WHERE a.statusID = 1
+          AND a.fechaCreacion >= DATEADD(MONTH, -12, GETDATE())
+        GROUP BY FORMAT(a.fechaCreacion, 'yyyy-MM')
+        ORDER BY mes ASC
+      `);
+
+      // Get distribution by light percentage ranges
+      const distribucionLuz = await query<{
+        rango: string;
+        total: number;
+        porcentaje: number;
+      }>(`
+        SELECT 
+          CASE 
+            WHEN porcentajeLuz < 20 THEN '0-20%'
+            WHEN porcentajeLuz < 40 THEN '20-40%'
+            WHEN porcentajeLuz < 60 THEN '40-60%'
+            WHEN porcentajeLuz < 80 THEN '60-80%'
+            ELSE '80-100%'
+          END AS rango,
+          COUNT(*) as total,
+          CAST(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM evalImagen.AnalisisImagen WHERE statusID = 1) AS DECIMAL(5,2)) as porcentaje
+        FROM evalImagen.AnalisisImagen
+        WHERE porcentajeLuz IS NOT NULL AND statusID = 1
+        GROUP BY 
+          CASE 
+            WHEN porcentajeLuz < 20 THEN '0-20%'
+            WHEN porcentajeLuz < 40 THEN '20-40%'
+            WHEN porcentajeLuz < 60 THEN '40-60%'
+            WHEN porcentajeLuz < 80 THEN '60-80%'
+            ELSE '80-100%'
+          END
+        ORDER BY rango
+      `);
+
+      // Get recent activity (last 7 days)
+      const actividadReciente = await query<{
+        fecha: Date;
+        total: number;
+      }>(`
+        SELECT 
+          CAST(a.fechaCreacion AS DATE) AS fecha,
+          COUNT(*) as total
+        FROM evalImagen.AnalisisImagen a
+        WHERE a.statusID = 1
+          AND a.fechaCreacion >= DATEADD(DAY, -7, GETDATE())
+        GROUP BY CAST(a.fechaCreacion AS DATE)
+        ORDER BY fecha ASC
+      `);
+
       return {
-        totalAnalisis,
-        totalLotes,
-        promedioLuz: Math.round(promedioLuz * 100) / 100,
-        promedioSombra: Math.round(promedioSombra * 100) / 100
+        general: {
+          totalAnalisis,
+          totalLotes,
+          promedioLuz: parseFloat((promedioLuz || 0).toFixed(2)),
+          promedioSombra: parseFloat((promedioSombra || 0).toFixed(2))
+        },
+        porFundo: statsPorFundo.map(s => ({
+          fundo: s.fundo,
+          total: s.total,
+          promedioLuz: parseFloat((s.promedioLuz || 0).toFixed(2)),
+          promedioSombra: parseFloat((s.promedioSombra || 0).toFixed(2))
+        })),
+        porMes: statsPorMes.map(s => ({
+          mes: s.mes,
+          total: s.total,
+          promedioLuz: parseFloat((s.promedioLuz || 0).toFixed(2))
+        })),
+        distribucionLuz: distribucionLuz.map(d => ({
+          rango: d.rango,
+          total: d.total,
+          porcentaje: parseFloat((d.porcentaje || 0).toFixed(2))
+        })),
+        actividadReciente: actividadReciente.map(a => ({
+          fecha: a.fecha.toISOString().split('T')[0],
+          total: a.total
+        }))
       };
     } catch (error) {
       console.error('❌ Error getting statistics:', error);

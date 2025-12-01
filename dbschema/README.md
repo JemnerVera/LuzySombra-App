@@ -1,55 +1,22 @@
-# DbSchema - Documentación del Schema evalImagen
+# Visualización del Schema evalImagen
 
-Esta carpeta contiene documentación y archivos relacionados con **DbSchema** para el schema `evalImagen`.
+Esta carpeta contiene archivos para visualizar y documentar el schema `evalImagen`.
 
 ## 📁 Contenido
 
-- **`GUIA_DBSCHEMA.md`** - Guía completa paso a paso para usar DbSchema
-- **`GUIA_DOCUMENTAR_SCHEMA_BD.md`** - Guía de otras herramientas para documentar el schema (SSMS, dbdiagram.io, etc.)
-- **`ddl/`** - Scripts DDL limpios optimizados para DbSchema (9 archivos)
-  - `00_CREATE_SCHEMA.sql` - Crear schema evalImagen
-  - `01_AnalisisImagen.sql` a `08_MensajeAlerta.sql` - Scripts de tablas
-- **`LuzSombra_evalImagen.dbs`** - Archivo de proyecto DbSchema (guardar aquí después de crear)
+- **`eraser_io_schema.txt`** - Script para generar ERD en eraser.io (herramienta online)
+- **`FLUJO_AGRICQR_DIAGRAMA.md`** - Diagrama de flujo del proceso AgriQR
 
-## ⚠️ Importante
+## 🚀 Visualizar ERD con eraser.io
 
-**DbSchema se usa SOLO para visualización y documentación local.** Los scripts SQL se ejecutan **manualmente en SQL Server Management Studio (SSMS)**. DbSchema NO se usa para ejecutar scripts ni modificar la base de datos.
-
-## 🚀 Inicio Rápido
-
-1. Leer la guía: `GUIA_DBSCHEMA.md`
-2. Instalar DbSchema: https://dbschema.com/download.html
-3. Abrir DbSchema → **File → New Project** (sin conectar a BD)
-4. **File → Import → SQL Script**
-5. Importar scripts desde `ddl/` en orden (01 a 08)
-6. Crear diagrama ERD
-7. Guardar proyecto en esta carpeta
-
-## 📊 Información de Conexión
-
-**Desarrollo:**
-```
-Host: ***REMOVED***
-Port: 1433
-Database: ***REMOVED***
-User: ucser_luzsombra_desa
-Password: D3s4S3r12
-Schema: evalImagen
-```
-
-**Producción:**
-```
-Host: [Servidor de producción]
-Port: 1433
-Database: BD_PACKING_AGROMIGIVA_PROD
-User: ucser_luzSombra
-Password: [Password de producción]
-Schema: evalImagen
-```
+1. Ir a: https://app.eraser.io/
+2. Crear nuevo diagrama
+3. Copiar y pegar el contenido de `eraser_io_schema.txt`
+4. El diagrama se generará automáticamente
 
 ## 📝 Tablas del Schema
 
-El schema `evalImagen` contiene 8 tablas:
+El schema `evalImagen` contiene 9 tablas:
 
 1. `AnalisisImagen` - Resultados de análisis de imágenes
 2. `UmbralLuz` - Configuración de umbrales de luz/sombra
@@ -59,24 +26,7 @@ El schema `evalImagen` contiene 8 tablas:
 6. `Contacto` - Destinatarios de alertas
 7. `Dispositivo` - Dispositivos Android autorizados
 8. `MensajeAlerta` - Relación muchos-a-muchos (junction table)
-
-## 🔗 Relaciones Principales
-
-- `AnalisisImagen` → `GROWER.LOT` (via `lotID`)
-- `LoteEvaluacion` → `GROWER.LOT` (via `lotID`)
-- `LoteEvaluacion` → `UmbralLuz` (via `umbralIDActual`)
-- `Alerta` → `LoteEvaluacion` (via `loteEvaluacionID`)
-- `Alerta` → `UmbralLuz` (via `umbralID`)
-- `Mensaje` → `Alerta` (via `alertaID`, opcional)
-- `MensajeAlerta` → `Mensaje` y `Alerta` (junction table)
-
-## 📤 Exportar Documentación
-
-Después de crear el diagrama en DbSchema:
-
-1. **Exportar como imagen:** PNG o PDF para presentaciones
-2. **Exportar HTML:** Documentación interactiva completa
-3. **Guardar proyecto:** Archivo `.dbs` en esta carpeta
+9. `UsuarioWeb` - Usuarios web del sistema
 
 ## 🔧 Ejecutar Scripts SQL
 
@@ -88,10 +38,4 @@ Después de crear el diagrama en DbSchema:
 4. Ejecutar el script (F5)
 
 **Ver guía completa:** `scripts/00_setup/GUIA_CREAR_TABLAS_EVALIMAGEN.md`
-
-## ⚠️ Notas
-
-- El archivo `.dbs` contiene la conexión a la BD (puede incluir credenciales)
-- Considerar usar variables de entorno o configuración externa para credenciales
-- Sincronizar regularmente con la BD para mantener diagrama actualizado
 

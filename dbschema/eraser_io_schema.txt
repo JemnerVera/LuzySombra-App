@@ -11,29 +11,36 @@
 //
 // =====================================================
 
-// TABLAS EXTERNAS (Referencias)
+// =====================================================
+// TABLAS EXTERNAS (Referencias - Schema GROWER/MAST)
+// =====================================================
 GROWER_LOT [icon: package, color: gray] {
   lotID int pk
+  note: "Tabla externa - Lotes de cultivo"
 }
 
 GROWER_FARMS [icon: building, color: gray] {
   farmID string pk
+  note: "Tabla externa - Fundos"
 }
 
 GROWER_STAGE [icon: layers, color: gray] {
   stageID int pk
+  note: "Tabla externa - Sectores/Etapas"
 }
 
 GROWER_VARIETY [icon: leaf, color: gray] {
   varietyID int pk
+  note: "Tabla externa - Variedades"
 }
 
 MAST_USERS [icon: user, color: gray] {
   userID int pk
+  note: "Tabla externa - Usuarios del sistema (auditoría)"
 }
 
 // =====================================================
-// SCHEMA evalImagen - TABLAS PRINCIPALES
+// GRUPO 1: CORE - Análisis y Evaluación
 // =====================================================
 
 AnalisisImagen [icon: image, color: blue] {
@@ -53,6 +60,7 @@ AnalisisImagen [icon: image, color: blue] {
   statusID int
   usuarioCreaID int
   fechaCreacion timestamp
+  note: "📸 Fotos procesadas desde AgriQR o web"
 }
 
 UmbralLuz [icon: gauge, color: orange] {
@@ -70,6 +78,7 @@ UmbralLuz [icon: gauge, color: orange] {
   fechaCreacion timestamp
   fechaActualizacion timestamp
   statusID int
+  note: "⚙️ Umbrales de luz configurados por usuarios web"
 }
 
 LoteEvaluacion [icon: bar-chart, color: green] {
@@ -92,7 +101,12 @@ LoteEvaluacion [icon: bar-chart, color: green] {
   periodoEvaluacionDias int
   fechaUltimaActualizacion timestamp
   statusID int
+  note: "📊 Evaluación agregada por lote (calculada por SP)"
 }
+
+// =====================================================
+// GRUPO 2: ALERTAS Y NOTIFICACIONES
+// =====================================================
 
 Alerta [icon: alert-triangle, color: red] {
   alertaID int pk
@@ -110,6 +124,7 @@ Alerta [icon: alert-triangle, color: red] {
   fechaResolucion timestamp
   notas string
   statusID int
+  note: "🚨 Alertas generadas automáticamente por triggers"
 }
 
 Mensaje [icon: mail, color: green] {
@@ -132,6 +147,56 @@ Mensaje [icon: mail, color: green] {
   resendResponse string
   errorMessage string
   statusID int
+  note: "📧 Mensajes de email enviados vía Resend API"
+}
+
+MensajeAlerta [icon: link, color: gray] {
+  mensajeID int pk
+  alertaID int pk
+  fechaCreacion timestamp
+  statusID int
+  note: "🔗 Relación N:N entre Mensajes y Alertas (mensajes consolidados)"
+}
+
+// =====================================================
+// GRUPO 3: USUARIOS Y DISPOSITIVOS
+// =====================================================
+
+Dispositivo [icon: smartphone, color: purple] {
+  dispositivoID int pk
+  deviceId string
+  apiKey string
+  nombreDispositivo string
+  modeloDispositivo string
+  versionApp string
+  activo boolean
+  fechaRegistro timestamp
+  ultimoAcceso timestamp
+  statusID int
+  usuarioCreaID int
+  fechaCreacion timestamp
+  usuarioModificaID int
+  fechaModificacion timestamp
+  note: "📱 Dispositivos Android (AgriQR) - Autenticación con deviceId + apiKey"
+}
+
+UsuarioWeb [icon: user-circle, color: teal] {
+  usuarioID int pk
+  username string
+  passwordHash string
+  email string
+  nombreCompleto string
+  rol string
+  activo boolean
+  intentosLogin int
+  bloqueadoHasta timestamp
+  ultimoAcceso timestamp
+  statusID int
+  usuarioCreaID int
+  fechaCreacion timestamp
+  usuarioModificaID int
+  fechaModificacion timestamp
+  note: "👤 Usuarios web - Autenticación con username + password (roles: Admin, Agronomo, Supervisor, Lector)"
 }
 
 Contacto [icon: users, color: blue] {
@@ -153,74 +218,71 @@ Contacto [icon: users, color: blue] {
   fechaCreacion timestamp
   fechaActualizacion timestamp
   statusID int
-}
-
-Dispositivo [icon: smartphone, color: purple] {
-  dispositivoID int pk
-  deviceId string
-  apiKey string
-  nombreDispositivo string
-  modeloDispositivo string
-  versionApp string
-  activo boolean
-  fechaRegistro timestamp
-  ultimoAcceso timestamp
-  statusID int
-  usuarioCreaID int
-  fechaCreacion timestamp
-  usuarioModificaID int
-  fechaModificacion timestamp
-}
-
-MensajeAlerta [icon: link, color: gray] {
-  mensajeID int pk
-  alertaID int pk
-  fechaCreacion timestamp
-  statusID int
+  note: "📇 Contactos que reciben alertas por email"
 }
 
 // =====================================================
 // RELACIONES (Foreign Keys)
 // =====================================================
 
-// AnalisisImagen
+// === CORE - Análisis y Evaluación ===
 AnalisisImagen.lotID > GROWER_LOT.lotID
 AnalisisImagen.usuarioCreaID > MAST_USERS.userID
 
-// UmbralLuz
 UmbralLuz.variedadID > GROWER_VARIETY.varietyID
 UmbralLuz.usuarioCreaID > MAST_USERS.userID
 UmbralLuz.usuarioActualizaID > MAST_USERS.userID
 
-// LoteEvaluacion
 LoteEvaluacion.lotID > GROWER_LOT.lotID
 LoteEvaluacion.variedadID > GROWER_VARIETY.varietyID
 LoteEvaluacion.fundoID > GROWER_FARMS.farmID
 LoteEvaluacion.sectorID > GROWER_STAGE.stageID
 LoteEvaluacion.umbralIDActual > UmbralLuz.umbralID
 
-// Alerta
+// === Alertas y Notificaciones ===
 Alerta.lotID > GROWER_LOT.lotID
 Alerta.loteEvaluacionID > LoteEvaluacion.loteEvaluacionID
 Alerta.umbralID > UmbralLuz.umbralID
 Alerta.variedadID > GROWER_VARIETY.varietyID
 Alerta.usuarioResolvioID > MAST_USERS.userID
 
-// Mensaje
 Mensaje.alertaID > Alerta.alertaID
 Mensaje.fundoID > GROWER_FARMS.farmID
 
-// Contacto
+MensajeAlerta.mensajeID > Mensaje.mensajeID
+MensajeAlerta.alertaID > Alerta.alertaID
+
+// === Usuarios y Dispositivos ===
+Dispositivo.usuarioCreaID > MAST_USERS.userID
+Dispositivo.usuarioModificaID > MAST_USERS.userID
+
+UsuarioWeb.usuarioCreaID > UsuarioWeb.usuarioID
+UsuarioWeb.usuarioModificaID > UsuarioWeb.usuarioID
+
 Contacto.fundoID > GROWER_FARMS.farmID
 Contacto.sectorID > GROWER_STAGE.stageID
 Contacto.usuarioCreaID > MAST_USERS.userID
 Contacto.usuarioActualizaID > MAST_USERS.userID
 
-// Dispositivo
-Dispositivo.usuarioCreaID > MAST_USERS.userID
-Dispositivo.usuarioModificaID > MAST_USERS.userID
-
-// MensajeAlerta (Tabla intermedia N:N)
-MensajeAlerta.mensajeID > Mensaje.mensajeID
-MensajeAlerta.alertaID > Alerta.alertaID
-
+// =====================================================
+// NOTAS PARA ORGANIZACIÓN VISUAL
+// =====================================================
+// 
+// En eraser.io, después de aplicar este código:
+// 
+// 1. AGRUPA las tablas manualmente por categorías:
+//    - Arriba: Referencias Externas (GROWER_*, MAST_*)
+//    - Centro-Izquierda: Core (AnalisisImagen, UmbralLuz, LoteEvaluacion)
+//    - Centro-Derecha: Alertas (Alerta, Mensaje, MensajeAlerta)
+//    - Abajo: Usuarios (Dispositivo, UsuarioWeb, Contacto)
+// 
+// 2. USA el botón "Text" o "Note" para agregar notas explicativas:
+//    - Ver dbschema/FLUJO_AGRICQR_DIAGRAMA.md para notas sugeridas
+// 
+// 3. FLUJO AGRICQR (agregar como nota visual):
+//    Dispositivo → AnalisisImagen → LoteEvaluacion → Alerta → Mensaje → Contacto
+// 
+//    Autenticación: AgriQR → POST /api/auth/login → Dispositivo (tabla)
+//    Upload: AgriQR → POST /api/photos/upload → AnalisisImagen
+//    Procesamiento: Trigger → LoteEvaluacion → Alerta → Mensaje → Email
+//

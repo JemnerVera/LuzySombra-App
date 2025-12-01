@@ -85,7 +85,7 @@ const ImageViewModal: React.FC<ImageViewModalProps> = ({ isOpen, onClose, imageS
 
       {/* Image */}
       <div className="flex items-center justify-center w-full h-full p-8">
-        <img
+        <LazyImage
           src={imageSrc}
           alt={imageName}
           className="max-w-full max-h-full object-contain transition-transform duration-200"

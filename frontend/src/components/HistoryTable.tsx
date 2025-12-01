@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api';
 import { HistoryRecord } from '../types';
 import { formatDate, exportToCSV } from '../utils/helpers';
-import { Download, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { exportHistoryToPDF } from '../utils/pdfExport';
+import { Download, RefreshCw, Search, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 interface HistoryTableProps {
   onNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
@@ -15,12 +16,16 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterFundo, setFilterFundo] = useState('');
+  const [filterFechaDesde, setFilterFechaDesde] = useState('');
+  const [filterFechaHasta, setFilterFechaHasta] = useState('');
+  const [filterPorcentajeLuzMin, setFilterPorcentajeLuzMin] = useState('');
+  const [filterPorcentajeLuzMax, setFilterPorcentajeLuzMax] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50; // Aumentado a 50 para mejor rendimiento
   const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const isInitialMount = useRef(true);
-  const prevFilters = useRef({ filterEmpresa, filterFundo });
+  const prevFilters = useRef({ filterEmpresa, filterFundo, filterFechaDesde, filterFechaHasta, filterPorcentajeLuzMin, filterPorcentajeLuzMax });
   const pageChangeFromFilter = useRef(false);
 
   const loadHistory = async (page: number = currentPage) => {
@@ -30,13 +35,32 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
       console.log(`📊 Loading history page ${page}...`);
       
       // Construir filtros para enviar al servidor
-      const params: { page: number; pageSize: number; empresa?: string; fundo?: string } = {
+      const params: { 
+        page: number; 
+        pageSize: number; 
+        empresa?: string; 
+        fundo?: string;
+        fechaDesde?: string;
+        fechaHasta?: string;
+        porcentajeLuzMin?: number;
+        porcentajeLuzMax?: number;
+      } = {
         page,
         pageSize: itemsPerPage
       };
       
       if (filterEmpresa) params.empresa = filterEmpresa;
       if (filterFundo) params.fundo = filterFundo;
+      if (filterFechaDesde) params.fechaDesde = filterFechaDesde;
+      if (filterFechaHasta) params.fechaHasta = filterFechaHasta;
+      if (filterPorcentajeLuzMin) {
+        const min = parseFloat(filterPorcentajeLuzMin);
+        if (!isNaN(min)) params.porcentajeLuzMin = min;
+      }
+      if (filterPorcentajeLuzMax) {
+        const max = parseFloat(filterPorcentajeLuzMax);
+        if (!isNaN(max)) params.porcentajeLuzMax = max;
+      }
       
       const response = await apiService.getHistory(params);
       
@@ -60,16 +84,27 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
   useEffect(() => {
     const filtersChanged = 
       prevFilters.current.filterEmpresa !== filterEmpresa ||
-      prevFilters.current.filterFundo !== filterFundo;
+      prevFilters.current.filterFundo !== filterFundo ||
+      prevFilters.current.filterFechaDesde !== filterFechaDesde ||
+      prevFilters.current.filterFechaHasta !== filterFechaHasta ||
+      prevFilters.current.filterPorcentajeLuzMin !== filterPorcentajeLuzMin ||
+      prevFilters.current.filterPorcentajeLuzMax !== filterPorcentajeLuzMax;
 
     if (filtersChanged && !isInitialMount.current) {
       // Si cambian los filtros (y no es el mount inicial), resetear a página 1
-      prevFilters.current = { filterEmpresa, filterFundo };
+      prevFilters.current = { 
+        filterEmpresa, 
+        filterFundo, 
+        filterFechaDesde, 
+        filterFechaHasta, 
+        filterPorcentajeLuzMin, 
+        filterPorcentajeLuzMax 
+      };
       pageChangeFromFilter.current = true;
       setCurrentPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterEmpresa, filterFundo]);
+  }, [filterEmpresa, filterFundo, filterFechaDesde, filterFechaHasta, filterPorcentajeLuzMin, filterPorcentajeLuzMax]);
 
   // Efecto principal para cargar datos
   useEffect(() => {
@@ -240,61 +275,137 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
               <Download className="h-4 w-4 mr-2" />
               Exportar CSV
             </button>
+            <button
+              onClick={() => {
+                try {
+                  exportHistoryToPDF(history);
+                  onNotification('PDF exportado exitosamente', 'success');
+                } catch (error) {
+                  onNotification('Error exportando PDF', 'error');
+                }
+              }}
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
-              Buscar
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-dark-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar en todos los campos..."
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-              />
+        <div className="space-y-4">
+          {/* Primera fila de filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                Buscar
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-dark-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar en todos los campos..."
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                Empresa
+              </label>
+              <select
+                value={filterEmpresa}
+                onChange={(e) => setFilterEmpresa(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              >
+                <option value="">Todas las empresas</option>
+                {uniqueEmpresas.map((empresa) => (
+                  <option key={empresa} value={empresa}>
+                    {empresa}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                Fundo
+              </label>
+              <select
+                value={filterFundo}
+                onChange={(e) => setFilterFundo(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              >
+                <option value="">Todos los fundos</option>
+                {uniqueFundos.map((fundo) => (
+                  <option key={fundo} value={fundo}>
+                    {fundo}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
-              Empresa
-            </label>
-            <select
-              value={filterEmpresa}
-              onChange={(e) => setFilterEmpresa(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-            >
-              <option value="">Todas las empresas</option>
-              {uniqueEmpresas.map((empresa) => (
-                <option key={empresa} value={empresa}>
-                  {empresa}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Segunda fila de filtros avanzados */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                Fecha Desde
+              </label>
+              <input
+                type="date"
+                value={filterFechaDesde}
+                onChange={(e) => setFilterFechaDesde(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
-              Fundo
-            </label>
-            <select
-              value={filterFundo}
-              onChange={(e) => setFilterFundo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-            >
-              <option value="">Todos los fundos</option>
-              {uniqueFundos.map((fundo) => (
-                <option key={fundo} value={fundo}>
-                  {fundo}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                Fecha Hasta
+              </label>
+              <input
+                type="date"
+                value={filterFechaHasta}
+                onChange={(e) => setFilterFechaHasta(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                % Luz Mínimo
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={filterPorcentajeLuzMin}
+                onChange={(e) => setFilterPorcentajeLuzMin(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-200 mb-1">
+                % Luz Máximo
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={filterPorcentajeLuzMax}
+                onChange={(e) => setFilterPorcentajeLuzMax(e.target.value)}
+                placeholder="100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              />
+            </div>
           </div>
         </div>
 

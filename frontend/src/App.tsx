@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import { TabType } from './types';
 import Layout from './components/Layout';
 import ImageUploadForm from './components/ImageUploadForm';
@@ -7,10 +9,17 @@ import HistoryTable from './components/HistoryTable';
 import ConsolidatedTable from './components/ConsolidatedTable';
 import EvaluacionPorFecha from './components/EvaluacionPorFecha';
 import EvaluacionDetallePlanta from './components/EvaluacionDetallePlanta';
+import UmbralesManagement from './components/UmbralesManagement';
+import ContactosManagement from './components/ContactosManagement';
+import AlertasDashboard from './components/AlertasDashboard';
+import StatisticsDashboard from './components/StatisticsDashboard';
 import Notification from './components/Notification';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
 import { DetalleNavigation } from './types';
 
-function App() {
+// Componente interno que maneja las tabs (requiere autenticación)
+function AppContent() {
   const [currentTab, setCurrentTab] = useState<TabType>('analizar');
   const [hasUnsavedData, setHasUnsavedData] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
@@ -88,9 +97,39 @@ function App() {
             onNotification={showNotification}
           />
         );
+      case 'dashboard':
+        return (
+          <StatisticsDashboard 
+            onNotification={showNotification}
+          />
+        );
       case 'historial':
         return (
           <HistoryTable 
+            onNotification={showNotification}
+          />
+        );
+      case 'umbrales':
+        return (
+          <UmbralesManagement 
+            onNotification={showNotification}
+          />
+        );
+      case 'contactos':
+        return (
+          <ContactosManagement 
+            onNotification={showNotification}
+          />
+        );
+      case 'dispositivos':
+        return (
+          <DispositivosManagement 
+            onNotification={showNotification}
+          />
+        );
+      case 'alertas':
+        return (
+          <AlertasDashboard 
             onNotification={showNotification}
           />
         );
@@ -190,6 +229,43 @@ function App() {
         onClose={() => setNotification(prev => ({ ...prev, show: false }))}
       />
     </>
+  );
+}
+
+// Componente principal con routing
+function App() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+
+  // Mostrar loading mientras verifica autenticación
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      {/* Ruta pública: Login */}
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated ? <Navigate to="/" replace /> : <Login />
+        } 
+      />
+      
+      {/* Rutas protegidas: App principal con tabs */}
+      <Route 
+        path="/*" 
+        element={
+          <ProtectedRoute>
+            <AppContent />
+          </ProtectedRoute>
+        } 
+      />
+    </Routes>
   );
 }
 

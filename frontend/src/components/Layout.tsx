@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
-import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
   currentTab: TabType;
@@ -10,6 +12,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) => {
+  const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['consolidada']));
 
@@ -40,6 +43,16 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <Calendar className="h-5 w-5" />;
       case 'image':
         return <Image className="h-5 w-5" />;
+      case 'gauge':
+        return <Gauge className="h-5 w-5" />;
+      case 'bell':
+        return <Bell className="h-5 w-5" />;
+      case 'users':
+        return <Users className="h-5 w-5" />;
+      case 'history':
+        return <History className="h-5 w-5" />;
+      case 'smartphone':
+        return <Smartphone className="h-5 w-5" />;
       default:
         return null;
     }
@@ -73,6 +86,30 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
           <p className="text-sm text-gray-500 dark:text-dark-400 mt-1 font-medium">
             Análisis de imágenes agrícolas con ML
           </p>
+          
+          {/* Info de usuario */}
+          {user && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-700">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
+                    {user.nombreCompleto || user.username}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-dark-400">
+                    {user.rol}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                className="mt-2 w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-dark-300 bg-gray-100 dark:bg-dark-800 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Cerrar Sesión
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -157,6 +194,11 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-dark-950">
+        {/* Top Bar con Notificaciones */}
+        <div className="bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-dark-700 px-4 lg:px-6 py-3 flex items-center justify-end">
+          <NotificationCenter />
+        </div>
+        
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {children}
         </main>

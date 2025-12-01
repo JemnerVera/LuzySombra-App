@@ -35,25 +35,25 @@ RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 ### **Flujo Completo:**
 
 ```
-1. Se crea una alerta → image.Alerta
+1. Se crea una alerta → evalImagen.Alerta
    ↓
-2. Job consolida alertas por fundo → image.Mensaje (con fundoID)
+2. Job consolida alertas por fundo → evalImagen.Mensaje (con fundoID)
    ↓
-3. alertService.getDestinatarios() busca contactos en image.Contacto:
+3. alertService.getDestinatarios() busca contactos en evalImagen.Contacto:
    - Filtra por fundoID del mensaje
    - Filtra por tipo de alerta (Crítica/Advertencia)
    - Filtra por activo = 1
    ↓
-4. Se guardan los emails en image.Mensaje.destinatarios (JSON array)
+4. Se guardan los emails en evalImagen.Mensaje.destinatarios (JSON array)
    ↓
 5. resendService.processPendingMensajes() envía el email:
-   - Lee image.Mensaje.destinatarios
+   - Lee evalImagen.Mensaje.destinatarios
    - Envía email vía Resend API a todos los destinatarios
 ```
 
-### **Tabla `image.Contacto`:**
+### **Tabla `evalImagen.Contacto`:**
 
-La tabla `image.Contacto` contiene los destinatarios de las alertas. Cada contacto puede:
+La tabla `evalImagen.Contacto` contiene los destinatarios de las alertas. Cada contacto puede:
 
 - **Recibir alertas críticas** (`recibirAlertasCriticas = 1`)
 - **Recibir alertas de advertencia** (`recibirAlertasAdvertencias = 1`)
@@ -63,7 +63,7 @@ La tabla `image.Contacto` contiene los destinatarios de las alertas. Cada contac
 ### **Ejemplo de Contacto:**
 
 ```sql
-INSERT INTO image.Contacto (
+INSERT INTO evalImagen.Contacto (
     nombre,
     email,
     tipo,
@@ -92,12 +92,12 @@ VALUES (
 Cuando se crea un mensaje consolidado para un fundo:
 
 1. **Se obtiene el `fundoID`** del mensaje (ej: `'001'`)
-2. **Se buscan contactos** en `image.Contacto` que:
+2. **Se buscan contactos** en `evalImagen.Contacto` que:
    - `activo = 1` y `statusID = 1`
    - `recibirAlertasCriticas = 1` (si hay alertas críticas) O `recibirAlertasAdvertencias = 1` (si hay advertencias)
    - `fundoID IS NULL` (todos los fundos) O `fundoID = '001'` (solo ese fundo)
    - `sectorID IS NULL` (todos los sectores) O `sectorID = sectorID_del_lote` (solo ese sector)
-3. **Se guardan los emails** en `image.Mensaje.destinatarios` como JSON array:
+3. **Se guardan los emails** en `evalImagen.Mensaje.destinatarios` como JSON array:
    ```json
    ["juan.perez@empresa.com", "maria.garcia@empresa.com"]
    ```
@@ -114,8 +114,8 @@ POST http://localhost:3001/api/alertas/consolidar
 
 Esto:
 - Agrupa alertas por fundo
-- Busca contactos en `image.Contacto` para cada fundo
-- Crea mensajes en `image.Mensaje` con los destinatarios
+- Busca contactos en `evalImagen.Contacto` para cada fundo
+- Crea mensajes en `evalImagen.Mensaje` con los destinatarios
 
 ### **Paso 2: Enviar Emails**
 
@@ -180,7 +180,7 @@ SELECT
     recibirAlertasAdvertencias,
     fundoID,
     sectorID
-FROM image.Contacto
+FROM evalImagen.Contacto
 WHERE activo = 1 AND statusID = 1;
 ```
 
@@ -195,7 +195,7 @@ SELECT
     destinatarios,
     estado,
     intentosEnvio
-FROM image.Mensaje
+FROM evalImagen.Mensaje
 WHERE estado = 'Pendiente'
   AND statusID = 1;
 ```
@@ -207,7 +207,7 @@ WHERE estado = 'Pendiente'
 - [ ] API Key de Resend agregada a `.env.local`
 - [ ] `RESEND_FROM_EMAIL` configurado (dominio verificado en Resend)
 - [ ] `RESEND_FROM_NAME` configurado
-- [ ] Contactos agregados en `image.Contacto`
+- [ ] Contactos agregados en `evalImagen.Contacto`
 - [ ] Servicio de Resend instalado (`npm install resend`)
 - [ ] Endpoint/job para enviar mensajes creado
 - [ ] Probar consolidación de alertas
@@ -225,7 +225,7 @@ WHERE estado = 'Pendiente'
 
 2. **Agregar API Key a `.env.local`**
 
-3. **Crear contactos en `image.Contacto`**
+3. **Crear contactos en `evalImagen.Contacto`**
 
 4. **Crear endpoint para enviar mensajes** (o usar el job)
 

@@ -4,13 +4,13 @@
 
 El sistema de alertas utiliza **3 tablas principales** que trabajan juntas para consolidar y enviar alertas por email:
 
-1. **`image.Alerta`** - Alertas individuales (1 por lote crítico)
-2. **`image.Mensaje`** - Mensajes consolidados (1 por fundo)
-3. **`image.MensajeAlerta`** - Tabla intermedia (relación N:N)
+1. **`evalImagen.Alerta`** - Alertas individuales (1 por lote crítico)
+2. **`evalImagen.Mensaje`** - Mensajes consolidados (1 por fundo)
+3. **`evalImagen.MensajeAlerta`** - Tabla intermedia (relación N:N)
 
 ---
 
-## 1️⃣ `image.Alerta` - Alertas Individuales
+## 1️⃣ `evalImagen.Alerta` - Alertas Individuales
 
 ### **¿Para qué sirve?**
 Almacena **cada alerta individual** que se genera cuando un lote cruza un umbral crítico.
@@ -24,7 +24,7 @@ Almacena **cada alerta individual** que se genera cuando un lote cruza un umbral
 ### **¿Cuándo se crea?**
 Se crea **automáticamente** cuando:
 - Un lote cruza un umbral crítico (por trigger SQL)
-- El `tipoUmbralActual` en `image.LoteEvaluacion` cambia a `CriticoRojo` o `CriticoAmarillo`
+- El `tipoUmbralActual` en `evalImagen.LoteEvaluacion` cambia a `CriticoRojo` o `CriticoAmarillo`
 
 ### **Ejemplo:**
 ```
@@ -40,7 +40,7 @@ fechaCreacion: 2024-11-17 08:30:00
 
 ---
 
-## 2️⃣ `image.Mensaje` - Mensajes Consolidados
+## 2️⃣ `evalImagen.Mensaje` - Mensajes Consolidados
 
 ### **¿Para qué sirve?**
 Almacena **mensajes consolidados** que agrupan múltiples alertas de un mismo **Fundo** en un solo email.
@@ -73,13 +73,13 @@ fechaCreacion: 2024-11-17 08:00:00
 
 ---
 
-## 3️⃣ `image.MensajeAlerta` - Tabla Intermedia (Relación N:N)
+## 3️⃣ `evalImagen.MensajeAlerta` - Tabla Intermedia (Relación N:N)
 
 ### **¿Para qué sirve?**
 Conecta **múltiples alertas** con **un mensaje consolidado**. Es la "tabla puente" que permite la relación **Muchos a Muchos** (N:N).
 
 ### **¿Qué datos guarda?**
-- **Relaciones**: `mensajeID` (FK a `image.Mensaje`), `alertaID` (FK a `image.Alerta`)
+- **Relaciones**: `mensajeID` (FK a `evalImagen.Mensaje`), `alertaID` (FK a `evalImagen.Alerta`)
 - **Metadata**: `fechaCreacion`, `statusID`
 
 ### **¿Cuándo se crea?**
@@ -107,38 +107,38 @@ Esto significa: **El mensaje 10 incluye las alertas 1, 2, 3, 4 y 5**.
 ### **Diagrama de Relaciones:**
 
 ```
-image.Alerta (1 alerta por lote crítico)
+evalImagen.Alerta (1 alerta por lote crítico)
     │
     │ (1:N) - Una alerta puede estar en un mensaje
     │
     ├─→ mensajeID (FK directa) ──┐
     │                            │
-    └─→ alertaID ────────────────┼──→ image.MensajeAlerta (tabla intermedia)
+    └─→ alertaID ────────────────┼──→ evalImagen.MensajeAlerta (tabla intermedia)
                                   │         │
                                   │         │ (N:N)
                                   │         │
                                   └─────────┘
                                        │
-                                       └──→ image.Mensaje (1 mensaje por fundo)
+                                       └──→ evalImagen.Mensaje (1 mensaje por fundo)
                                                  │
                                                  └─→ fundoID (identifica el fundo)
 ```
 
 ### **Relación Completa:**
 
-1. **`image.Alerta`** → **`image.MensajeAlerta`** (1:N)
+1. **`evalImagen.Alerta`** → **`evalImagen.MensajeAlerta`** (1:N)
    - Una alerta puede estar en una fila de `MensajeAlerta`
    - `alertaID` es FK en `MensajeAlerta`
 
-2. **`image.Mensaje`** → **`image.MensajeAlerta`** (1:N)
+2. **`evalImagen.Mensaje`** → **`evalImagen.MensajeAlerta`** (1:N)
    - Un mensaje puede tener múltiples filas en `MensajeAlerta`
    - `mensajeID` es FK en `MensajeAlerta`
 
-3. **`image.MensajeAlerta`** conecta ambas (N:N)
+3. **`evalImagen.MensajeAlerta`** conecta ambas (N:N)
    - Permite que un mensaje tenga múltiples alertas
    - Permite que una alerta esté en un mensaje
 
-4. **`image.Alerta.mensajeID`** (FK directa)
+4. **`evalImagen.Alerta.mensajeID`** (FK directa)
    - Apunta directamente al mensaje consolidado
    - Facilita queries rápidas: "¿Esta alerta ya tiene mensaje?"
 
@@ -154,7 +154,7 @@ image.Alerta (1 alerta por lote crítico)
 ### **Paso 1: Se crean alertas individuales (Trigger SQL)**
 ```sql
 -- Se crean 5 alertas automáticamente
-image.Alerta:
+evalImagen.Alerta:
   alertaID: 1, lotID: 101, tipoUmbral: CriticoRojo, mensajeID: NULL
   alertaID: 2, lotID: 102, tipoUmbral: CriticoRojo, mensajeID: NULL
   alertaID: 3, lotID: 103, tipoUmbral: CriticoAmarillo, mensajeID: NULL
@@ -165,14 +165,14 @@ image.Alerta:
 ### **Paso 2: Job de consolidación (cada 24 horas)**
 ```sql
 -- El job agrupa las 5 alertas por fundoID y crea 1 mensaje
-image.Mensaje:
+evalImagen.Mensaje:
   mensajeID: 10, fundoID: "001", asunto: "🚨 3 Críticas, 2 Advertencias en Fundo La Esperanza"
 ```
 
 ### **Paso 3: Se crean relaciones en tabla intermedia**
 ```sql
 -- Se crean 5 filas vinculando el mensaje con cada alerta
-image.MensajeAlerta:
+evalImagen.MensajeAlerta:
   mensajeID: 10, alertaID: 1
   mensajeID: 10, alertaID: 2
   mensajeID: 10, alertaID: 3
@@ -183,7 +183,7 @@ image.MensajeAlerta:
 ### **Paso 4: Se actualizan las alertas**
 ```sql
 -- Se actualiza mensajeID en cada alerta
-image.Alerta:
+evalImagen.Alerta:
   alertaID: 1, mensajeID: 10  -- ✅ Ahora apunta al mensaje consolidado
   alertaID: 2, mensajeID: 10
   alertaID: 3, mensajeID: 10
@@ -194,7 +194,7 @@ image.Alerta:
 ### **Paso 5: Se envía el email**
 - Se envía **1 solo email** con las 5 alertas consolidadas
 - El email contiene una tabla con todos los lotes afectados
-- Se actualiza `image.Mensaje.estado = 'Enviado'`
+- Se actualiza `evalImagen.Mensaje.estado = 'Enviado'`
 
 ---
 
@@ -205,8 +205,8 @@ image.Alerta:
 SELECT 
   f.Description AS fundo,
   COUNT(*) AS total_alertas
-FROM image.Alerta a
-INNER JOIN image.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+FROM evalImagen.Alerta a
+INNER JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
 INNER JOIN GROWER.STAGE s ON le.sectorID = s.stageID
 INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
 WHERE a.estado = 'Pendiente'
@@ -221,9 +221,9 @@ SELECT
   a.lotID,
   a.porcentajeLuzEvaluado,
   a.tipoUmbral
-FROM image.Mensaje m
-INNER JOIN image.MensajeAlerta ma ON m.mensajeID = ma.mensajeID
-INNER JOIN image.Alerta a ON ma.alertaID = a.alertaID
+FROM evalImagen.Mensaje m
+INNER JOIN evalImagen.MensajeAlerta ma ON m.mensajeID = ma.mensajeID
+INNER JOIN evalImagen.Alerta a ON ma.alertaID = a.alertaID
 WHERE m.mensajeID = 10;
 ```
 
@@ -235,8 +235,8 @@ SELECT
   m.asunto,
   m.estado,
   COUNT(ma.alertaID) AS total_alertas
-FROM image.Mensaje m
-LEFT JOIN image.MensajeAlerta ma ON m.mensajeID = ma.mensajeID AND ma.statusID = 1
+FROM evalImagen.Mensaje m
+LEFT JOIN evalImagen.MensajeAlerta ma ON m.mensajeID = ma.mensajeID AND ma.statusID = 1
 LEFT JOIN GROWER.FARMS f ON m.fundoID = CAST(f.farmID AS VARCHAR)
 WHERE m.statusID = 1
 GROUP BY m.mensajeID, f.Description, m.asunto, m.estado;
@@ -248,9 +248,9 @@ GROUP BY m.mensajeID, f.Description, m.asunto, m.estado;
 
 | Tabla | Propósito | Relación |
 |-------|-----------|----------|
-| **`image.Alerta`** | Almacena cada alerta individual (1 por lote crítico) | 1 alerta → puede estar en 1 mensaje |
-| **`image.Mensaje`** | Almacena mensajes consolidados (1 por fundo) | 1 mensaje → puede incluir N alertas |
-| **`image.MensajeAlerta`** | Conecta alertas con mensajes (tabla intermedia) | Permite relación N:N |
+| **`evalImagen.Alerta`** | Almacena cada alerta individual (1 por lote crítico) | 1 alerta → puede estar en 1 mensaje |
+| **`evalImagen.Mensaje`** | Almacena mensajes consolidados (1 por fundo) | 1 mensaje → puede incluir N alertas |
+| **`evalImagen.MensajeAlerta`** | Conecta alertas con mensajes (tabla intermedia) | Permite relación N:N |
 
 **Ventaja del diseño:**
 - ✅ **Normalizado**: Fácil de consultar y mantener

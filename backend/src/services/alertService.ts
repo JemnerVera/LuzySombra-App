@@ -51,7 +51,7 @@ export interface LoteInfo {
 class AlertService {
   /**
    * Obtiene alertas pendientes que no tienen mensaje asociado
-   * Incluye fundoID y sectorID desde image.LoteEvaluacion para optimizar match con Contacto
+   * Incluye fundoID y sectorID desde evalImagen.LoteEvaluacion para optimizar match con Contacto
    */
   async getAlertasSinMensaje(): Promise<Alerta[]> {
     try {
@@ -72,8 +72,8 @@ class AlertService {
           a.mensajeID,
           le.fundoID,
           le.sectorID
-        FROM image.Alerta a
-        LEFT JOIN image.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+        FROM evalImagen.Alerta a
+        LEFT JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
         WHERE a.estado IN ('Pendiente', 'Enviada')
           AND a.statusID = 1
           AND a.mensajeID IS NULL
@@ -124,7 +124,7 @@ class AlertService {
     try {
       const rows = await query<{ descripcion: string; colorHex: string | null }>(`
         SELECT descripcion, colorHex
-        FROM image.UmbralLuz
+        FROM evalImagen.UmbralLuz
         WHERE umbralID = @umbralID
           AND activo = 1
           AND statusID = 1
@@ -255,7 +255,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
       // Obtener datos de la alerta
       const alertas = await query<Alerta>(`
         SELECT *
-        FROM image.Alerta
+        FROM evalImagen.Alerta
         WHERE alertaID = @alertaID
           AND statusID = 1
       `, { alertaID });
@@ -281,9 +281,9 @@ Por favor, revisa el lote y toma las acciones necesarias.
       const cuerpoHTML = this.generateAlertHTML(alerta, loteInfo, umbralInfo);
       const cuerpoTexto = this.generateAlertText(alerta, loteInfo, umbralInfo);
 
-      // Obtener destinatarios desde la tabla image.Contacto o variables de entorno (fallback)
+      // Obtener destinatarios desde la tabla evalImagen.Contacto o variables de entorno (fallback)
       // Se hace match por fundoID del lote (y opcionalmente sectorID)
-      // Optimización: usar fundoID y sectorID desde image.LoteEvaluacion si están disponibles
+      // Optimización: usar fundoID y sectorID desde evalImagen.LoteEvaluacion si están disponibles
       const alertaWithLocation = alerta as Alerta & { fundoID?: string | null; sectorID?: number | null };
       const destinatarios = await this.getDestinatarios(
         alerta.tipoUmbral,
@@ -293,7 +293,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
       );
       if (destinatarios.length === 0) {
         console.warn('⚠️ No hay destinatarios configurados para alertas');
-        console.warn('⚠️ Verifica que existan contactos activos en image.Contacto o configura ALERTAS_EMAIL_DESTINATARIOS');
+        console.warn('⚠️ Verifica que existan contactos activos en evalImagen.Contacto o configura ALERTAS_EMAIL_DESTINATARIOS');
         return null;
       }
 
@@ -303,7 +303,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
 
       // Insertar mensaje
       const result = await query<{ mensajeID: number }>(`
-        INSERT INTO image.Mensaje (
+        INSERT INTO evalImagen.Mensaje (
           alertaID,
           tipoMensaje,
           asunto,
@@ -345,7 +345,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
 
       // Actualizar alerta con mensajeID
       await query(`
-        UPDATE image.Alerta
+        UPDATE evalImagen.Alerta
         SET mensajeID = @mensajeID
         WHERE alertaID = @alertaID
       `, { mensajeID, alertaID });
@@ -359,7 +359,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
   }
 
   /**
-   * Obtiene destinatarios desde la tabla image.Contacto o variables de entorno (fallback)
+   * Obtiene destinatarios desde la tabla evalImagen.Contacto o variables de entorno (fallback)
    * @param tipoUmbral Tipo de umbral para filtrar contactos (CriticoRojo, CriticoAmarillo, Normal)
    * @param lotID ID del lote (para obtener fundoID y sectorID del lote)
    */
@@ -370,16 +370,16 @@ Por favor, revisa el lote y toma las acciones necesarias.
     sectorID?: number | null
   ): Promise<string[]> {
     try {
-      // Primero intentar obtener desde la tabla image.Contacto
+      // Primero intentar obtener desde la tabla evalImagen.Contacto
       const contactos = await this.getDestinatariosFromDB(tipoUmbral, lotID, fundoID, sectorID);
       
       if (contactos.length > 0) {
-        console.log(`📧 Obtenidos ${contactos.length} destinatario(s) desde image.Contacto`);
+        console.log(`📧 Obtenidos ${contactos.length} destinatario(s) desde evalImagen.Contacto`);
         return contactos;
       }
 
       // Fallback: usar variable de entorno si no hay contactos en BD
-      console.warn('⚠️ No se encontraron contactos en image.Contacto, usando variable de entorno como fallback');
+      console.warn('⚠️ No se encontraron contactos en evalImagen.Contacto, usando variable de entorno como fallback');
       return this.getDestinatariosFromEnv();
     } catch (error) {
       console.error('❌ Error obteniendo destinatarios desde BD, usando fallback:', error);
@@ -388,7 +388,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
   }
 
   /**
-   * Obtiene destinatarios desde la tabla image.Contacto
+   * Obtiene destinatarios desde la tabla evalImagen.Contacto
    * Hace match por fundoID del lote (y opcionalmente sectorID)
    * Puede recibir fundoID y sectorID directamente (optimización) o obtenerlos desde lotID
    */
@@ -455,7 +455,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
           c.email,
           c.prioridad,
           c.nombre
-        FROM image.Contacto c
+        FROM evalImagen.Contacto c
         ${whereClause}
         ORDER BY c.prioridad DESC, c.nombre ASC
       `, params);
@@ -463,7 +463,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
       console.log(`📧 Contactos encontrados en BD: ${rows.length}`);
       return rows.map(row => row.email);
     } catch (error) {
-      console.error('❌ Error obteniendo destinatarios desde image.Contacto:', error);
+      console.error('❌ Error obteniendo destinatarios desde evalImagen.Contacto:', error);
       return [];
     }
   }
@@ -541,8 +541,8 @@ Por favor, revisa el lote y toma las acciones necesarias.
           a.fechaCreacion,
           CAST(COALESCE(le.fundoID, f.farmID) AS VARCHAR) AS fundoID,
           f.Description AS fundo
-        FROM image.Alerta a
-        INNER JOIN image.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+        FROM evalImagen.Alerta a
+        INNER JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
         LEFT JOIN GROWER.STAGE s ON le.sectorID = s.stageID
         LEFT JOIN GROWER.FARMS f ON COALESCE(le.fundoID, s.farmID) = f.farmID
         WHERE a.estado IN ('Pendiente', 'Enviada')
@@ -662,7 +662,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
 
       // 4. Insertar mensaje (sin alertaID, con fundoID)
       const result = await query<{ mensajeID: number }>(`
-        INSERT INTO image.Mensaje (
+        INSERT INTO evalImagen.Mensaje (
           fundoID,
           tipoMensaje,
           asunto,
@@ -705,7 +705,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
       // 5. Crear relaciones en tabla intermedia
       for (const alerta of alertas) {
         await query(`
-          INSERT INTO image.MensajeAlerta (mensajeID, alertaID, fechaCreacion, statusID)
+          INSERT INTO evalImagen.MensajeAlerta (mensajeID, alertaID, fechaCreacion, statusID)
           VALUES (@mensajeID, @alertaID, GETDATE(), 1)
         `, { mensajeID, alertaID: alerta.alertaID });
       }
@@ -721,7 +721,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
         });
 
         await query(`
-          UPDATE image.Alerta
+          UPDATE evalImagen.Alerta
           SET mensajeID = @mensajeID
           WHERE alertaID IN (${placeholders})
         `, params);
@@ -900,7 +900,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
           intentosEnvio,
           resendMessageID,
           errorMessage
-        FROM image.Mensaje
+        FROM evalImagen.Mensaje
         WHERE estado = 'Pendiente'
           AND statusID = 1
         ORDER BY fechaCreacion ASC

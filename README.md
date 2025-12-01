@@ -55,26 +55,39 @@ npm run install:all
 
 ### Paso 2: Configurar Backend
 
-1. Crear archivo `.env` en `backend/`:
+1. Copiar `env.example` a `.env.local` en la raíz del proyecto:
+
+```bash
+cp env.example .env.local
+```
+
+2. Editar `.env.local` con tus credenciales:
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=your_server_ip_or_hostname
-SQL_DATABASE=your_database_name
+SQL_SERVER=***REMOVED***
+SQL_DATABASE=***REMOVED***
 SQL_PORT=1433
-SQL_USER=your_sql_user
-SQL_PASSWORD=your_sql_password
+SQL_USER=ucser_luzsombra_desa
+SQL_PASSWORD=D3s4S3r12
 SQL_ENCRYPT=true
 
 # Server Configuration
 PORT=3001
 FRONTEND_URL=http://localhost:3000
 
-# Data Source (sql | google_sheets)
+# Data Source
 DATA_SOURCE=sql
+
+# Resend API (para alertas)
+RESEND_API_KEY=tu_api_key
+RESEND_FROM_EMAIL=no-reply@updates.agricolaandrea.com
+RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 ```
 
-**⚠️ NOTA:** Las credenciales de VPN NO van en `.env`. La VPN se conecta con FortiClient antes de ejecutar el backend.
+**⚠️ NOTA:** 
+- Las credenciales de VPN NO van en `.env.local`. La VPN se conecta con FortiClient antes de ejecutar el backend.
+- El schema de la base de datos es `evalImagen` (no `image`).
 
 ### Frontend
 
@@ -183,9 +196,35 @@ npm run preview          # Preview del build
 │   │   ├── types/       # TypeScript types
 │   │   └── utils/       # Utilities
 │   └── package.json
-├── scripts/             # SQL scripts
-└── docs/                # Documentación
+├── scripts/             # SQL scripts (schema: evalImagen)
+│   ├── 01_tables/       # Scripts de creación de tablas
+│   ├── 03_stored_procedures/  # Stored procedures
+│   └── 05_triggers/     # Triggers
+├── docs/                # Documentación
+└── CHECKLIST_DEPLOY_AZURE.md  # Checklist de deploy
 ```
+
+## 🗄️ Base de Datos
+
+**Schema:** `evalImagen`
+
+**Tablas principales:**
+- `evalImagen.AnalisisImagen` - Resultados de análisis de imágenes
+- `evalImagen.LoteEvaluacion` - Estadísticas agregadas por lote
+- `evalImagen.Alerta` - Alertas generadas
+- `evalImagen.Mensaje` - Mensajes enviados vía Resend
+- `evalImagen.Contacto` - Destinatarios de alertas
+- `evalImagen.UmbralLuz` - Umbrales de clasificación
+- `evalImagen.Dispositivo` - Dispositivos móviles (AgriQR)
+- `evalImagen.MensajeAlerta` - Relación mensajes consolidados
+
+**Usuario SQL:**
+- DESA: `ucser_luzsombra_desa`
+- PROD: `ucser_luzSombra`
+
+Ver `scripts/00_setup/INSTRUCCIONES_RECREAR_TABLAS.md` para crear las tablas.
+
+**Nota:** Todas las operaciones de BD deben pasar por Stored Procedures. Ver `docs/ARQUITECTURA_BACKEND_SP.md`.
 
 ## 🌐 API Endpoints
 
@@ -206,14 +245,14 @@ npm run preview          # Preview del build
 
 ## 🚀 Deploy en Azure
 
-### ⚠️ Importante: VPN en Azure
+### ⚠️ Importante: Conectividad SQL Server
 
-En Azure **NO necesitas** configurar VPN manualmente como en desarrollo local. La conexión se maneja a nivel de infraestructura mediante:
-- Azure Virtual Network (VNet) Integration
-- VPN Site-to-Site
-- ExpressRoute
+Azure está en la misma nube que SQL Server, por lo que:
+- ✅ **Acceso directo** a SQL Server sin VPN
+- ✅ **Stored Procedures** para operaciones seguras desde el backend
+- ✅ **Sin Web Service intermedio** necesario
 
-**Contactar al equipo de infraestructura** para configurar el acceso a la red interna.
+El backend llama directamente a Stored Procedures en `evalImagen` para todas las operaciones de base de datos.
 
 ### Backend (Azure App Service)
 
@@ -246,19 +285,18 @@ En Azure **NO necesitas** configurar VPN manualmente como en desarrollo local. L
 
 5. **Deploy:** Git, Azure DevOps, o Azure CLI
 
-### Frontend (Azure Static Web Apps)
+### Frontend (Azure App Service - mismo servicio)
 
-1. **Crear Azure Static Web App**
-2. **Conectar repositorio**
-3. **Configurar build settings:**
-   - App location: `frontend`
-   - Build command: `npm run build`
-   - Output location: `dist`
-4. **Deploy automático** en cada push
+El frontend se sirve desde el mismo Azure App Service que el backend:
+- Se build en GitHub Actions
+- Se copia `frontend/dist` a `backend/public`
+- El backend sirve los archivos estáticos
+
+**No se necesita Azure Static Web Apps separado.**
 
 ### Documentación Completa
 
-Ver `docs/DEPLOY_AZURE.md` para guía detallada de deploy.
+Ver `CHECKLIST_DEPLOY_AZURE.md` para guía detallada de deploy.
 
 ## 🔒 Seguridad
 

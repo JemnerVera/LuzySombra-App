@@ -9,14 +9,14 @@ Este documento explica cómo funciona el flujo completo desde que se procesa una
 ### 1. **Procesamiento de Imagen** (Automático)
 - Usuario sube imagen en la app
 - Se procesa con TensorFlow.js
-- Se guarda en `image.Analisis_Imagen`
+- Se guarda en `evalImagen.Analisis_Imagen`
 - Se ejecuta `sp_CalcularLoteEvaluacion` para actualizar estadísticas
 
 ### 2. **Creación de Alertas** (Automático - Trigger SQL)
 - El trigger `trg_LoteEvaluacion_Alerta` se activa cuando:
-  - Se INSERTA un nuevo registro en `image.LoteEvaluacion` con `tipoUmbralActual = 'CriticoRojo'` o `'CriticoAmarillo'`
+  - Se INSERTA un nuevo registro en `evalImagen.LoteEvaluacion` con `tipoUmbralActual = 'CriticoRojo'` o `'CriticoAmarillo'`
   - Se ACTUALIZA un registro y el `tipoUmbralActual` cambia a crítico
-- El trigger crea automáticamente un registro en `image.Alerta` con:
+- El trigger crea automáticamente un registro en `evalImagen.Alerta` con:
   - `estado = 'Pendiente'`
   - `mensajeID = NULL` (todavía no hay mensaje)
 
@@ -32,7 +32,7 @@ Este documento explica cómo funciona el flujo completo desde que se procesa una
 
 - El servicio `alertService.processAlertasSinMensaje()`:
   1. Busca alertas con `estado IN ('Pendiente', 'Enviada')` y `mensajeID IS NULL`
-  2. Para cada alerta, crea un registro en `image.Mensaje` con:
+  2. Para cada alerta, crea un registro en `evalImagen.Mensaje` con:
      - `alertaID` (FK a la alerta)
      - `asunto` (generado con emoji y datos del lote)
      - `cuerpoHTML` (HTML formateado con información completa)
@@ -59,7 +59,7 @@ Este documento explica cómo funciona el flujo completo desde que se procesa una
 
 ## 📊 Estado de las Tablas
 
-### `image.Alerta`
+### `evalImagen.Alerta`
 - **Columnas NULL inicialmente:**
   - `mensajeID` → Se llena cuando se crea el mensaje
   - `fechaEnvio` → Se llena cuando se envía el email exitosamente
@@ -67,7 +67,7 @@ Este documento explica cómo funciona el flujo completo desde que se procesa una
   - `usuarioResolvioID` → Se llena manualmente si se resuelve manualmente
   - `notas` → Opcional, para notas adicionales
 
-### `image.Mensaje`
+### `evalImagen.Mensaje`
 - Se crea cuando se ejecuta `alertService.processAlertasSinMensaje()`
 - **Columnas que se llenan automáticamente:**
   - `alertaID` → FK a la alerta
@@ -98,7 +98,7 @@ CRON_SECRET_TOKEN=tu_token_secreto
 
 ### 1. Verificar que se creó la alerta
 ```sql
-SELECT * FROM image.Alerta WHERE estado = 'Pendiente' AND mensajeID IS NULL;
+SELECT * FROM evalImagen.Alerta WHERE estado = 'Pendiente' AND mensajeID IS NULL;
 ```
 
 ### 2. Crear mensajes manualmente
@@ -109,7 +109,7 @@ curl -X POST http://localhost:3000/api/alertas/procesar-mensajes
 
 ### 3. Verificar mensajes creados
 ```sql
-SELECT * FROM image.Mensaje WHERE estado = 'Pendiente';
+SELECT * FROM evalImagen.Mensaje WHERE estado = 'Pendiente';
 ```
 
 ### 4. Verificar que se enviaron
@@ -121,8 +121,8 @@ SELECT
     m.estado AS estadoMensaje,
     m.fechaEnvio,
     m.resendMessageID
-FROM image.Alerta a
-LEFT JOIN image.Mensaje m ON a.mensajeID = m.mensajeID
+FROM evalImagen.Alerta a
+LEFT JOIN evalImagen.Mensaje m ON a.mensajeID = m.mensajeID
 WHERE a.alertaID = 2;  -- ID de tu alerta
 ```
 

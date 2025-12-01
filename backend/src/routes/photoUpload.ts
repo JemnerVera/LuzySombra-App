@@ -191,9 +191,9 @@ router.post('/upload',
  * Estrategia de búsqueda (en orden de prioridad):
  * 1. Buscar en GROWER.PLANT - tabla de plantas con lotID, numberLine (hilera), position (planta)
  * 2. Buscar en evalAgri.evaluacionPlagaEnfermedad - tabla de evaluaciones con Planta, lotID, Hilera
- * 3. Buscar en image.Analisis_Imagen - análisis previos con ese plantId
+ * 3. Buscar en evalImagen.AnalisisImagen - análisis previos con ese plantId
  * 
- * Retorna toda la información necesaria para guardar en image.Analisis_Imagen:
+ * Retorna toda la información necesaria para guardar en evalImagen.AnalisisImagen:
  * - lotID, empresa, fundo, sector, lote, hilera, numero_planta
  */
 async function getPlantInfoFromPlantId(plantId: string): Promise<{
@@ -279,7 +279,7 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       }
     }
 
-    // ESTRATEGIA 3: Buscar en image.Analisis_Imagen (análisis previos)
+    // ESTRATEGIA 3: Buscar en evalImagen.AnalisisImagen (análisis previos)
     if (!lotID) {
       const analysisResult = await query<{
         lotID: number;
@@ -288,7 +288,7 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
         SELECT TOP 1 
           ai.lotID,
           ai.hilera
-        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
         WHERE ai.planta = @plantId
           AND ai.statusID = 1
         ORDER BY ai.fechaCreacion DESC
@@ -297,7 +297,7 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       if (analysisResult && analysisResult.length > 0) {
         lotID = analysisResult[0].lotID;
         hilera = analysisResult[0].hilera || '';
-        console.log(`✅ getPlantInfoFromPlantId: Encontrado en image.Analisis_Imagen para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
+        console.log(`✅ getPlantInfoFromPlantId: Encontrado en evalImagen.AnalisisImagen para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
       }
     }
 
@@ -307,7 +307,7 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       console.warn(`   Estrategias intentadas:`);
       console.warn(`   1. GROWER.PLANT (tabla puede no existir)`);
       console.warn(`   2. evalAgri.evaluacionPlagaEnfermedad (no hay evaluaciones previas)`);
-      console.warn(`   3. image.Analisis_Imagen (no hay análisis previos)`);
+      console.warn(`   3. evalImagen.AnalisisImagen (no hay análisis previos)`);
       return null;
     }
 

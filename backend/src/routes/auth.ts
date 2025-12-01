@@ -91,7 +91,7 @@ async function validateDeviceCredentials(
         deviceId,
         nombreDispositivo,
         activo
-      FROM image.Dispositivo WITH (NOLOCK)
+      FROM evalImagen.Dispositivo WITH (NOLOCK)
       WHERE deviceId = @deviceId
         AND apiKey = @apiKey
         AND statusID = 1
@@ -116,7 +116,7 @@ async function validateDeviceCredentials(
 async function updateLastAccess(dispositivoID: number): Promise<void> {
   try {
     await query(`
-      UPDATE image.Dispositivo
+      UPDATE evalImagen.Dispositivo
       SET ultimoAcceso = GETDATE()
       WHERE dispositivoID = @dispositivoID
     `, { dispositivoID });

@@ -278,12 +278,12 @@ WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221"
 6. **Estado fenológico** ✅ (de `evalAgri.EstadoFenologico`)
 7. **Días desde cianamida** ✅ (de `phytosanitary.lotCyanamideDate`)
 8. Fecha de última evaluación
-9. Min (% Luz) - desde `image.Analisis_Imagen` en ***REMOVED***
-10. Max (% Luz) - desde `image.Analisis_Imagen` en ***REMOVED***
-11. Prom (% Luz) - desde `image.Analisis_Imagen` en ***REMOVED***
-12. Min (% Sombra) - desde `image.Analisis_Imagen` en ***REMOVED***
-13. Max (% Sombra) - desde `image.Analisis_Imagen` en ***REMOVED***
-14. Prom (% Sombra) - desde `image.Analisis_Imagen` en ***REMOVED***
+9. Min (% Luz) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
+10. Max (% Luz) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
+11. Prom (% Luz) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
+12. Min (% Sombra) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
+13. Max (% Sombra) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
+14. Prom (% Sombra) - desde `evalImagen.AnalisisImagen` en ***REMOVED***
 
 ---
 
@@ -291,10 +291,10 @@ WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221"
 
 1. **Acceso de Lectura y Escritura**: 
    - Lectura: Usuario `ucser_powerbi_desa` (solo `SELECT`)
-   - Escritura: Usuario `***REMOVED***` (`INSERT`/`UPDATE` en `image.Analisis_Imagen`)
+   - Escritura: Usuario `ucser_luzsombra_desa` (`INSERT`/`UPDATE` en `evalImagen.AnalisisImagen`)
 
 2. **Integración Directa**: 
-   - Los análisis de imágenes se guardan directamente en `image.Analisis_Imagen` en la misma base de datos
+   - Los análisis de imágenes se guardan directamente en `evalImagen.AnalisisImagen` en la misma base de datos
    - Los `lotID` se obtienen directamente de `GROWER.LOT` usando la jerarquía completa
 
 3. **Estrategia Implementada**:

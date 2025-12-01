@@ -27,9 +27,9 @@
 -- 3️⃣ TRIGGERS (05_triggers):
 --    ✅ 01_trg_LoteEvaluacion_Alerta.sql   (depende de evalImagen.LoteEvaluacion + evalImagen.Alerta)
 -- 
--- 5️⃣ DATOS INICIALES (04_modifications):
---    ⚠️  02_insert_contactos_ejemplo.sql   (datos de prueba - opcional)
---    ⚠️  04_insert_dispositivos_ejemplo.sql (datos de prueba - opcional)
+-- 5️⃣ DATOS INICIALES (opcional):
+--    ⚠️  Los scripts de datos de ejemplo fueron eliminados
+--    ⚠️  Usar scripts/07_utilities/ para insertar datos de prueba si es necesario
 -- 
 -- VERIFICACIÓN:
 --    ✅ 00_setup/01_verificar_sistema_alertas.sql (verificar que todo esté creado)
@@ -75,15 +75,7 @@ PRINT 'Ejecutar:';
 PRINT '  scripts/05_triggers/01_trg_LoteEvaluacion_Alerta.sql';
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  PASO 4: APLICAR MODIFICACIONES (04_modifications)';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '';
-PRINT 'Ejecutar si son necesarias:';
-PRINT '  scripts/04_modifications/01_add_originalImageUrl_column.sql';
-PRINT '  scripts/04_modifications/03_add_fundoID_to_LoteEvaluacion.sql';
-PRINT '';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  PASO 5: VERIFICAR INSTALACIÓN';
+PRINT '  PASO 4: VERIFICAR INSTALACIÓN';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 PRINT 'Ejecutar:';

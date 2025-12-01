@@ -16,15 +16,15 @@
 --      - evalImagen.LoteEvaluacion (INSERT/UPDATE mediante MERGE)
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir)
---   ⚠️  Requiere: evalImagen.Analisis_Imagen (tabla - lee datos)
+--   ⚠️  Requiere: Schema evalImagen (debe existir)
+--   ⚠️  Requiere: evalImagen.AnalisisImagen (tabla - lee datos)
 --   ⚠️  Requiere: evalImagen.LoteEvaluacion (tabla - actualiza/inserta)
 --   ⚠️  Requiere: evalImagen.UmbralLuz (tabla - compara umbrales)
 --   ⚠️  Requiere: GROWER.PLANTATION (tabla existente)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   Después de crear todas las tablas (evalImagen.Analisis_Imagen, evalImagen.LoteEvaluacion, evalImagen.UmbralLuz)
+--   Después de crear todas las tablas (evalImagen.AnalisisImagen, evalImagen.LoteEvaluacion, evalImagen.UmbralLuz)
 -- 
 -- USADO POR:
 --   - Backend: src/services/sqlServerService.ts (saveProcessingResult)
@@ -76,7 +76,7 @@ BEGIN
             MAX(ai.porcentajeSombra) AS porcentajeSombraMax,
             MAX(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaUltimaEvaluacion,
             MIN(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaPrimeraEvaluacion
-        FROM evalImagen.Analisis_Imagen ai WITH (NOLOCK)
+        FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
         INNER JOIN GROWER.LOT l WITH (NOLOCK) ON ai.lotID = l.lotID
         INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID

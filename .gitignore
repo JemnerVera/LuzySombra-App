@@ -24,9 +24,6 @@ credentials.json
 *.key
 *.crt
 
-# Google Sheets credentials
-google-credentials.json
-google-token.json
 
 # SQL Server credentials (AGROMIGIVA)
 credenciales_sql_server_agromigiva.txt
@@ -114,7 +111,7 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Archivos temporales de sesión
+# Archivos temporales de sesión (en cualquier ubicación)
 *_SESION.md
 CONEXION*.md
 MIGRACION*.md
@@ -125,9 +122,8 @@ ESTADO_*.md
 HABILITAR_*.md
 INSTALACION_*.md
 
-# Documentación y scripts SQL
-docs/
-scripts/
+# Scripts SQL generados automáticamente (ya está arriba, pero lo mantenemos)
+scripts/generated/
 
 # Azure Publish Settings (contiene credenciales)
 *.PublishSettings.txt

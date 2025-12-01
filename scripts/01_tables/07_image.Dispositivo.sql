@@ -15,10 +15,10 @@
 -- 
 -- DEPENDENCIAS:
 --   ⚠️  Requiere:
---      - Schema image (ya existe)
+--      - Schema evalImagen (ya existe)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   7 de 7 - Después de todas las otras tablas del schema image
+--   7 de 7 - Después de todas las otras tablas del schema evalImagen
 -- 
 -- USADO POR:
 --   - Endpoint /api/auth/login (validación de apiKey)
@@ -30,16 +30,16 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- 1. Verificar/Crear Schema image
+-- 1. Verificar/Crear Schema evalImagen
 -- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'evalImagen')
 BEGIN
-    EXEC('CREATE SCHEMA image');
-    PRINT '[OK] Schema image creado';
+    EXEC('CREATE SCHEMA evalImagen');
+    PRINT '[OK] Schema evalImagen creado';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Schema image ya existe';
+    PRINT '[INFO] Schema evalImagen ya existe';
 END
 GO
 

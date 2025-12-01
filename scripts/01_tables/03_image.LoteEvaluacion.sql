@@ -17,6 +17,8 @@
 --      - FK_LoteEvaluacion_LOT (FOREIGN KEY → GROWER.LOT)
 --      - FK_LoteEvaluacion_Variety (FOREIGN KEY → GROWER.VARIETY)
 --      - FK_LoteEvaluacion_Umbral (FOREIGN KEY → evalImagen.UmbralLuz)
+--      - FK_LoteEvaluacion_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_LoteEvaluacion_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - UQ_LoteEvaluacion_LOT (UNIQUE - una fila por lote)
 --      - CK_LoteEvaluacion_TipoUmbral (CHECK)
 --      - CK_LoteEvaluacion_PorcentajeLuz (CHECK)
@@ -28,7 +30,7 @@
 --   ❌ Ninguno
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir)
+--   ⚠️  Requiere: Schema evalImagen (debe existir)
 --   ⚠️  Requiere: GROWER.LOT (tabla existente)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
 --   ⚠️  Requiere: evalImagen.UmbralLuz (debe ejecutarse después)
@@ -79,9 +81,13 @@ BEGIN
         totalEvaluaciones INT NOT NULL DEFAULT 0,
         periodoEvaluacionDias INT NOT NULL DEFAULT 30,
         
-        -- Auditoría
-        fechaUltimaActualizacion DATETIME NOT NULL DEFAULT GETDATE(),
+        -- Auditoría (según estándares AgroMigiva)
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
+        fechaUltimaActualizacion DATETIME NOT NULL DEFAULT GETDATE(), -- Campo específico para tracking de evaluaciones
         
         CONSTRAINT PK_LoteEvaluacion PRIMARY KEY CLUSTERED (loteEvaluacionID),
         CONSTRAINT FK_LoteEvaluacion_LOT FOREIGN KEY (lotID) REFERENCES GROWER.LOT(lotID),
@@ -89,6 +95,8 @@ BEGIN
         CONSTRAINT FK_LoteEvaluacion_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
         CONSTRAINT FK_LoteEvaluacion_Stage FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
         CONSTRAINT FK_LoteEvaluacion_Umbral FOREIGN KEY (umbralIDActual) REFERENCES evalImagen.UmbralLuz(umbralID),
+        CONSTRAINT FK_LoteEvaluacion_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_LoteEvaluacion_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
         CONSTRAINT UQ_LoteEvaluacion_LOT UNIQUE (lotID),
         CONSTRAINT CK_LoteEvaluacion_TipoUmbral CHECK (tipoUmbralActual IN ('CriticoRojo', 'CriticoAmarillo', 'Normal') OR tipoUmbralActual IS NULL),
         CONSTRAINT CK_LoteEvaluacion_PorcentajeLuz CHECK (porcentajeLuzPromedio >= 0 AND porcentajeLuzPromedio <= 100),

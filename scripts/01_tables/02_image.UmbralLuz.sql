@@ -16,7 +16,7 @@
 --      - PK_UmbralLuz (PRIMARY KEY)
 --      - FK_UmbralLuz_Variety (FOREIGN KEY → GROWER.VARIETY)
 --      - FK_UmbralLuz_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_UmbralLuz_UsuarioActualiza (FOREIGN KEY → MAST.USERS)
+--      - FK_UmbralLuz_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - CK_UmbralLuz_Tipo (CHECK)
 --      - CK_UmbralLuz_Porcentaje (CHECK)
 --   ✅ Extended Properties:
@@ -28,7 +28,7 @@
 --   ❌ Ninguno
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir o se crea)
+--   ⚠️  Requiere: Schema evalImagen (debe existir o se crea)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
 --   ⚠️  Requiere: MAST.USERS (tabla existente)
 -- 
@@ -49,12 +49,12 @@ GO
 -- Crear schema si no existe
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'evalImagen')
 BEGIN
-    EXEC('CREATE SCHEMA image');
-    PRINT '[OK] Schema image creado';
+    EXEC('CREATE SCHEMA evalImagen');
+    PRINT '[OK] Schema evalImagen creado';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Schema image ya existe';
+    PRINT '[INFO] Schema evalImagen ya existe';
 END
 GO
 
@@ -73,18 +73,18 @@ BEGIN
         colorHex VARCHAR(7) NULL, -- Color para UI (ej: #FF0000 para rojo)
         orden INT NOT NULL DEFAULT 0, -- Orden de prioridad para consultas
         activo BIT NOT NULL DEFAULT 1,
-        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-        usuarioCreaID INT NULL,
-        fechaActualizacion DATETIME NULL,
-        usuarioActualizaID INT NULL,
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
         
         CONSTRAINT PK_UmbralLuz PRIMARY KEY CLUSTERED (umbralID),
         CONSTRAINT FK_UmbralLuz_Variety FOREIGN KEY (variedadID) 
             REFERENCES GROWER.VARIETY(varietyID),
         CONSTRAINT FK_UmbralLuz_UsuarioCrea FOREIGN KEY (usuarioCreaID) 
             REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_UmbralLuz_UsuarioActualiza FOREIGN KEY (usuarioActualizaID) 
+        CONSTRAINT FK_UmbralLuz_UsuarioModifica FOREIGN KEY (usuarioModificaID) 
             REFERENCES MAST.USERS(userID),
         CONSTRAINT CK_UmbralLuz_Tipo CHECK (tipo IN ('CriticoRojo', 'CriticoAmarillo', 'Normal')),
         CONSTRAINT CK_UmbralLuz_Porcentaje CHECK (minPorcentajeLuz >= 0 AND maxPorcentajeLuz <= 100 AND minPorcentajeLuz <= maxPorcentajeLuz)

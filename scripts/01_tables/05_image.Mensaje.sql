@@ -17,6 +17,8 @@
 --   ✅ Constraints:
 --      - PK_Mensaje (PRIMARY KEY)
 --      - FK_Mensaje_Alerta (FOREIGN KEY → evalImagen.Alerta)
+--      - FK_Mensaje_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_Mensaje_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - CK_Mensaje_Estado (CHECK)
 --      - CK_Mensaje_Tipo (CHECK)
 --   ✅ Extended Properties:
@@ -69,7 +71,6 @@ BEGIN
         
         -- Estado del envío
         estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
         fechaEnvio DATETIME NULL,
         intentosEnvio INT NOT NULL DEFAULT 0,
         ultimoIntentoEnvio DATETIME NULL,
@@ -77,14 +78,20 @@ BEGIN
         -- Respuesta de Resend API
         resendMessageID NVARCHAR(100) NULL,
         resendResponse NVARCHAR(MAX) NULL, -- JSON response completo
-        errorMessage NVARCHAR(500) NULL,
         
-        -- Auditoría
+        -- Auditoría (según estándares AgroMigiva)
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
+        errorMessage NVARCHAR(500) NULL,
         
         CONSTRAINT PK_Mensaje PRIMARY KEY CLUSTERED (mensajeID),
         CONSTRAINT FK_Mensaje_Alerta FOREIGN KEY (alertaID) REFERENCES evalImagen.Alerta(alertaID),
         CONSTRAINT FK_Mensaje_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
+        CONSTRAINT FK_Mensaje_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_Mensaje_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
         CONSTRAINT CK_Mensaje_Estado CHECK (estado IN ('Pendiente', 'Enviando', 'Enviado', 'Error')),
         CONSTRAINT CK_Mensaje_Tipo CHECK (tipoMensaje IN ('Email', 'SMS', 'Push'))
     );

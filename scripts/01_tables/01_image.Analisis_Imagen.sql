@@ -16,9 +16,11 @@
 --      - IDX_Analisis_Imagen_LOT_01 (NONCLUSTERED)
 --      - IDX_Analisis_Imagen_UBICACION_01 (NONCLUSTERED)
 --   ✅ Constraints:
---      - PK_Analisis_Imagen (PRIMARY KEY)
---      - FK_Analisis_Imagen_LOT_01 (FOREIGN KEY → GROWER.LOT)
---      - UQ_Analisis_Imagen_FILENAME_LOT_01 (UNIQUE)
+--      - PK_AnalisisImagen (PRIMARY KEY)
+--      - FK_AnalisisImagen_LOT_01 (FOREIGN KEY → GROWER.LOT)
+--      - FK_AnalisisImagen_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_AnalisisImagen_UsuarioModifica (FOREIGN KEY → MAST.USERS)
+--      - UQ_AnalisisImagen_FilenameLot_01 (UNIQUE)
 --   ✅ Extended Properties:
 --      - Documentación de tabla y columnas principales
 -- 
@@ -96,11 +98,15 @@ BEGIN
         statusID INT NOT NULL DEFAULT 1,
         usuarioCreaID INT NOT NULL DEFAULT 1,
         fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
         
         -- Constraints con nomenclatura estándar Migiva
         CONSTRAINT PK_AnalisisImagen PRIMARY KEY (analisisID),
         CONSTRAINT FK_AnalisisImagen_LOT_01 
             FOREIGN KEY (lotID) REFERENCES GROWER.LOT(lotID),
+        CONSTRAINT FK_AnalisisImagen_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_AnalisisImagen_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
         CONSTRAINT UQ_AnalisisImagen_FilenameLot_01 
             UNIQUE (filename, lotID)
     );

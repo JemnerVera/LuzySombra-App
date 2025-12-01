@@ -13,6 +13,8 @@
 --      - PK_MensajeAlerta (PRIMARY KEY)
 --      - FK_MensajeAlerta_Mensaje (FOREIGN KEY → evalImagen.Mensaje)
 --      - FK_MensajeAlerta_Alerta (FOREIGN KEY → evalImagen.Alerta)
+--      - FK_MensajeAlerta_UsuarioCrea (FOREIGN KEY → MAST.USERS)
+--      - FK_MensajeAlerta_UsuarioModifica (FOREIGN KEY → MAST.USERS)
 --      - UQ_MensajeAlerta_MensajeAlerta (UNIQUE - evita duplicados)
 --   ✅ Índices:
 --      - IDX_MensajeAlerta_MensajeID (NONCLUSTERED)
@@ -53,9 +55,12 @@ BEGIN
         mensajeID INT NOT NULL,
         alertaID INT NOT NULL,
         
-        -- Auditoría
-        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        -- Auditoría (según estándares AgroMigiva)
         statusID INT NOT NULL DEFAULT 1,
+        usuarioCreaID INT NULL,
+        fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        usuarioModificaID INT NULL,
+        fechaModificacion DATETIME NULL,
         
         -- Constraints con nomenclatura estándar Migiva
         CONSTRAINT PK_MensajeAlerta PRIMARY KEY (mensajeID, alertaID),
@@ -63,6 +68,8 @@ BEGIN
             FOREIGN KEY (mensajeID) REFERENCES evalImagen.Mensaje(mensajeID),
         CONSTRAINT FK_MensajeAlerta_Alerta 
             FOREIGN KEY (alertaID) REFERENCES evalImagen.Alerta(alertaID),
+        CONSTRAINT FK_MensajeAlerta_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_MensajeAlerta_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
         CONSTRAINT UQ_MensajeAlerta_MensajeAlerta 
             UNIQUE (mensajeID, alertaID)
     );

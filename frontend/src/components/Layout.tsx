@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {

@@ -16,13 +16,15 @@ scripts/
 ## 📋 Orden de Ejecución Recomendado
 
 ### 1. Tablas Base (Schema evalImagen)
-1. `01_tables/01_image.Analisis_Imagen.sql` - Crea schema `evalImagen` y tabla base
-2. `01_tables/02_image.UmbralLuz.sql` - Tabla de umbrales (incluye datos iniciales)
-3. `01_tables/03_image.LoteEvaluacion.sql` - Tabla de agregación por lote
-4. `01_tables/04_image.Alerta.sql` - Tabla de alertas
-5. `01_tables/05_image.Mensaje.sql` - Tabla de mensajes
-6. `01_tables/06_image.Contacto.sql` - Tabla de contactos
-7. `01_tables/07_image.Dispositivo.sql` - Tabla de dispositivos
+1. `01_tables/01_evalImagen.AnalisisImagen.sql` - Crea schema `evalImagen` y tabla base
+2. `01_tables/02_evalImagen.UmbralLuz.sql` - Tabla de umbrales (incluye datos iniciales)
+3. `01_tables/03_evalImagen.LoteEvaluacion.sql` - Tabla de agregación por lote
+4. `01_tables/04_evalImagen.Alerta.sql` - Tabla de alertas
+5. `01_tables/05_evalImagen.Mensaje.sql` - Tabla de mensajes
+6. `01_tables/06_evalImagen.Contacto.sql` - Tabla de contactos
+7. `01_tables/07_evalImagen.Dispositivo.sql` - Tabla de dispositivos
+8. `01_tables/08_evalImagen.MensajeAlerta.sql` - Tabla de relación (junction table)
+9. `01_tables/09_evalImagen.UsuarioWeb.sql` - Tabla de usuarios web
 8. `01_tables/08_evalImagen.MensajeAlerta.sql` - Tabla de relación (junction table)
 
 **Nota:** Las tablas ya incluyen todas las columnas necesarias (`originalImageUrl`, `fundoID`, `sectorID`, etc.). No se requieren scripts de modificación.
@@ -61,7 +63,7 @@ scripts/
 
 ## 📝 Convenciones de Nomenclatura
 
-- **Tablas**: `<numero>_<schema>.<tabla>.sql` (ej: `01_image.Analisis_Imagen.sql`)
+- **Tablas**: `<numero>_<schema>.<tabla>.sql` (ej: `01_evalImagen.AnalisisImagen.sql`)
 - **Vistas**: `<numero>_<nombre_vista>.sql` (ej: `01_vwc_CianamidaFenologia.sql`)
 - **Stored Procedures**: `<numero>_sp_<nombre>.sql` (ej: `01_sp_CalcularLoteEvaluacion.sql`)
 - **Triggers**: `<numero>_trg_<nombre>.sql` (ej: `01_trg_LoteEvaluacion_Alerta.sql`)

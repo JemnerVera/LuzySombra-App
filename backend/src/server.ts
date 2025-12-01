@@ -27,6 +27,12 @@ import authRoutes from './routes/auth';
 import photoUploadRoutes from './routes/photoUpload';
 import consolidarAlertasRoutes from './routes/alertas/consolidar';
 import enviarAlertasRoutes from './routes/alertas/enviar';
+import listarAlertasRoutes from './routes/alertas/listar';
+import umbralesRoutes from './routes/umbrales';
+import contactosRoutes from './routes/contactos';
+import authWebRoutes from './routes/auth-web';
+import notificacionesRoutes from './routes/notificaciones';
+import dispositivosRoutes from './routes/dispositivos';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,13 +60,27 @@ app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/test-model', testModelRouter);
 app.use('/api/check-gps-info', checkGpsInfoRouter);
 
-// NUEVAS RUTAS PARA AGRICQR
-app.use('/api/auth', authRoutes);
+// AUTENTICACIÓN
+app.use('/api/auth', authRoutes); // Dispositivos móviles (AgriQR)
+app.use('/api/auth/web', authWebRoutes); // Usuarios web
 app.use('/api/photos', photoUploadRoutes);
 
 // RUTAS PARA ALERTAS
 app.use('/api/alertas/consolidar', consolidarAlertasRoutes);
 app.use('/api/alertas/enviar', enviarAlertasRoutes);
+app.use('/api/alertas', listarAlertasRoutes);
+
+// RUTAS PARA UMBRALES
+app.use('/api/umbrales', umbralesRoutes);
+
+// RUTAS PARA CONTACTOS
+app.use('/api/contactos', contactosRoutes);
+
+// RUTAS PARA NOTIFICACIONES
+app.use('/api/notificaciones', notificacionesRoutes);
+
+// RUTAS PARA DISPOSITIVOS
+app.use('/api/dispositivos', dispositivosRoutes);
 
 // Servir archivos estáticos del frontend (si existen)
 const frontendPath = path.join(__dirname, '../public');

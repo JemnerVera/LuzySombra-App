@@ -41,8 +41,8 @@
 SQL_SERVER=10.1.10.4
 SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
 SQL_PORT=1433
-SQL_USER=ucown_powerbi_desa
-SQL_PASSWORD=[SECRETO - usar Key Vault]
+SQL_USER=ucser_luzsombra_desa
+SQL_PASSWORD=D3s4S3r12
 SQL_ENCRYPT=true
 
 # Server
@@ -55,12 +55,8 @@ RESEND_FROM_EMAIL=no-reply@updates.agricolaandrea.com
 RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 
 # Frontend URL (OBLIGATORIO para CORS - ver docs/EXPLICACION_FRONTEND_URL.md)
-# Si no configuras esto, el frontend NO podrá hacer requests al backend
-# Opciones:
-# - Si frontend está en Azure Static Web Apps: https://luzsombra-frontend.azurestaticapps.net
-# - Si frontend está en otro dominio: https://tu-dominio.com
-# - Si solo backend (sin frontend web): puedes usar la URL del backend o dejar localhost
-FRONTEND_URL=https://luzsombra-frontend.azurestaticapps.net
+# El frontend se sirve desde el mismo App Service, usar la URL del backend
+FRONTEND_URL=https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net
 
 # Data Source
 DATA_SOURCE=sql
@@ -70,21 +66,18 @@ DATA_SOURCE=sql
 
 ---
 
-### **3. Configurar VNet Integration** ⚠️ PENDIENTE
+### **3. Conectividad SQL Server** ✅ COMPLETADO
 
-**Verificar con IT/DBA:**
-- [ ] ¿Azure está en la misma red privada?
-- [ ] ¿Existe VNet configurada?
-- [ ] ¿Puedo acceder directamente a `10.1.10.4`?
+**Estado:** Azure está en la misma nube que SQL Server
+- ✅ **Acceso directo** a SQL Server (`10.1.10.4:1433`)
+- ✅ **Sin VPN necesaria** desde Azure
+- ✅ **Stored Procedures** para operaciones seguras
 
-**Si SÍ está en la misma red:**
-- [ ] Habilitar VNet Integration en App Service
-- [ ] Conectar a VNet existente
-- [ ] Verificar conectividad: `ping 10.1.10.4`
+**El backend usa Stored Procedures:**
+- `evalImagen.sp_CalcularLoteEvaluacion` - Calcular estadísticas por lote
+- Más SPs se crearán según necesidades (ver `scripts/03_stored_procedures/`)
 
-**Si NO está en la misma red:**
-- [ ] Solicitar a IT configurar VNet + VPN Gateway
-- [ ] O usar Web Service intermedio (plan alternativo)
+**Nota:** Todas las operaciones de base de datos deben pasar por Stored Procedures para proteger la BD.
 
 ---
 
@@ -269,11 +262,7 @@ app.use(cors({
 - [ ] Verificar que SQL Server funciona
 
 **B) Si NO está en la misma red:**
-- [ ] Contactar a IT/DBA para:
-  - Configurar VNet + VPN Gateway, O
-  - Agregar endpoints al Web Service existente
-- [ ] Ver documentación: `docs/SOLUCION_CONECTIVIDAD_SQL_AZURE.md`
-- [ ] Ver especificación Web Service: `docs/ESPECIFICACION_IT_WEBSERVICE.md`
+- [ ] Contactar a IT/DBA para configurar VNet + VPN Gateway
 
 ### **Paso 6: Commit y Push** ⚠️
 
@@ -311,7 +300,7 @@ Antes de considerar el deploy completo:
 - [x] Variables de entorno configuradas en Azure
 - [x] GitHub Secret configurado (`AZURE_WEBAPP_PUBLISH_PROFILE`)
 - [x] Workflow YAML actualizado
-- [ ] VNet Integration configurada (o Web Service) - **Pendiente verificación**
+- [x] Conectividad SQL Server - **✅ Azure en misma nube, acceso directo configurado**
 - [ ] Commit y push realizado
 - [ ] Deploy exitoso en GitHub Actions
 - [ ] Health check funcionando
@@ -341,6 +330,6 @@ Antes de considerar el deploy completo:
 
 ---
 
-**Última actualización:** 2025-11-19
-**Basado en:** Proceso de deploy de JoySense (PASOS_DEPLOY_JOYSENSE_PROD.md)
+**Última actualización:** 2025-11-21
+**Nota:** Azure está en la misma nube que SQL Server. Se usan Stored Procedures para todas las operaciones de BD.
 

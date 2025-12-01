@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Tabla image.Dispositivo
+-- SCRIPT: Crear Tabla evalImagen.Dispositivo
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Servidor: 10.1.10.4
 -- Tipo: Tabla
@@ -8,7 +8,7 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - image.Dispositivo
+--      - evalImagen.Dispositivo
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
@@ -32,7 +32,7 @@ GO
 -- =====================================================
 -- 1. Verificar/Crear Schema image
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'image')
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'evalImagen')
 BEGIN
     EXEC('CREATE SCHEMA image');
     PRINT '[OK] Schema image creado';
@@ -44,11 +44,11 @@ END
 GO
 
 -- =====================================================
--- 2. Crear Tabla image.Dispositivo
+-- 2. Crear Tabla evalImagen.Dispositivo
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'image.Dispositivo') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.Dispositivo') AND type in (N'U'))
 BEGIN
-    CREATE TABLE image.Dispositivo (
+    CREATE TABLE evalImagen.Dispositivo (
         -- Clave primaria
         dispositivoID INT IDENTITY(1,1) NOT NULL,
         
@@ -81,11 +81,11 @@ BEGIN
         CONSTRAINT CK_Dispositivo_ApiKey CHECK (LEN(apiKey) >= 10)
     );
     
-    PRINT '[OK] Tabla image.Dispositivo creada';
+    PRINT '[OK] Tabla evalImagen.Dispositivo creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla image.Dispositivo ya existe';
+    PRINT '[INFO] Tabla evalImagen.Dispositivo ya existe';
 END
 GO
 
@@ -94,20 +94,20 @@ GO
 -- =====================================================
 
 -- Índice para búsqueda rápida por apiKey (usado en login)
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Dispositivo_ApiKey' AND object_id = OBJECT_ID('image.Dispositivo'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Dispositivo_ApiKey' AND object_id = OBJECT_ID('evalImagen.Dispositivo'))
 BEGIN
     CREATE NONCLUSTERED INDEX IX_Dispositivo_ApiKey 
-    ON image.Dispositivo(apiKey) 
+    ON evalImagen.Dispositivo(apiKey) 
     WHERE statusID = 1 AND activo = 1;
     PRINT '[OK] Índice IX_Dispositivo_ApiKey creado';
 END
 GO
 
 -- Índice para búsqueda por deviceId
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Dispositivo_DeviceId' AND object_id = OBJECT_ID('image.Dispositivo'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Dispositivo_DeviceId' AND object_id = OBJECT_ID('evalImagen.Dispositivo'))
 BEGIN
     CREATE NONCLUSTERED INDEX IX_Dispositivo_DeviceId 
-    ON image.Dispositivo(deviceId) 
+    ON evalImagen.Dispositivo(deviceId) 
     WHERE statusID = 1;
     PRINT '[OK] Índice IX_Dispositivo_DeviceId creado';
 END
@@ -119,7 +119,7 @@ GO
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description', 
     @value = N'ID único del dispositivo Android (generado por la app)', 
-    @level0type = N'SCHEMA', @level0name = 'image',
+    @level0type = N'SCHEMA', @level0name = 'evalImagen',
     @level1type = N'TABLE', @level1name = 'Dispositivo',
     @level2type = N'COLUMN', @level2name = 'deviceId';
 GO
@@ -127,7 +127,7 @@ GO
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description', 
     @value = N'API Key única para autenticación del dispositivo. Se usa junto con deviceId para login.', 
-    @level0type = N'SCHEMA', @level0name = 'image',
+    @level0type = N'SCHEMA', @level0name = 'evalImagen',
     @level1type = N'TABLE', @level1name = 'Dispositivo',
     @level2type = N'COLUMN', @level2name = 'apiKey';
 GO
@@ -135,18 +135,18 @@ GO
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description', 
     @value = N'Si el dispositivo está activo y puede hacer login. Si es 0, el dispositivo está deshabilitado.', 
-    @level0type = N'SCHEMA', @level0name = 'image',
+    @level0type = N'SCHEMA', @level0name = 'evalImagen',
     @level1type = N'TABLE', @level1name = 'Dispositivo',
     @level2type = N'COLUMN', @level2name = 'activo';
 GO
 
 PRINT '';
 PRINT '========================================';
-PRINT 'TABLA image.Dispositivo CREADA EXITOSAMENTE';
+PRINT 'TABLA evalImagen.Dispositivo CREADA EXITOSAMENTE';
 PRINT '========================================';
 PRINT '';
 PRINT 'Próximos pasos:';
-PRINT '1. Insertar dispositivos con: INSERT INTO image.Dispositivo (deviceId, apiKey, nombreDispositivo) VALUES (...)';
+PRINT '1. Insertar dispositivos con: INSERT INTO evalImagen.Dispositivo (deviceId, apiKey, nombreDispositivo) VALUES (...)';
 PRINT '2. Actualizar el código del backend para consultar esta tabla en lugar de VALID_API_KEYS';
 PRINT '';
 

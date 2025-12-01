@@ -1,13 +1,13 @@
 -- =====================================================
--- SCRIPT: Crear tabla image.LoteEvaluacion
+-- SCRIPT: Crear tabla evalImagen.LoteEvaluacion
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Schema: image
+-- Schema: evalImagen
 -- Propósito: Cache de estadísticas agregadas por lote para alertas
 -- =====================================================
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - image.LoteEvaluacion
+--      - evalImagen.LoteEvaluacion
 --   ✅ Índices:
 --      - IDX_LoteEvaluacion_LotID (NONCLUSTERED, filtered)
 --      - IDX_LoteEvaluacion_TipoUmbral (NONCLUSTERED, filtered)
@@ -16,7 +16,7 @@
 --      - PK_LoteEvaluacion (PRIMARY KEY)
 --      - FK_LoteEvaluacion_LOT (FOREIGN KEY → GROWER.LOT)
 --      - FK_LoteEvaluacion_Variety (FOREIGN KEY → GROWER.VARIETY)
---      - FK_LoteEvaluacion_Umbral (FOREIGN KEY → image.UmbralLuz)
+--      - FK_LoteEvaluacion_Umbral (FOREIGN KEY → evalImagen.UmbralLuz)
 --      - UQ_LoteEvaluacion_LOT (UNIQUE - una fila por lote)
 --      - CK_LoteEvaluacion_TipoUmbral (CHECK)
 --      - CK_LoteEvaluacion_PorcentajeLuz (CHECK)
@@ -31,15 +31,15 @@
 --   ⚠️  Requiere: Schema image (debe existir)
 --   ⚠️  Requiere: GROWER.LOT (tabla existente)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
---   ⚠️  Requiere: image.UmbralLuz (debe ejecutarse después)
+--   ⚠️  Requiere: evalImagen.UmbralLuz (debe ejecutarse después)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   3 de 5 - Después de crear image.UmbralLuz
+--   3 de 5 - Después de crear evalImagen.UmbralLuz
 -- 
 -- USADO POR:
 --   - getConsolidatedTable (query consolidada - fuente principal de estadísticas)
---   - image.Alerta (FK a loteEvaluacionID)
---   - image.sp_CalcularLoteEvaluacion (actualiza esta tabla)
+--   - evalImagen.Alerta (FK a loteEvaluacionID)
+--   - evalImagen.sp_CalcularLoteEvaluacion (actualiza esta tabla)
 --   - Backend: src/services/sqlServerService.ts (saveProcessingResult actualiza)
 -- 
 -- =====================================================
@@ -48,16 +48,16 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- Crear tabla image.LoteEvaluacion
+-- Crear tabla evalImagen.LoteEvaluacion
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LoteEvaluacion' AND schema_id = SCHEMA_ID('image'))
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LoteEvaluacion' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    CREATE TABLE image.LoteEvaluacion (
+    CREATE TABLE evalImagen.LoteEvaluacion (
         loteEvaluacionID INT IDENTITY(1,1) NOT NULL,
         lotID INT NOT NULL,
         variedadID INT NULL,
         
-        -- Relaciones con jerarquía (para optimizar match con image.Contacto)
+        -- Relaciones con jerarquía (para optimizar match con evalImagen.Contacto)
         fundoID CHAR(4) NULL,  -- Fundo del lote (GROWER.FARMS.farmID)
         sectorID INT NULL,     -- Sector del lote (GROWER.STAGE.stageID)
         
@@ -88,28 +88,28 @@ BEGIN
         CONSTRAINT FK_LoteEvaluacion_Variety FOREIGN KEY (variedadID) REFERENCES GROWER.VARIETY(varietyID),
         CONSTRAINT FK_LoteEvaluacion_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
         CONSTRAINT FK_LoteEvaluacion_Stage FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
-        CONSTRAINT FK_LoteEvaluacion_Umbral FOREIGN KEY (umbralIDActual) REFERENCES image.UmbralLuz(umbralID),
+        CONSTRAINT FK_LoteEvaluacion_Umbral FOREIGN KEY (umbralIDActual) REFERENCES evalImagen.UmbralLuz(umbralID),
         CONSTRAINT UQ_LoteEvaluacion_LOT UNIQUE (lotID),
         CONSTRAINT CK_LoteEvaluacion_TipoUmbral CHECK (tipoUmbralActual IN ('CriticoRojo', 'CriticoAmarillo', 'Normal') OR tipoUmbralActual IS NULL),
         CONSTRAINT CK_LoteEvaluacion_PorcentajeLuz CHECK (porcentajeLuzPromedio >= 0 AND porcentajeLuzPromedio <= 100),
         CONSTRAINT CK_LoteEvaluacion_PorcentajeSombra CHECK (porcentajeSombraPromedio >= 0 AND porcentajeSombraPromedio <= 100)
     );
     
-    PRINT '[OK] Tabla image.LoteEvaluacion creada';
+    PRINT '[OK] Tabla evalImagen.LoteEvaluacion creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla image.LoteEvaluacion ya existe';
+    PRINT '[INFO] Tabla evalImagen.LoteEvaluacion ya existe';
 END
 GO
 
 -- =====================================================
 -- Crear índices
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_LotID' AND object_id = OBJECT_ID('image.LoteEvaluacion'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_LotID' AND object_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_LoteEvaluacion_LotID 
-    ON image.LoteEvaluacion(lotID)
+    ON evalImagen.LoteEvaluacion(lotID)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_LoteEvaluacion_LotID creado';
 END
@@ -119,10 +119,10 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_TipoUmbral' AND object_id = OBJECT_ID('image.LoteEvaluacion'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_TipoUmbral' AND object_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_LoteEvaluacion_TipoUmbral 
-    ON image.LoteEvaluacion(tipoUmbralActual, statusID)
+    ON evalImagen.LoteEvaluacion(tipoUmbralActual, statusID)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_LoteEvaluacion_TipoUmbral creado';
 END
@@ -132,11 +132,11 @@ BEGIN
 END
 GO
 
--- Índice para optimizar match con image.Contacto por fundoID
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_FundoID' AND object_id = OBJECT_ID('image.LoteEvaluacion'))
+-- Índice para optimizar match con evalImagen.Contacto por fundoID
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_FundoID' AND object_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_LoteEvaluacion_FundoID 
-    ON image.LoteEvaluacion(fundoID, statusID)
+    ON evalImagen.LoteEvaluacion(fundoID, statusID)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_LoteEvaluacion_FundoID creado';
 END
@@ -146,10 +146,10 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_FechaActualizacion' AND object_id = OBJECT_ID('image.LoteEvaluacion'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_LoteEvaluacion_FechaActualizacion' AND object_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_LoteEvaluacion_FechaActualizacion 
-    ON image.LoteEvaluacion(fechaUltimaActualizacion DESC)
+    ON evalImagen.LoteEvaluacion(fechaUltimaActualizacion DESC)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_LoteEvaluacion_FechaActualizacion creado';
 END
@@ -164,7 +164,7 @@ GO
 -- =====================================================
 IF NOT EXISTS (
     SELECT * FROM sys.extended_properties 
-    WHERE major_id = OBJECT_ID('image.LoteEvaluacion') 
+    WHERE major_id = OBJECT_ID('evalImagen.LoteEvaluacion') 
     AND minor_id = 0 
     AND name = 'MS_Description'
 )
@@ -172,42 +172,42 @@ BEGIN
     EXEC sp_addextendedproperty 
         @name = N'MS_Description', 
         @value = N'Cache de estadísticas agregadas por lote para evaluaciones de luz/sombra. Permite tracking de estado actual y generación eficiente de alertas.', 
-        @level0type = N'SCHEMA', @level0name = N'image',
+        @level0type = N'SCHEMA', @level0name = N'evalImagen',
         @level1type = N'TABLE', @level1name = N'LoteEvaluacion';
     PRINT '[OK] Extended property agregado a tabla';
 END
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Identificador único de la evaluación de lote', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'loteEvaluacionID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'loteEvaluacionID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Foreign Key al lote evaluado', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'lotID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'lotID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Variedad del cultivo (NULL si el lote tiene múltiples variedades o no está definida)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'variedadID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'variedadID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Fundo del lote (GROWER.FARMS.farmID). Se almacena para optimizar el match con image.Contacto que filtra por fundoID.', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'fundoID';
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Fundo del lote (GROWER.FARMS.farmID). Se almacena para optimizar el match con evalImagen.Contacto que filtra por fundoID.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'fundoID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Sector del lote (GROWER.STAGE.stageID). Se almacena para optimizar el match con image.Contacto que filtra por sectorID.', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'sectorID';
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Sector del lote (GROWER.STAGE.stageID). Se almacena para optimizar el match con evalImagen.Contacto que filtra por sectorID.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'sectorID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Porcentaje promedio de luz en el período evaluado', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'porcentajeLuzPromedio';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'porcentajeLuzPromedio';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Tipo de umbral actual basado en el promedio de luz (CriticoRojo, CriticoAmarillo, Normal)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'tipoUmbralActual';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'tipoUmbralActual';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Período de evaluación en días (por defecto 30 días = último mes)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'periodoEvaluacionDias';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'LoteEvaluacion', @level2type = N'COLUMN', @level2name = N'periodoEvaluacionDias';
 GO
 
 PRINT '';

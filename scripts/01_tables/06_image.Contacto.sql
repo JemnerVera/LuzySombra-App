@@ -1,13 +1,13 @@
 -- =====================================================
--- SCRIPT: Crear tabla image.Contacto
+-- SCRIPT: Crear tabla evalImagen.Contacto
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Schema: image
+-- Schema: evalImagen
 -- Propósito: Almacenar contactos/destinatarios para alertas por email
 -- =====================================================
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - image.Contacto
+--      - evalImagen.Contacto
 --   ✅ Índices:
 --      - IDX_Contacto_Email (UNIQUE)
 --      - IDX_Contacto_Activo (NONCLUSTERED, filtered)
@@ -39,11 +39,11 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- Crear tabla image.Contacto
+-- Crear tabla evalImagen.Contacto
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Contacto' AND schema_id = SCHEMA_ID('image'))
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Contacto' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    CREATE TABLE image.Contacto (
+    CREATE TABLE evalImagen.Contacto (
         contactoID INT IDENTITY(1,1) NOT NULL,
         
         -- Información del contacto
@@ -87,39 +87,39 @@ BEGIN
         CONSTRAINT FK_Contacto_UsuarioActualiza FOREIGN KEY (usuarioActualizaID) REFERENCES MAST.USERS(userID)
     );
     
-    PRINT '[OK] Tabla image.Contacto creada';
+    PRINT '[OK] Tabla evalImagen.Contacto creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla image.Contacto ya existe';
+    PRINT '[INFO] Tabla evalImagen.Contacto ya existe';
 END
 GO
 
 -- =====================================================
 -- Crear índices
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Email' AND object_id = OBJECT_ID('image.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Email' AND object_id = OBJECT_ID('evalImagen.Contacto'))
 BEGIN
     CREATE UNIQUE NONCLUSTERED INDEX IDX_Contacto_Email 
-    ON image.Contacto(email)
+    ON evalImagen.Contacto(email)
     WHERE statusID = 1;
     PRINT '[OK] Índice IDX_Contacto_Email creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Activo' AND object_id = OBJECT_ID('image.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Activo' AND object_id = OBJECT_ID('evalImagen.Contacto'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_Contacto_Activo 
-    ON image.Contacto(activo, statusID, tipo)
+    ON evalImagen.Contacto(activo, statusID, tipo)
     WHERE statusID = 1 AND activo = 1;
     PRINT '[OK] Índice IDX_Contacto_Activo creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Tipo' AND object_id = OBJECT_ID('image.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Tipo' AND object_id = OBJECT_ID('evalImagen.Contacto'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_Contacto_Tipo 
-    ON image.Contacto(tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)
+    ON evalImagen.Contacto(tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)
     WHERE statusID = 1 AND activo = 1;
     PRINT '[OK] Índice IDX_Contacto_Tipo creado';
 END
@@ -130,7 +130,7 @@ GO
 -- =====================================================
 IF NOT EXISTS (
     SELECT * FROM sys.extended_properties 
-    WHERE major_id = OBJECT_ID('image.Contacto') 
+    WHERE major_id = OBJECT_ID('evalImagen.Contacto') 
     AND minor_id = 0 
     AND name = 'MS_Description'
 )
@@ -138,42 +138,42 @@ BEGIN
     EXEC sp_addextendedproperty 
         @name = N'MS_Description', 
         @value = N'Almacena contactos/destinatarios para alertas por email. Permite configurar filtros por tipo de alerta, variedad, fundo o sector.', 
-        @level0type = N'SCHEMA', @level0name = N'image',
+        @level0type = N'SCHEMA', @level0name = N'evalImagen',
         @level1type = N'TABLE', @level1name = N'Contacto';
     PRINT '[OK] Extended property agregado a tabla';
 END
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Identificador único del contacto', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'contactoID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'contactoID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Nombre completo del contacto', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'nombre';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'nombre';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Email del contacto (único, validado)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'email';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'email';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Tipo de contacto: General, Admin, Agronomo, Manager, Supervisor, Tecnico, Otro', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'tipo';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'tipo';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas críticas (CriticoRojo)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasCriticas';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasCriticas';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas de advertencia (CriticoAmarillo)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasAdvertencias';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasAdvertencias';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si NULL, recibe alertas de todos los fundos. Si tiene valor, solo de ese fundo específico. Se hace match con el fundo del lote que tiene la alerta.', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'fundoID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'fundoID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si NULL, recibe alertas de todos los sectores. Si tiene valor, solo de ese sector específico. Se hace match con el sector del lote que tiene la alerta.', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'sectorID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'sectorID';
 GO
 
 PRINT '';
@@ -181,19 +181,19 @@ PRINT '=== Script completado ===';
 PRINT '';
 PRINT 'Ejemplos de uso:';
 PRINT '  -- Insertar contacto que recibe todas las alertas:';
-PRINT '  INSERT INTO image.Contacto (nombre, email, tipo, activo)';
+PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, activo)';
 PRINT '  VALUES (''Juan Pérez'', ''juan@example.com'', ''Admin'', 1);';
 PRINT '';
 PRINT '  -- Insertar contacto que solo recibe alertas críticas:';
-PRINT '  INSERT INTO image.Contacto (nombre, email, tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)';
+PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)';
 PRINT '  VALUES (''María García'', ''maria@example.com'', ''Manager'', 1, 0);';
 PRINT '';
 PRINT '  -- Insertar contacto para un fundo específico:';
-PRINT '  INSERT INTO image.Contacto (nombre, email, tipo, fundoID)';
+PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, fundoID)';
 PRINT '  VALUES (''Carlos López'', ''carlos@example.com'', ''Agronomo'', 1);';
 PRINT '';
 PRINT '  -- Insertar contacto para un sector específico:';
-PRINT '  INSERT INTO image.Contacto (nombre, email, tipo, sectorID)';
+PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, sectorID)';
 PRINT '  VALUES (''Ana Rodríguez'', ''ana@example.com'', ''Supervisor'', 5);';
 GO
 

@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Modificar image.Mensaje para Consolidación
+-- SCRIPT: Modificar evalImagen.Mensaje para Consolidación
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Propósito: Permitir mensajes consolidados (sin alertaID único)
 -- =====================================================
@@ -8,21 +8,21 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  MODIFICANDO image.Mensaje PARA CONSOLIDACIÓN';
+PRINT '  MODIFICANDO evalImagen.Mensaje PARA CONSOLIDACIÓN';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 
 -- =====================================================
 -- Paso 1: Verificar estructura actual
 -- =====================================================
-PRINT '=== Paso 1: Estructura actual de image.Mensaje ===';
+PRINT '=== Paso 1: Estructura actual de evalImagen.Mensaje ===';
 SELECT 
     COLUMN_NAME,
     DATA_TYPE,
     IS_NULLABLE,
     COLUMN_DEFAULT
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'image'
+WHERE TABLE_SCHEMA = 'evalImagen'
   AND TABLE_NAME = 'Mensaje'
 ORDER BY ORDINAL_POSITION;
 GO
@@ -35,10 +35,10 @@ PRINT '=== Paso 2: Eliminando FK_Mensaje_Alerta ===';
 IF EXISTS (
     SELECT * FROM sys.foreign_keys 
     WHERE name = 'FK_Mensaje_Alerta' 
-    AND parent_object_id = OBJECT_ID('image.Mensaje')
+    AND parent_object_id = OBJECT_ID('evalImagen.Mensaje')
 )
 BEGIN
-    ALTER TABLE image.Mensaje
+    ALTER TABLE evalImagen.Mensaje
     DROP CONSTRAINT FK_Mensaje_Alerta;
     PRINT '✅ FK_Mensaje_Alerta eliminada';
 END
@@ -55,13 +55,13 @@ PRINT '';
 PRINT '=== Paso 3: Haciendo alertaID NULL ===';
 IF EXISTS (
     SELECT * FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = 'image'
+    WHERE TABLE_SCHEMA = 'evalImagen'
       AND TABLE_NAME = 'Mensaje'
       AND COLUMN_NAME = 'alertaID'
       AND IS_NULLABLE = 'NO'
 )
 BEGIN
-    ALTER TABLE image.Mensaje
+    ALTER TABLE evalImagen.Mensaje
     ALTER COLUMN alertaID INT NULL;
     PRINT '✅ alertaID ahora permite NULL';
 END
@@ -78,12 +78,12 @@ PRINT '';
 PRINT '=== Paso 4: Agregando fundoID ===';
 IF NOT EXISTS (
     SELECT * FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = 'image'
+    WHERE TABLE_SCHEMA = 'evalImagen'
       AND TABLE_NAME = 'Mensaje'
       AND COLUMN_NAME = 'fundoID'
 )
 BEGIN
-    ALTER TABLE image.Mensaje
+    ALTER TABLE evalImagen.Mensaje
     ADD fundoID CHAR(4) NULL;
     PRINT '✅ fundoID agregado';
 END
@@ -101,11 +101,11 @@ PRINT '=== Paso 5: Agregando índice para fundoID ===';
 IF NOT EXISTS (
     SELECT * FROM sys.indexes 
     WHERE name = 'IDX_Mensaje_FundoID' 
-    AND object_id = OBJECT_ID('image.Mensaje')
+    AND object_id = OBJECT_ID('evalImagen.Mensaje')
 )
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_Mensaje_FundoID
-    ON image.Mensaje(fundoID, estado, statusID)
+    ON evalImagen.Mensaje(fundoID, estado, statusID)
     WHERE statusID = 1;
     PRINT '✅ Índice IDX_Mensaje_FundoID creado';
 END
@@ -119,14 +119,14 @@ GO
 -- Paso 6: Verificar estructura final
 -- =====================================================
 PRINT '';
-PRINT '=== Paso 6: Estructura final de image.Mensaje ===';
+PRINT '=== Paso 6: Estructura final de evalImagen.Mensaje ===';
 SELECT 
     COLUMN_NAME,
     DATA_TYPE,
     IS_NULLABLE,
     COLUMN_DEFAULT
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'image'
+WHERE TABLE_SCHEMA = 'evalImagen'
   AND TABLE_NAME = 'Mensaje'
 ORDER BY ORDINAL_POSITION;
 GO
@@ -134,7 +134,7 @@ GO
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '  ✅ MODIFICACIÓN COMPLETADA';
-PRINT '  Ahora image.Mensaje soporta:';
+PRINT '  Ahora evalImagen.Mensaje soporta:';
 PRINT '  - alertaID NULL (mensajes consolidados)';
 PRINT '  - fundoID (identificación del fundo)';
 PRINT '═══════════════════════════════════════════════════════════════════';

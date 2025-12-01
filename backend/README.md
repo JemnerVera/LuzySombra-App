@@ -25,29 +25,39 @@ npm start
 
 ## Variables de Entorno
 
-Crear archivo `.env` en el directorio `backend/`:
+**Recomendado:** Usar `.env.local` en la raíz del proyecto (ver `env.example` en la raíz).
+
+**Alternativa:** Crear archivo `.env` en el directorio `backend/`:
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=your_server_ip_or_hostname
-SQL_DATABASE=your_database_name
+SQL_SERVER=10.1.10.4
+SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
 SQL_PORT=1433
-SQL_USER=your_sql_user
-SQL_PASSWORD=your_sql_password
+SQL_USER=ucser_luzsombra_desa
+SQL_PASSWORD=D3s4S3r12
 SQL_ENCRYPT=true
 
 # Server Configuration
 PORT=3001
 FRONTEND_URL=http://localhost:3000
 
-# Data Source (sql | google_sheets)
+# Data Source
 DATA_SOURCE=sql
+
+# Resend API (para alertas)
+RESEND_API_KEY=tu_api_key
+RESEND_FROM_EMAIL=no-reply@updates.agricolaandrea.com
+RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 
 # Development
 NODE_ENV=development
 ```
 
-**⚠️ IMPORTANTE**: El archivo `.env` contiene credenciales sensibles y NO debe commitrearse.
+**⚠️ IMPORTANTE**: 
+- El archivo `.env` contiene credenciales sensibles y NO debe commitrearse.
+- El schema de la base de datos es `evalImagen` (no `image`).
+- Usuario SQL: `ucser_luzsombra_desa` (DESA) / `ucser_luzSombra` (PROD).
 
 ## Diagnóstico de Conectividad
 

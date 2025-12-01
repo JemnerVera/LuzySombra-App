@@ -1,30 +1,30 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure image.sp_CalcularLoteEvaluacion
+-- SCRIPT: Crear Stored Procedure evalImagen.sp_CalcularLoteEvaluacion
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Schema: image
+-- Schema: evalImagen
 -- Propósito: Calcular estadísticas agregadas por lote y actualizar/insertar en LoteEvaluacion
 -- =====================================================
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Stored Procedures:
---      - image.sp_CalcularLoteEvaluacion
+--      - evalImagen.sp_CalcularLoteEvaluacion
 --   ✅ Extended Properties:
 --      - Documentación de stored procedure y parámetros
 -- 
 -- OBJETOS MODIFICADOS:
 --   ✅ Tablas (al ejecutarse):
---      - image.LoteEvaluacion (INSERT/UPDATE mediante MERGE)
+--      - evalImagen.LoteEvaluacion (INSERT/UPDATE mediante MERGE)
 -- 
 -- DEPENDENCIAS:
 --   ⚠️  Requiere: Schema image (debe existir)
---   ⚠️  Requiere: image.Analisis_Imagen (tabla - lee datos)
---   ⚠️  Requiere: image.LoteEvaluacion (tabla - actualiza/inserta)
---   ⚠️  Requiere: image.UmbralLuz (tabla - compara umbrales)
+--   ⚠️  Requiere: evalImagen.Analisis_Imagen (tabla - lee datos)
+--   ⚠️  Requiere: evalImagen.LoteEvaluacion (tabla - actualiza/inserta)
+--   ⚠️  Requiere: evalImagen.UmbralLuz (tabla - compara umbrales)
 --   ⚠️  Requiere: GROWER.PLANTATION (tabla existente)
 --   ⚠️  Requiere: GROWER.VARIETY (tabla existente)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   Después de crear todas las tablas (image.Analisis_Imagen, image.LoteEvaluacion, image.UmbralLuz)
+--   Después de crear todas las tablas (evalImagen.Analisis_Imagen, evalImagen.LoteEvaluacion, evalImagen.UmbralLuz)
 -- 
 -- USADO POR:
 --   - Backend: src/services/sqlServerService.ts (saveProcessingResult)
@@ -45,11 +45,11 @@ GO
 -- =====================================================
 -- Crear Stored Procedure
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'image.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
-    DROP PROCEDURE image.sp_CalcularLoteEvaluacion;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.sp_CalcularLoteEvaluacion;
 GO
 
-CREATE PROCEDURE image.sp_CalcularLoteEvaluacion
+CREATE PROCEDURE evalImagen.sp_CalcularLoteEvaluacion
     @LotID INT = NULL, -- NULL = calcular todos los lotes con evaluaciones
     @PeriodoDias INT = 30, -- Período de evaluación en días (por defecto último mes)
     @ForzarRecalculo BIT = 0 -- Si 1, recalcula incluso si ya existe
@@ -76,7 +76,7 @@ BEGIN
             MAX(ai.porcentajeSombra) AS porcentajeSombraMax,
             MAX(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaUltimaEvaluacion,
             MIN(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaPrimeraEvaluacion
-        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        FROM evalImagen.Analisis_Imagen ai WITH (NOLOCK)
         INNER JOIN GROWER.LOT l WITH (NOLOCK) ON ai.lotID = l.lotID
         INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
@@ -106,7 +106,7 @@ BEGIN
             -- Obtener umbral correspondiente (prioridad: variedad específica > todas las variedades)
             (
                 SELECT TOP 1 u.umbralID
-                FROM image.UmbralLuz u
+                FROM evalImagen.UmbralLuz u
                 WHERE u.activo = 1 
                     AND u.statusID = 1
                     AND (u.variedadID = el.varietyID OR u.variedadID IS NULL)
@@ -123,7 +123,7 @@ BEGIN
             ) AS umbralIDActual,
             (
                 SELECT TOP 1 u.tipo
-                FROM image.UmbralLuz u
+                FROM evalImagen.UmbralLuz u
                 WHERE u.activo = 1 
                     AND u.statusID = 1
                     AND (u.variedadID = el.varietyID OR u.variedadID IS NULL)
@@ -141,7 +141,7 @@ BEGIN
         FROM EstadisticasLote el
     )
     -- MERGE para actualizar o insertar
-    MERGE image.LoteEvaluacion AS target
+    MERGE evalImagen.LoteEvaluacion AS target
     USING UmbralesLote AS source
     ON target.lotID = source.lotID
     WHEN MATCHED AND (@ForzarRecalculo = 1 OR target.fechaUltimaActualizacion < source.fechaUltimaEvaluacion)
@@ -210,7 +210,7 @@ BEGIN
     -- Retornar resumen
     SELECT 
         @@ROWCOUNT AS registrosProcesados,
-        (SELECT COUNT(*) FROM image.LoteEvaluacion WHERE statusID = 1) AS totalLotesEvaluados;
+        (SELECT COUNT(*) FROM evalImagen.LoteEvaluacion WHERE statusID = 1) AS totalLotesEvaluados;
 END;
 GO
 
@@ -219,36 +219,36 @@ GO
 -- =====================================================
 EXEC sp_addextendedproperty 
     @name = N'MS_Description', 
-    @value = N'Calcula estadísticas agregadas por lote y actualiza/inserta en image.LoteEvaluacion. Puede calcular para un lote específico o todos los lotes con evaluaciones.', 
-    @level0type = N'SCHEMA', @level0name = N'image',
+    @value = N'Calcula estadísticas agregadas por lote y actualiza/inserta en evalImagen.LoteEvaluacion. Puede calcular para un lote específico o todos los lotes con evaluaciones.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen',
     @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID del lote a calcular. NULL = calcular todos los lotes con evaluaciones', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@LotID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@LotID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Período de evaluación en días desde la fecha actual (por defecto 30 días = último mes)', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@PeriodoDias';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@PeriodoDias';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recalcula incluso si ya existe una evaluación reciente', 
-    @level0type = N'SCHEMA', @level0name = N'image', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@ForzarRecalculo';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@ForzarRecalculo';
 GO
 
-PRINT '[OK] Stored Procedure image.sp_CalcularLoteEvaluacion creado';
+PRINT '[OK] Stored Procedure evalImagen.sp_CalcularLoteEvaluacion creado';
 PRINT '';
 PRINT '=== Ejemplos de uso ===';
 PRINT '-- Calcular para un lote específico:';
-PRINT 'EXEC image.sp_CalcularLoteEvaluacion @LotID = 1003;';
+PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = 1003;';
 PRINT '';
 PRINT '-- Calcular todos los lotes (último mes):';
-PRINT 'EXEC image.sp_CalcularLoteEvaluacion;';
+PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion;';
 PRINT '';
 PRINT '-- Calcular todos los lotes (últimos 60 días):';
-PRINT 'EXEC image.sp_CalcularLoteEvaluacion @PeriodoDias = 60;';
+PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @PeriodoDias = 60;';
 PRINT '';
 PRINT '-- Forzar recálculo de todos los lotes:';
-PRINT 'EXEC image.sp_CalcularLoteEvaluacion @ForzarRecalculo = 1;';
+PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @ForzarRecalculo = 1;';
 GO
 

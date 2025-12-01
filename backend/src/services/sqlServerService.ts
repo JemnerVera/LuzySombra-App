@@ -171,7 +171,7 @@ class SqlServerService {
 
       const countQuery = `
         SELECT COUNT(*) as total
-        FROM image.Analisis_Imagen a
+        FROM evalImagen.AnalisisImagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
@@ -202,7 +202,7 @@ class SqlServerService {
           '' as dispositivo,
           '' as software,
           '' as direccion
-        FROM image.Analisis_Imagen a
+        FROM evalImagen.AnalisisImagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
@@ -380,7 +380,7 @@ class SqlServerService {
       request.input('usuarioCreaID', sql.Int, userCreatedID);
 
       const insertResult = await request.query(`
-        INSERT INTO image.Analisis_Imagen (
+        INSERT INTO evalImagen.AnalisisImagen (
           lotID, hilera, planta, filename, fechaCaptura,
           porcentajeLuz, porcentajeSombra, latitud, longitud,
           processedImageUrl, originalImageUrl, usuarioCreaID, statusID
@@ -396,9 +396,9 @@ class SqlServerService {
       const analisisID = insertResult.recordset[0].analisisID;
 
       try {
-        await query(`EXEC image.sp_CalcularLoteEvaluacion @LotID = @lotID`, { lotID });
+        await query(`EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = @lotID`, { lotID });
       } catch (updateError) {
-        console.warn('⚠️ Error actualizando image.LoteEvaluacion (continuando):', updateError);
+        console.warn('⚠️ Error actualizando evalImagen.LoteEvaluacion (continuando):', updateError);
       }
 
       this.historialCache = null;
@@ -560,7 +560,7 @@ class SqlServerService {
           AND v.statusID = 1
         LEFT JOIN dbo.vwc_CianamidaFenologia cf WITH (NOLOCK) 
           ON lp.lotID = cf.lotID
-        LEFT JOIN image.LoteEvaluacion le WITH (NOLOCK) 
+        LEFT JOIN evalImagen.LoteEvaluacion le WITH (NOLOCK) 
           ON lp.lotID = le.lotID 
           AND le.statusID = 1
         ORDER BY lp.fundo, lp.sector, lp.lote
@@ -641,7 +641,7 @@ class SqlServerService {
           MIN(ai.porcentajeSombra) AS sombraMin,
           MAX(ai.porcentajeSombra) AS sombraMax,
           AVG(CAST(ai.porcentajeSombra AS FLOAT)) AS sombraProm
-        FROM image.Analisis_Imagen ai WITH (NOLOCK)
+        FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
         WHERE ai.lotID = @lotID 
           AND ai.statusID = 1
         GROUP BY CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE)
@@ -680,14 +680,14 @@ class SqlServerService {
       // Get total number of analyses
       const totalAnalisisResult = await pool.request().query(`
         SELECT COUNT(*) as total
-        FROM image.Analisis_Imagen
+        FROM evalImagen.AnalisisImagen
       `);
       const totalAnalisis = totalAnalisisResult.recordset[0]?.total || 0;
       
       // Get total number of lots
       const totalLotesResult = await pool.request().query(`
         SELECT COUNT(DISTINCT CONCAT(f.farmID, '-', s.stageID, '-', l.lotID)) as total
-        FROM image.Analisis_Imagen ai
+        FROM evalImagen.AnalisisImagen ai
         INNER JOIN [AgroMigiva].[dbo].[Lot] l ON ai.loteID = l.lotID
         INNER JOIN [AgroMigiva].[dbo].[Stage] s ON l.stageID = s.stageID
         INNER JOIN [AgroMigiva].[dbo].[Farm] f ON s.farmID = f.farmID
@@ -697,7 +697,7 @@ class SqlServerService {
       // Get average light percentage
       const avgLuzResult = await pool.request().query(`
         SELECT AVG(porcentaje_luz) as promedio
-        FROM image.Analisis_Imagen
+        FROM evalImagen.AnalisisImagen
         WHERE porcentaje_luz IS NOT NULL
       `);
       const promedioLuz = avgLuzResult.recordset[0]?.promedio || 0;
@@ -705,7 +705,7 @@ class SqlServerService {
       // Get average shadow percentage
       const avgSombraResult = await pool.request().query(`
         SELECT AVG(porcentaje_sombra) as promedio
-        FROM image.Analisis_Imagen
+        FROM evalImagen.AnalisisImagen
         WHERE porcentaje_sombra IS NOT NULL
       `);
       const promedioSombra = avgSombraResult.recordset[0]?.promedio || 0;

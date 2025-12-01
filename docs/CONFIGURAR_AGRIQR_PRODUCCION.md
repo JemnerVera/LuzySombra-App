@@ -19,7 +19,7 @@ Configurar la app AgriQR para que funcione desde el campo agrícola y envíe dat
 private const val BASE_URL = "http://192.168.18.52:3001/api/"
 
 // Después (producción)
-private const val BASE_URL = "https://luzsombra-backend.azurewebsites.net/api/"
+private const val BASE_URL = "https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/"
 ```
 
 **O mejor aún, hacerlo configurable:**
@@ -27,7 +27,7 @@ private const val BASE_URL = "https://luzsombra-backend.azurewebsites.net/api/"
 ```kotlin
 object ApiClient {
     // URL base configurable
-    private val BASE_URL = BuildConfig.BASE_URL ?: "https://luzsombra-backend.azurewebsites.net/api/"
+    private val BASE_URL = BuildConfig.BASE_URL ?: "https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/"
     
     // ... resto del código
 }
@@ -39,7 +39,7 @@ Y en `build.gradle.kts`:
 android {
     buildTypes {
         getByName("release") {
-            buildConfigField("String", "BASE_URL", "\"https://luzsombra-backend.azurewebsites.net/api/\"")
+            buildConfigField("String", "BASE_URL", "\"https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/\"")
         }
         getByName("debug") {
             buildConfigField("String", "BASE_URL", "\"http://192.168.18.52:3001/api/\"")
@@ -60,7 +60,7 @@ Ya tienes la funcionalidad de configurar la URL manualmente. Solo necesitas:
 
 1. **Actualizar URL por defecto:**
    ```kotlin
-   private const val DEFAULT_BASE_URL = "https://luzsombra-backend.azurewebsites.net/api/"
+   private const val DEFAULT_BASE_URL = "https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/"
    ```
 
 2. **Asegurar que la app guarda la URL:**
@@ -199,7 +199,7 @@ buildTypes {
 
 1. **Configurar URL de Azure en la app:**
    - Abrir configuración inicial
-   - Ingresar: `https://luzsombra-backend.azurewebsites.net/api/`
+   - Ingresar: `https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/`
 
 2. **Probar funcionalidades:**
    - Login
@@ -246,7 +246,7 @@ buildTypes {
 ### **Problema: "Failed to connect to Azure"**
 
 **Soluciones:**
-1. Verificar que la URL es correcta: `https://luzsombra-backend.azurewebsites.net/api/`
+1. Verificar que la URL es correcta: `https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net/api/`
 2. Verificar que Azure App Service está corriendo
 3. Verificar conexión a Internet/WiFi
 4. Verificar que no hay firewall bloqueando

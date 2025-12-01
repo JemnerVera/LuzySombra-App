@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
 import { apiService } from '../services/api';
 import { DetalleNavigation } from '../types';
+import LazyImage from './LazyImage';
 
 interface EvaluacionDetallePlantaProps {
   navigation: DetalleNavigation;
@@ -250,7 +251,7 @@ const EvaluacionDetallePlanta: React.FC<EvaluacionDetallePlantaProps> = ({
 
               {/* Content */}
               <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
-                <img
+                <LazyImage
                   src={currentImageUrl}
                   alt={selectedImage.filename}
                   className="max-w-full max-h-[70vh] object-contain rounded-lg"

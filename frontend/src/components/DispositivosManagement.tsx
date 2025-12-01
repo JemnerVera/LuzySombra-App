@@ -1,0 +1,438 @@
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
+import { Plus, Edit, Trash2, RefreshCw, Save, X, Smartphone, Key, Eye, EyeOff, AlertCircle } from 'lucide-react';
+
+interface Dispositivo {
+  dispositivoID: number;
+  deviceId: string;
+  apiKey: string | null; // Puede ser null si está oculta
+  nombreDispositivo: string | null;
+  modeloDispositivo: string | null;
+  versionApp: string | null;
+  activo: boolean;
+  fechaRegistro: string;
+  ultimoAcceso: string | null;
+  statusID: number;
+}
+
+interface DispositivosManagementProps {
+  onNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+}
+
+const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotification }) => {
+  const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showApiKey, setShowApiKey] = useState<number | null>(null);
+  const [newApiKey, setNewApiKey] = useState<string | null>(null);
+  const [filterActivo, setFilterActivo] = useState<'all' | 'active' | 'inactive'>('all');
+  const [formData, setFormData] = useState<Partial<Dispositivo>>({
+    nombreDispositivo: '',
+    modeloDispositivo: '',
+    versionApp: '',
+    activo: true
+  });
+
+  const loadDispositivos = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getDispositivos();
+      if (response.success && response.dispositivos) {
+        setDispositivos(response.dispositivos);
+      }
+    } catch (error) {
+      console.error('Error cargando dispositivos:', error);
+      onNotification('Error cargando dispositivos', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDispositivos();
+  }, []);
+
+  const resetForm = () => {
+    setFormData({
+      nombreDispositivo: '',
+      modeloDispositivo: '',
+      versionApp: '',
+      activo: true
+    });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const handleCreate = async () => {
+    try {
+      if (!formData.nombreDispositivo) {
+        onNotification('Por favor completa el nombre del dispositivo', 'warning');
+        return;
+      }
+
+      const response = await apiService.createDispositivo({
+        nombreDispositivo: formData.nombreDispositivo,
+        modeloDispositivo: formData.modeloDispositivo || undefined,
+        versionApp: formData.versionApp || undefined
+      });
+
+      if (response.success) {
+        onNotification(`Dispositivo creado. API Key: ${response.apiKey}`, 'success');
+        setNewApiKey(response.apiKey || null);
+        resetForm();
+        loadDispositivos();
+      }
+    } catch (error: any) {
+      console.error('Error creando dispositivo:', error);
+      onNotification(error.response?.data?.error || 'Error creando dispositivo', 'error');
+    }
+  };
+
+  const handleUpdate = async (id: number) => {
+    try {
+      if (!formData.nombreDispositivo) {
+        onNotification('Por favor completa el nombre del dispositivo', 'warning');
+        return;
+      }
+
+      const response = await apiService.updateDispositivo(id, {
+        nombreDispositivo: formData.nombreDispositivo,
+        modeloDispositivo: formData.modeloDispositivo || undefined,
+        versionApp: formData.versionApp || undefined,
+        activo: formData.activo
+      });
+
+      if (response.success) {
+        onNotification('Dispositivo actualizado exitosamente', 'success');
+        resetForm();
+        loadDispositivos();
+      }
+    } catch (error: any) {
+      console.error('Error actualizando dispositivo:', error);
+      onNotification(error.response?.data?.error || 'Error actualizando dispositivo', 'error');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este dispositivo?')) {
+      return;
+    }
+
+    try {
+      const response = await apiService.deleteDispositivo(id);
+      if (response.success) {
+        onNotification('Dispositivo eliminado exitosamente', 'success');
+        loadDispositivos();
+      }
+    } catch (error: any) {
+      console.error('Error eliminando dispositivo:', error);
+      onNotification(error.response?.data?.error || 'Error eliminando dispositivo', 'error');
+    }
+  };
+
+  const handleRegenerateKey = async (id: number) => {
+    if (!window.confirm('¿Estás seguro? La API key actual dejará de funcionar. El dispositivo deberá usar la nueva key.')) {
+      return;
+    }
+
+    try {
+      const response = await apiService.regenerateApiKey(id);
+      if (response.success && response.apiKey) {
+        onNotification(`Nueva API Key: ${response.apiKey}`, 'success');
+        setNewApiKey(response.apiKey);
+        loadDispositivos();
+      }
+    } catch (error: any) {
+      console.error('Error regenerando API key:', error);
+      onNotification(error.response?.data?.error || 'Error regenerando API key', 'error');
+    }
+  };
+
+  const handleEdit = (dispositivo: Dispositivo) => {
+    setFormData({
+      nombreDispositivo: dispositivo.nombreDispositivo || '',
+      modeloDispositivo: dispositivo.modeloDispositivo || '',
+      versionApp: dispositivo.versionApp || '',
+      activo: dispositivo.activo
+    });
+    setEditingId(dispositivo.dispositivoID);
+    setShowForm(true);
+  };
+
+  const filteredDispositivos = dispositivos.filter(d => {
+    if (filterActivo === 'active') return d.activo;
+    if (filterActivo === 'inactive') return !d.activo;
+    return true;
+  });
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Nunca';
+    const date = new Date(dateString);
+    return date.toLocaleString('es-ES');
+  };
+
+  const getDaysSinceLastAccess = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Dispositivos</h2>
+          <p className="text-gray-600 dark:text-dark-400 mt-1">
+            Gestiona los dispositivos Android (AgriQR) autorizados
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <Plus className="h-5 w-5" />
+          Nuevo Dispositivo
+        </button>
+      </div>
+
+      {/* Alerta de nueva API Key */}
+      {newApiKey && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-yellow-800 dark:text-yellow-300 mb-1">
+                Nueva API Key generada
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-2 font-mono break-all">
+                {newApiKey}
+              </p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                ⚠️ Guarda esta key. No se mostrará nuevamente. El dispositivo deberá usar esta key para autenticarse.
+              </p>
+              <button
+                onClick={() => setNewApiKey(null)}
+                className="mt-2 text-xs text-yellow-700 dark:text-yellow-400 hover:underline"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filtros */}
+      <div className="flex items-center gap-4">
+        <label className="text-sm font-medium text-gray-700 dark:text-dark-300">Filtro:</label>
+        <select
+          value={filterActivo}
+          onChange={(e) => setFilterActivo(e.target.value as 'all' | 'active' | 'inactive')}
+          className="px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+        >
+          <option value="all">Todos</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+        <button
+          onClick={loadDispositivos}
+          className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-dark-300 bg-gray-100 dark:bg-dark-800 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Actualizar
+        </button>
+      </div>
+
+      {/* Formulario */}
+      {showForm && (
+        <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-dark-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {editingId ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
+            </h3>
+            <button
+              onClick={resetForm}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
+                Nombre del Dispositivo *
+              </label>
+              <input
+                type="text"
+                value={formData.nombreDispositivo || ''}
+                onChange={(e) => setFormData({ ...formData, nombreDispositivo: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                placeholder="Ej: Tablet Campo 1"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
+                Modelo del Dispositivo
+              </label>
+              <input
+                type="text"
+                value={formData.modeloDispositivo || ''}
+                onChange={(e) => setFormData({ ...formData, modeloDispositivo: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                placeholder="Ej: Samsung Galaxy Tab"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
+                Versión de la App
+              </label>
+              <input
+                type="text"
+                value={formData.versionApp || ''}
+                onChange={(e) => setFormData({ ...formData, versionApp: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                placeholder="Ej: 1.0.0"
+              />
+            </div>
+
+            {editingId && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="activo"
+                  checked={formData.activo || false}
+                  onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 rounded"
+                />
+                <label htmlFor="activo" className="text-sm text-gray-700 dark:text-dark-300">
+                  Dispositivo activo
+                </label>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={editingId ? () => handleUpdate(editingId) : handleCreate}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Save className="h-4 w-4" />
+                {editingId ? 'Guardar Cambios' : 'Crear Dispositivo'}
+              </button>
+              <button
+                onClick={resetForm}
+                className="px-4 py-2 text-gray-700 dark:text-dark-300 bg-gray-100 dark:bg-dark-800 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabla */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-dark-400">Cargando dispositivos...</p>
+        </div>
+      ) : filteredDispositivos.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-dark-900 rounded-lg border border-gray-200 dark:border-dark-700">
+          <Smartphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-dark-400">No hay dispositivos registrados</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-dark-800">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                    Device ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                    Último Acceso
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
+                {filteredDispositivos.map((dispositivo) => (
+                  <tr key={dispositivo.dispositivoID} className="hover:bg-gray-50 dark:hover:bg-dark-800">
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                      {dispositivo.nombreDispositivo || 'Sin nombre'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-dark-400 font-mono text-xs">
+                      {dispositivo.deviceId}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        dispositivo.activo
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {dispositivo.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-dark-400">
+                      <div>{formatDate(dispositivo.ultimoAcceso)}</div>
+                      {dispositivo.ultimoAcceso && (
+                        <div className="text-xs text-gray-500 dark:text-dark-500">
+                          Hace {getDaysSinceLastAccess(dispositivo.ultimoAcceso)} días
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(dispositivo)}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRegenerateKey(dispositivo.dispositivoID)}
+                          className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-lg transition-colors"
+                          title="Regenerar API Key"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(dispositivo.dispositivoID)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DispositivosManagement;
+

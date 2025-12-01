@@ -178,11 +178,11 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Tipo de contac
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas críticas (CriticoRojo)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasCriticas';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasCriticas';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas de advertencia (CriticoAmarillo)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recirAlertasAdvertencias';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasAdvertencias';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si NULL, recibe alertas de todos los fundos. Si tiene valor, solo de ese fundo específico. Se hace match con el fundo del lote que tiene la alerta.', 

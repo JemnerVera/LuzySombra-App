@@ -102,7 +102,6 @@
 │  FK  umbralID (INT) ────────────────────┼──→ evalImagen.UmbralLuz                 │
 │  FK  variedadID (INT) ──────────────────┼──→ GROWER.VARIETY                   │
 │  FK  usuarioResolvioID (INT) ───────────┼──→ MAST.USERS                       │
-│  FK  mensajeID (INT) ────────────────────┼──→ evalImagen.Mensaje (circular)        │
 │      porcentajeLuzEvaluado (DECIMAL)    │                                      │
 │      tipoUmbral (VARCHAR)                │                                      │
 │      severidad (VARCHAR)                  │                                      │
@@ -215,8 +214,8 @@
    └─ Alerta generada a partir de evaluación
    └─ Alerta → evalImagen.UmbralLuz (umbralID)
       └─ Umbral que activó la alerta
-   └─ Alerta ↔ evalImagen.Mensaje (mensajeID) [CIRCULAR]
-      └─ Relación bidireccional
+   └─ Alerta → evalImagen.MensajeAlerta (alertaID)
+      └─ Relación N:N con Mensaje (a través de tabla intermedia)
 
 5. Mensaje → evalImagen.Alerta (alertaID) [opcional - NULL para consolidados]
    └─ Mensaje generado para una alerta
@@ -260,7 +259,8 @@
 • Todas las tablas tienen statusID para soft delete
 • Todas las tablas tienen campos de auditoría (fechaCreacion, usuarioCreaID)
 • evalImagen.LoteEvaluacion tiene UNIQUE constraint en lotID (una evaluación por lote)
-• evalImagen.Alerta y evalImagen.Mensaje tienen relación circular (FK bidireccional)
+• evalImagen.Alerta y evalImagen.Mensaje se relacionan a través de evalImagen.MensajeAlerta (N:N)
+• evalImagen.Mensaje.alertaID puede ser NULL (para consolidados, usar MensajeAlerta)
 • evalImagen.MensajeAlerta permite mensajes consolidados (1 mensaje → N alertas)
 • evalImagen.Mensaje.alertaID puede ser NULL (para consolidados, usar MensajeAlerta)
 • evalImagen.Contacto se usa para determinar destinatarios de alertas

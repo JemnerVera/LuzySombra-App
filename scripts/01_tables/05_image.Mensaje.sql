@@ -12,6 +12,8 @@
 --      - IDX_Mensaje_AlertaID (NONCLUSTERED, filtered)
 --      - IDX_Mensaje_Estado (NONCLUSTERED, filtered - para Pendiente/Enviando)
 --      - IDX_Mensaje_ResendMessageID (NONCLUSTERED)
+--      - IDX_Mensaje_FundoID (NONCLUSTERED, filtered)
+--      - IDX_Mensaje_EstadoFecha (NONCLUSTERED, filtered)
 --   ✅ Constraints:
 --      - PK_Mensaje (PRIMARY KEY)
 --      - FK_Mensaje_Alerta (FOREIGN KEY → evalImagen.Alerta)
@@ -21,23 +23,23 @@
 --      - Documentación de tabla y columnas principales
 -- 
 -- OBJETOS MODIFICADOS:
---   ✅ Tablas:
---      - evalImagen.Alerta (agrega FK_Alerta_Mensaje después de crear esta tabla)
--- 
+--   ❌ Ninguno
+--
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema image (debe existir)
+--   ⚠️  Requiere: Schema evalImagen (debe existir)
 --   ⚠️  Requiere: evalImagen.Alerta (debe ejecutarse después)
--- 
+--   ⚠️  Requiere: GROWER.FARMS (tabla existente)
+--
 -- ORDEN DE EJECUCIÓN:
---   5 de 5 - Después de crear evalImagen.Alerta
--- 
+--   5 de 8 - Después de crear evalImagen.Alerta
+--
 -- USADO POR:
---   - evalImagen.Alerta (FK desde mensajeID - FK circular)
+--   - evalImagen.MensajeAlerta (relación N:N con Alerta)
 --   - Backend: servicio de envío de emails vía Resend
 --   - Queue jobs: procesamiento de mensajes pendientes
--- 
--- NOTA: Este script también agrega FK_Alerta_Mensaje a evalImagen.Alerta
--- para completar la relación circular entre Alerta y Mensaje
+--
+-- NOTA: La relación con Alerta se maneja a través de evalImagen.MensajeAlerta
+--       (no hay FK circular - Mensaje.alertaID puede ser NULL para consolidados)
 -- 
 -- =====================================================
 
@@ -96,22 +98,6 @@ END
 GO
 
 -- =====================================================
--- Agregar FK desde evalImagen.Alerta a evalImagen.Mensaje (después de crear tabla)
--- =====================================================
-IF NOT EXISTS (
-    SELECT * FROM sys.foreign_keys 
-    WHERE name = 'FK_Alerta_Mensaje' 
-    AND parent_object_id = OBJECT_ID('evalImagen.Alerta')
-)
-BEGIN
-    ALTER TABLE evalImagen.Alerta
-    ADD CONSTRAINT FK_Alerta_Mensaje 
-    FOREIGN KEY (mensajeID) REFERENCES evalImagen.Mensaje(mensajeID);
-    PRINT '[OK] Foreign key FK_Alerta_Mensaje agregada';
-END
-GO
-
--- =====================================================
 -- Crear índices
 -- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_AlertaID' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
@@ -144,9 +130,18 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_FundoID' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
 BEGIN
     CREATE NONCLUSTERED INDEX IDX_Mensaje_FundoID 
-    ON evalImagen.Mensaje(fundoID, estado, statusID)
-    WHERE statusID = 1;
+    ON evalImagen.Mensaje(fundoID, estado)
+    WHERE statusID = 1 AND fundoID IS NOT NULL;
     PRINT '[OK] Índice IDX_Mensaje_FundoID creado';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_EstadoFecha' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IDX_Mensaje_EstadoFecha
+    ON evalImagen.Mensaje(estado, fechaCreacion DESC)
+    WHERE statusID = 1;
+    PRINT '[OK] Índice IDX_Mensaje_EstadoFecha creado';
 END
 GO
 

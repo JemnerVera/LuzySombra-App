@@ -165,7 +165,7 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Porcentaje má
     @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'maxPorcentajeLuz';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID de variedad específica. NULL = aplica a todas las variedades.', 
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID de variedad específica. NULL = Umbral global aplicable a todas las variedades. Si tiene valor, el umbral es específico solo para esa variedad. Los umbrales específicos tienen prioridad sobre los globales.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'variedadID';
 GO
 

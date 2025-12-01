@@ -1,0 +1,226 @@
+// =====================================================
+// ERASER.IO - Schema evalImagen
+// Base de Datos: BD_PACKING_AGROMIGIVA_DESA
+// =====================================================
+// 
+// INSTRUCCIONES:
+// 1. Abre eraser.io y crea un nuevo Entity Relational Diagram
+// 2. Haz clic en "Code" (botón en la parte superior)
+// 3. Pega este código completo
+// 4. Haz clic en "Apply" o "Update"
+//
+// =====================================================
+
+// TABLAS EXTERNAS (Referencias)
+GROWER_LOT [icon: package, color: gray] {
+  lotID int pk
+}
+
+GROWER_FARMS [icon: building, color: gray] {
+  farmID string pk
+}
+
+GROWER_STAGE [icon: layers, color: gray] {
+  stageID int pk
+}
+
+GROWER_VARIETY [icon: leaf, color: gray] {
+  varietyID int pk
+}
+
+MAST_USERS [icon: user, color: gray] {
+  userID int pk
+}
+
+// =====================================================
+// SCHEMA evalImagen - TABLAS PRINCIPALES
+// =====================================================
+
+AnalisisImagen [icon: image, color: blue] {
+  analisisID int pk
+  lotID int
+  hilera string
+  planta string
+  filename string
+  fechaCaptura timestamp
+  porcentajeLuz decimal
+  porcentajeSombra decimal
+  latitud decimal
+  longitud decimal
+  processedImageUrl string
+  originalImageUrl string
+  modeloVersion string
+  statusID int
+  usuarioCreaID int
+  fechaCreacion timestamp
+}
+
+UmbralLuz [icon: gauge, color: orange] {
+  umbralID int pk
+  variedadID int
+  usuarioCreaID int
+  usuarioActualizaID int
+  tipo string
+  minPorcentajeLuz decimal
+  maxPorcentajeLuz decimal
+  descripcion string
+  colorHex string
+  orden int
+  activo boolean
+  fechaCreacion timestamp
+  fechaActualizacion timestamp
+  statusID int
+}
+
+LoteEvaluacion [icon: bar-chart, color: green] {
+  loteEvaluacionID int pk
+  lotID int
+  variedadID int
+  fundoID string
+  sectorID int
+  umbralIDActual int
+  porcentajeLuzPromedio decimal
+  porcentajeLuzMin decimal
+  porcentajeLuzMax decimal
+  porcentajeSombraPromedio decimal
+  porcentajeSombraMin decimal
+  porcentajeSombraMax decimal
+  tipoUmbralActual string
+  fechaUltimaEvaluacion timestamp
+  fechaPrimeraEvaluacion timestamp
+  totalEvaluaciones int
+  periodoEvaluacionDias int
+  fechaUltimaActualizacion timestamp
+  statusID int
+}
+
+Alerta [icon: alert-triangle, color: red] {
+  alertaID int pk
+  lotID int
+  loteEvaluacionID int
+  umbralID int
+  variedadID int
+  usuarioResolvioID int
+  porcentajeLuzEvaluado decimal
+  tipoUmbral string
+  severidad string
+  estado string
+  fechaCreacion timestamp
+  fechaEnvio timestamp
+  fechaResolucion timestamp
+  notas string
+  statusID int
+}
+
+Mensaje [icon: mail, color: green] {
+  mensajeID int pk
+  alertaID int
+  fundoID string
+  tipoMensaje string
+  asunto string
+  cuerpoHTML string
+  cuerpoTexto string
+  destinatarios string
+  destinatariosCC string
+  destinatariosBCC string
+  estado string
+  fechaCreacion timestamp
+  fechaEnvio timestamp
+  intentosEnvio int
+  ultimoIntentoEnvio timestamp
+  resendMessageID string
+  resendResponse string
+  errorMessage string
+  statusID int
+}
+
+Contacto [icon: users, color: blue] {
+  contactoID int pk
+  fundoID string
+  sectorID int
+  usuarioCreaID int
+  usuarioActualizaID int
+  nombre string
+  email string
+  telefono string
+  tipo string
+  rol string
+  recibirAlertasCriticas boolean
+  recibirAlertasAdvertencias boolean
+  recibirAlertasNormales boolean
+  prioridad int
+  activo boolean
+  fechaCreacion timestamp
+  fechaActualizacion timestamp
+  statusID int
+}
+
+Dispositivo [icon: smartphone, color: purple] {
+  dispositivoID int pk
+  deviceId string
+  apiKey string
+  nombreDispositivo string
+  modeloDispositivo string
+  versionApp string
+  activo boolean
+  fechaRegistro timestamp
+  ultimoAcceso timestamp
+  statusID int
+  usuarioCreaID int
+  fechaCreacion timestamp
+  usuarioModificaID int
+  fechaModificacion timestamp
+}
+
+MensajeAlerta [icon: link, color: gray] {
+  mensajeID int pk
+  alertaID int pk
+  fechaCreacion timestamp
+  statusID int
+}
+
+// =====================================================
+// RELACIONES (Foreign Keys)
+// =====================================================
+
+// AnalisisImagen
+AnalisisImagen.lotID > GROWER_LOT.lotID
+AnalisisImagen.usuarioCreaID > MAST_USERS.userID
+
+// UmbralLuz
+UmbralLuz.variedadID > GROWER_VARIETY.varietyID
+UmbralLuz.usuarioCreaID > MAST_USERS.userID
+UmbralLuz.usuarioActualizaID > MAST_USERS.userID
+
+// LoteEvaluacion
+LoteEvaluacion.lotID > GROWER_LOT.lotID
+LoteEvaluacion.variedadID > GROWER_VARIETY.varietyID
+LoteEvaluacion.fundoID > GROWER_FARMS.farmID
+LoteEvaluacion.sectorID > GROWER_STAGE.stageID
+LoteEvaluacion.umbralIDActual > UmbralLuz.umbralID
+
+// Alerta
+Alerta.lotID > GROWER_LOT.lotID
+Alerta.loteEvaluacionID > LoteEvaluacion.loteEvaluacionID
+Alerta.umbralID > UmbralLuz.umbralID
+Alerta.variedadID > GROWER_VARIETY.varietyID
+Alerta.usuarioResolvioID > MAST_USERS.userID
+
+// Mensaje
+Mensaje.alertaID > Alerta.alertaID
+Mensaje.fundoID > GROWER_FARMS.farmID
+
+// Contacto
+Contacto.fundoID > GROWER_FARMS.farmID
+Contacto.sectorID > GROWER_STAGE.stageID
+Contacto.usuarioCreaID > MAST_USERS.userID
+Contacto.usuarioActualizaID > MAST_USERS.userID
+
+// Dispositivo
+Dispositivo.usuarioCreaID > MAST_USERS.userID
+Dispositivo.usuarioModificaID > MAST_USERS.userID
+
+// MensajeAlerta (Tabla intermedia N:N)
+MensajeAlerta.mensajeID > Mensaje.mensajeID
+MensajeAlerta.alertaID > Alerta.alertaID
+

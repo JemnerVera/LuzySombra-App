@@ -13,7 +13,6 @@ export interface Alerta {
   fechaCreacion: Date;
   fechaEnvio: Date | null;
   fechaResolucion: Date | null;
-  mensajeID: number | null;
 }
 
 export interface Mensaje {
@@ -69,14 +68,24 @@ class AlertService {
           a.fechaCreacion,
           a.fechaEnvio,
           a.fechaResolucion,
-          a.mensajeID,
           le.fundoID,
           le.sectorID
         FROM evalImagen.Alerta a
         LEFT JOIN evalImagen.LoteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
         WHERE a.estado IN ('Pendiente', 'Enviada')
           AND a.statusID = 1
-          AND a.mensajeID IS NULL
+          AND NOT EXISTS (
+            SELECT 1 
+            FROM evalImagen.MensajeAlerta ma 
+            WHERE ma.alertaID = a.alertaID 
+            AND ma.statusID = 1
+          )
+          AND NOT EXISTS (
+            SELECT 1 
+            FROM evalImagen.Mensaje m 
+            WHERE m.alertaID = a.alertaID 
+            AND m.statusID = 1
+          )
         ORDER BY a.fechaCreacion ASC
       `);
 
@@ -343,13 +352,8 @@ Por favor, revisa el lote y toma las acciones necesarias.
         throw new Error('No se pudo crear el mensaje');
       }
 
-      // Actualizar alerta con mensajeID
-      await query(`
-        UPDATE evalImagen.Alerta
-        SET mensajeID = @mensajeID
-        WHERE alertaID = @alertaID
-      `, { mensajeID, alertaID });
-
+      // La relación se maneja a través de Mensaje.alertaID (para mensajes individuales)
+      // No es necesario crear registro en MensajeAlerta ya que Mensaje.alertaID ya referencia la alerta
       console.log(`✅ Mensaje ${mensajeID} creado para alerta ${alertaID}`);
       return mensajeID;
     } catch (error) {
@@ -547,7 +551,18 @@ Por favor, revisa el lote y toma las acciones necesarias.
         LEFT JOIN GROWER.FARMS f ON COALESCE(le.fundoID, s.farmID) = f.farmID
         WHERE a.estado IN ('Pendiente', 'Enviada')
           AND a.statusID = 1
-          AND a.mensajeID IS NULL
+          AND NOT EXISTS (
+            SELECT 1 
+            FROM evalImagen.MensajeAlerta ma 
+            WHERE ma.alertaID = a.alertaID 
+            AND ma.statusID = 1
+          )
+          AND NOT EXISTS (
+            SELECT 1 
+            FROM evalImagen.Mensaje m 
+            WHERE m.alertaID = a.alertaID 
+            AND m.statusID = 1
+          )
           AND a.fechaCreacion >= @fechaLimite
           AND COALESCE(le.fundoID, f.farmID) IS NOT NULL
         ORDER BY COALESCE(le.fundoID, f.farmID), a.fechaCreacion ASC
@@ -567,7 +582,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
         console.log('   Posibles causas:');
         console.log('   - Las alertas están fuera del rango de horas especificado');
         console.log('   - Las alertas no tienen loteEvaluacionID con fundoID');
-        console.log('   - Las alertas ya tienen mensajeID asignado');
+        console.log('   - Las alertas ya tienen mensaje asociado (en Mensaje o MensajeAlerta)');
         return 0;
       }
 
@@ -702,7 +717,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
         throw new Error('No se pudo crear el mensaje consolidado');
       }
 
-      // 5. Crear relaciones en tabla intermedia
+      // 5. Crear relaciones en tabla intermedia MensajeAlerta
       for (const alerta of alertas) {
         await query(`
           INSERT INTO evalImagen.MensajeAlerta (mensajeID, alertaID, fechaCreacion, statusID)
@@ -710,22 +725,8 @@ Por favor, revisa el lote y toma las acciones necesarias.
         `, { mensajeID, alertaID: alerta.alertaID });
       }
 
-      // 6. Actualizar alertas con mensajeID
-      const alertasIDs = alertas.map(a => a.alertaID);
-      if (alertasIDs.length > 0) {
-        // Construir query dinámico para IN clause
-        const placeholders = alertasIDs.map((_, i) => `@alertaID${i}`).join(', ');
-        const params: Record<string, unknown> = { mensajeID };
-        alertasIDs.forEach((id, i) => {
-          params[`alertaID${i}`] = id;
-        });
-
-        await query(`
-          UPDATE evalImagen.Alerta
-          SET mensajeID = @mensajeID
-          WHERE alertaID IN (${placeholders})
-        `, params);
-      }
+      // La relación se maneja completamente a través de MensajeAlerta
+      // No es necesario actualizar Alerta.mensajeID (columna eliminada)
 
       console.log(`✅ Mensaje consolidado ${mensajeID} creado para fundo ${fundoID} con ${alertas.length} alerta(s)`);
       return mensajeID;

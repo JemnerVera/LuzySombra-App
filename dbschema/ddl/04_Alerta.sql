@@ -14,7 +14,6 @@ CREATE TABLE evalImagen.Alerta (
     fechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
     fechaEnvio DATETIME NULL,
     fechaResolucion DATETIME NULL,
-    mensajeID INT NULL,
     usuarioResolvioID INT NULL,
     notas NVARCHAR(500) NULL,
     statusID INT NOT NULL DEFAULT 1,

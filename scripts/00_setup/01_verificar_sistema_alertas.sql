@@ -1,213 +1,223 @@
 -- =====================================================
--- SCRIPT MAESTRO: Crear Sistema Completo de Alertas
+-- SCRIPT: Verificar Sistema Completo de Alertas
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Tipo: Setup / Script Maestro
--- Propósito: Verificar que todos los componentes del sistema de alertas existen
+-- Schema: evalImagen
+-- Propósito: Verificar que todos los componentes del sistema existen
 -- =====================================================
 -- 
--- OBJETOS CREADOS:
---   ❌ Ninguno (solo verifica existencia)
--- 
--- OBJETOS MODIFICADOS:
---   ❌ Ninguno (solo verificación)
--- 
--- DEPENDENCIAS:
---   ⚠️  Verifica existencia de:
---      - image.UmbralLuz (tabla)
---      - image.LoteEvaluacion (tabla)
---      - image.Alerta (tabla)
---      - image.Mensaje (tabla)
---      - image.sp_CalcularLoteEvaluacion (stored procedure)
+-- OBJETOS VERIFICADOS:
+--   ✅ Tablas (9):
+--      - evalImagen.AnalisisImagen
+--      - evalImagen.UmbralLuz
+--      - evalImagen.LoteEvaluacion
+--      - evalImagen.Alerta
+--      - evalImagen.Mensaje
+--      - evalImagen.Contacto
+--      - evalImagen.Dispositivo
+--      - evalImagen.UsuarioWeb
+--      - evalImagen.MensajeAlerta
+--   ✅ Stored Procedures (1):
+--      - evalImagen.sp_CalcularLoteEvaluacion
+--   ✅ Triggers (1):
+--      - evalImagen.trg_LoteEvaluacion_Alerta
 -- 
 -- ORDEN DE EJECUCIÓN:
---   Ejecutar DESPUÉS de crear todos los componentes individuales
--- 
--- CONTENIDO:
---   - Verificación de existencia de todos los componentes
---   - Resumen de instalación
---   - Instrucciones de próximos pasos
+--   Ejecutar DESPUÉS de crear todos los componentes
 -- 
 -- NOTA: Este script SOLO VERIFICA, no crea objetos.
---       Ejecutar los scripts individuales en orden primero.
--- 
 -- =====================================================
 
 USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  SISTEMA COMPLETO DE ALERTAS - INSTALACIÓN';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '';
-PRINT 'Este script ejecutará todos los componentes necesarios:';
-PRINT '  1. Tabla de Umbrales (image.UmbralLuz)';
-PRINT '  2. Tabla de Agregación de Lotes (image.LoteEvaluacion)';
-PRINT '  3. Tabla de Alertas (image.Alerta)';
-PRINT '  4. Tabla de Mensajes (image.Mensaje)';
-PRINT '  5. Stored Procedure de Cálculo (image.sp_CalcularLoteEvaluacion)';
-PRINT '';
+PRINT '  VERIFICACIÓN: SISTEMA COMPLETO DE ALERTAS evalImagen';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 
 -- =====================================================
--- PASO 1: Crear tabla image.UmbralLuz
+-- Verificar Tablas
 -- =====================================================
-PRINT '>>> PASO 1: Creando tabla image.UmbralLuz...';
+PRINT '>>> VERIFICANDO TABLAS...';
 PRINT '';
 
--- Ejecutar script de UmbralLuz (incluye datos iniciales)
--- NOTA: Este script debe ejecutarse primero desde el archivo create_table_umbral_luz.sql
--- Se incluye aquí solo la referencia
+DECLARE @TablasFaltantes INT = 0;
+DECLARE @TablasExistentes INT = 0;
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'UmbralLuz' AND schema_id = SCHEMA_ID('image'))
+-- AnalisisImagen
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'AnalisisImagen' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    PRINT '⚠️  ERROR: Tabla image.UmbralLuz no existe.';
-    PRINT '    Por favor ejecute primero: scripts/create_table_umbral_luz.sql';
+    PRINT '✅ evalImagen.AnalisisImagen';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.AnalisisImagen - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- UmbralLuz
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'UmbralLuz' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.UmbralLuz';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.UmbralLuz - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- LoteEvaluacion
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'LoteEvaluacion' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.LoteEvaluacion';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.LoteEvaluacion - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- Alerta
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Alerta' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.Alerta';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.Alerta - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- Mensaje
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Mensaje' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.Mensaje';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.Mensaje - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- Contacto
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Contacto' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.Contacto';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.Contacto - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- Dispositivo
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Dispositivo' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.Dispositivo';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.Dispositivo - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- UsuarioWeb
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'UsuarioWeb' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.UsuarioWeb';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.UsuarioWeb - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+-- MensajeAlerta
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'MensajeAlerta' AND schema_id = SCHEMA_ID('evalImagen'))
+BEGIN
+    PRINT '✅ evalImagen.MensajeAlerta';
+    SET @TablasExistentes = @TablasExistentes + 1;
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.MensajeAlerta - FALTA';
+    SET @TablasFaltantes = @TablasFaltantes + 1;
+END
+
+PRINT '';
+PRINT 'RESUMEN TABLAS: ' + CAST(@TablasExistentes AS VARCHAR) + ' existentes, ' + CAST(@TablasFaltantes AS VARCHAR) + ' faltantes';
+PRINT '';
+
+-- =====================================================
+-- Verificar Stored Procedures
+-- =====================================================
+PRINT '>>> VERIFICANDO STORED PROCEDURES...';
+PRINT '';
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
+BEGIN
+    PRINT '✅ evalImagen.sp_CalcularLoteEvaluacion';
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.sp_CalcularLoteEvaluacion - FALTA';
+END
+
+PRINT '';
+
+-- =====================================================
+-- Verificar Triggers
+-- =====================================================
+PRINT '>>> VERIFICANDO TRIGGERS...';
+PRINT '';
+
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
+BEGIN
+    PRINT '✅ evalImagen.trg_LoteEvaluacion_Alerta';
+END
+ELSE
+BEGIN
+    PRINT '❌ evalImagen.trg_LoteEvaluacion_Alerta - FALTA';
+END
+
+PRINT '';
+
+-- =====================================================
+-- Resumen Final
+-- =====================================================
+PRINT '═══════════════════════════════════════════════════════════════════';
+PRINT '  RESUMEN FINAL';
+PRINT '═══════════════════════════════════════════════════════════════════';
+PRINT '';
+
+IF @TablasFaltantes = 0 
+   AND EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
+   AND EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
+BEGIN
+    PRINT '✅ SISTEMA COMPLETO - Todos los componentes están instalados';
     PRINT '';
-    PRINT '    O ejecute este script maestro que incluye todos los scripts:';
-    PRINT '    scripts/00_crear_sistema_alertas_completo.sql';
-    RETURN;
+    PRINT 'Próximos pasos:';
+    PRINT '  1. Insertar umbrales iniciales en evalImagen.UmbralLuz';
+    PRINT '  2. Insertar contactos en evalImagen.Contacto';
+    PRINT '  3. Insertar usuario admin inicial en evalImagen.UsuarioWeb';
+    PRINT '  4. Probar el sistema con una imagen de prueba';
 END
 ELSE
 BEGIN
-    PRINT '✅ Tabla image.UmbralLuz existe';
+    PRINT '⚠️  SISTEMA INCOMPLETO - Faltan componentes';
+    PRINT '';
+    PRINT 'Por favor ejecute los scripts faltantes según el orden en:';
+    PRINT '  scripts/00_setup/00_SCRIPT_MAESTRO_RECREAR_TABLAS.sql';
 END
-GO
-
--- =====================================================
--- PASO 2: Crear tabla image.LoteEvaluacion
--- =====================================================
-PRINT '';
-PRINT '>>> PASO 2: Creando tabla image.LoteEvaluacion...';
-PRINT '';
-
--- Ejecutar script de LoteEvaluacion
--- NOTA: El contenido del script está en create_table_lote_evaluacion.sql
--- Por simplicidad, se referencia aquí
-
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LoteEvaluacion' AND schema_id = SCHEMA_ID('image'))
-BEGIN
-    PRINT '⚠️  ERROR: Tabla image.LoteEvaluacion no existe.';
-    PRINT '    Por favor ejecute: scripts/create_table_lote_evaluacion.sql';
-    RETURN;
-END
-ELSE
-BEGIN
-    PRINT '✅ Tabla image.LoteEvaluacion existe';
-END
-GO
-
--- =====================================================
--- PASO 3: Crear tabla image.Alerta
--- =====================================================
-PRINT '';
-PRINT '>>> PASO 3: Creando tabla image.Alerta...';
-PRINT '';
-
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Alerta' AND schema_id = SCHEMA_ID('image'))
-BEGIN
-    PRINT '⚠️  ERROR: Tabla image.Alerta no existe.';
-    PRINT '    Por favor ejecute: scripts/create_table_alerta.sql';
-    RETURN;
-END
-ELSE
-BEGIN
-    PRINT '✅ Tabla image.Alerta existe';
-END
-GO
-
--- =====================================================
--- PASO 4: Crear tabla image.Mensaje
--- =====================================================
-PRINT '';
-PRINT '>>> PASO 4: Creando tabla image.Mensaje...';
-PRINT '';
-
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Mensaje' AND schema_id = SCHEMA_ID('image'))
-BEGIN
-    PRINT '⚠️  ERROR: Tabla image.Mensaje no existe.';
-    PRINT '    Por favor ejecute: scripts/create_table_mensaje.sql';
-    RETURN;
-END
-ELSE
-BEGIN
-    PRINT '✅ Tabla image.Mensaje existe';
-END
-GO
-
--- =====================================================
--- PASO 5: Crear Stored Procedure
--- =====================================================
-PRINT '';
-PRINT '>>> PASO 5: Creando Stored Procedure image.sp_CalcularLoteEvaluacion...';
-PRINT '';
-
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'image.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
-BEGIN
-    PRINT '⚠️  ERROR: Stored Procedure image.sp_CalcularLoteEvaluacion no existe.';
-    PRINT '    Por favor ejecute: scripts/create_sp_calcular_lote_evaluacion.sql';
-    RETURN;
-END
-ELSE
-BEGIN
-    PRINT '✅ Stored Procedure image.sp_CalcularLoteEvaluacion existe';
-END
-GO
-
--- =====================================================
--- Verificación final
--- =====================================================
-PRINT '';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  VERIFICACIÓN FINAL';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '';
-
-SELECT 
-    'Tablas' AS Tipo,
-    t.name AS Nombre,
-    CASE WHEN t.name IS NOT NULL THEN '✅ Creada' ELSE '❌ No existe' END AS Estado
-FROM (
-    SELECT 'UmbralLuz' AS name
-    UNION ALL SELECT 'LoteEvaluacion'
-    UNION ALL SELECT 'Alerta'
-    UNION ALL SELECT 'Mensaje'
-) t
-LEFT JOIN sys.tables st ON st.name = t.name AND st.schema_id = SCHEMA_ID('image')
-UNION ALL
-SELECT 
-    'Stored Procedure' AS Tipo,
-    'sp_CalcularLoteEvaluacion' AS Nombre,
-    CASE WHEN EXISTS (
-        SELECT * FROM sys.objects 
-        WHERE object_id = OBJECT_ID(N'image.sp_CalcularLoteEvaluacion') 
-        AND type in (N'P', N'PC')
-    ) THEN '✅ Creado' ELSE '❌ No existe' END AS Estado;
-GO
 
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  PRÓXIMOS PASOS';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '';
-PRINT '1. Calcular estadísticas iniciales para todos los lotes:';
-PRINT '   EXEC image.sp_CalcularLoteEvaluacion;';
-PRINT '';
-PRINT '2. Configurar job SQL Server para recalcular periódicamente:';
-PRINT '   - Ejecutar diariamente: EXEC image.sp_CalcularLoteEvaluacion;';
-PRINT '';
-PRINT '3. Implementar lógica de generación de alertas en backend:';
-PRINT '   - Verificar cambios en tipoUmbralActual';
-PRINT '   - Crear alertas cuando cambia a CriticoRojo/CriticoAmarillo';
-PRINT '';
-PRINT '4. Configurar Resend API en variables de entorno:';
-PRINT '   RESEND_API_KEY=...';
-PRINT '   ALERTAS_EMAIL_DESTINATARIOS=["email1@example.com"]';
-PRINT '';
-PRINT '5. Implementar servicio de envío de emails (Resend)';
-PRINT '';
-PRINT '═══════════════════════════════════════════════════════════════════';
-PRINT '  INSTALACIÓN COMPLETA';
-PRINT '═══════════════════════════════════════════════════════════════════';
 GO
-

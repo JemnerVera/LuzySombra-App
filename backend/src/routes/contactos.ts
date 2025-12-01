@@ -168,13 +168,13 @@ router.put('/:id', async (req: Request, res: Response) => {
       sectorID,
       prioridad,
       activo,
-      usuarioActualizaID
+      usuarioModificaID
     } = req.body;
 
-    if (usuarioActualizaID === undefined) {
+    if (usuarioModificaID === undefined) {
       return res.status(400).json({
         success: false,
-        error: 'usuarioActualizaID es requerido'
+        error: 'usuarioModificaID es requerido'
       });
     }
 
@@ -186,7 +186,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 
     const updateData: any = {
-      usuarioActualizaID: parseInt(usuarioActualizaID)
+      usuarioModificaID: parseInt(usuarioModificaID)
     };
 
     if (nombre !== undefined) updateData.nombre = nombre;

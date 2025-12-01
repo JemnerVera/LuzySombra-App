@@ -20,7 +20,7 @@ interface Contacto {
   prioridad: number;
   activo: boolean;
   fechaCreacion: string;
-  fechaActualizacion: string | null;
+  fechaModificacion: string | null;
 }
 
 interface ContactosManagementProps {
@@ -100,7 +100,7 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
 
       const response = await apiService.updateContacto(id, {
         ...formData,
-        usuarioActualizaID: 1 // TODO: Obtener del contexto de usuario
+        usuarioModificaID: 1 // TODO: Obtener del contexto de usuario
       });
 
       if (response.success) {

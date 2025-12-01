@@ -15,9 +15,9 @@ export interface Contacto {
   prioridad: number;
   activo: boolean;
   fechaCreacion: Date;
-  fechaActualizacion: Date | null;
+  fechaModificacion: Date | null;
   usuarioCreaID: number | null;
-  usuarioActualizaID: number | null;
+  usuarioModificaID: number | null;
   statusID: number;
 }
 
@@ -55,9 +55,9 @@ class ContactService {
           c.prioridad,
           c.activo,
           c.fechaCreacion,
-          c.fechaActualizacion,
+          c.fechaModificacion,
           c.usuarioCreaID,
-          c.usuarioActualizaID,
+          c.usuarioModificaID,
           c.statusID,
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
@@ -96,9 +96,9 @@ class ContactService {
           c.prioridad,
           c.activo,
           c.fechaCreacion,
-          c.fechaActualizacion,
+          c.fechaModificacion,
           c.usuarioCreaID,
-          c.usuarioActualizaID,
+          c.usuarioModificaID,
           c.statusID,
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
@@ -228,7 +228,7 @@ class ContactService {
     sectorID?: number | null;
     prioridad?: number;
     activo?: boolean;
-    usuarioActualizaID: number;
+    usuarioModificaID: number;
   }): Promise<boolean> {
     try {
       // Validar email único si se está cambiando
@@ -247,7 +247,7 @@ class ContactService {
       }
 
       const updates: string[] = [];
-      const params: Record<string, unknown> = { contactoID, usuarioActualizaID: data.usuarioActualizaID };
+      const params: Record<string, unknown> = { contactoID, usuarioModificaID: data.usuarioModificaID };
 
       if (data.nombre !== undefined) {
         updates.push('nombre = @nombre');
@@ -302,8 +302,8 @@ class ContactService {
         throw new Error('No hay campos para actualizar');
       }
 
-      updates.push('usuarioActualizaID = @usuarioActualizaID');
-      updates.push('fechaActualizacion = GETDATE()');
+      updates.push('usuarioModificaID = @usuarioModificaID');
+      updates.push('fechaModificacion = GETDATE()');
 
       await query(`
         UPDATE evalImagen.Contacto
@@ -329,7 +329,7 @@ class ContactService {
         UPDATE evalImagen.Contacto
         SET statusID = 0,
             activo = 0,
-            fechaActualizacion = GETDATE()
+            fechaModificacion = GETDATE()
         WHERE contactoID = @contactoID
           AND statusID = 1
       `, { contactoID });

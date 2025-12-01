@@ -4,7 +4,7 @@ export interface Umbral {
   umbralID: number;
   variedadID: number | null;
   usuarioCreaID: number | null;
-  usuarioActualizaID: number | null;
+  usuarioModificaID: number | null;
   tipo: 'CriticoRojo' | 'CriticoAmarillo' | 'Normal';
   minPorcentajeLuz: number;
   maxPorcentajeLuz: number;
@@ -13,7 +13,7 @@ export interface Umbral {
   orden: number;
   activo: boolean;
   fechaCreacion: Date;
-  fechaActualizacion: Date | null;
+  fechaModificacion: Date | null;
   statusID: number;
 }
 
@@ -39,7 +39,7 @@ class UmbralService {
           u.umbralID,
           u.variedadID,
           u.usuarioCreaID,
-          u.usuarioActualizaID,
+          u.usuarioModificaID,
           u.tipo,
           u.minPorcentajeLuz,
           u.maxPorcentajeLuz,
@@ -48,7 +48,7 @@ class UmbralService {
           u.orden,
           u.activo,
           u.fechaCreacion,
-          u.fechaActualizacion,
+          u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
         FROM evalImagen.UmbralLuz u
@@ -74,7 +74,7 @@ class UmbralService {
           u.umbralID,
           u.variedadID,
           u.usuarioCreaID,
-          u.usuarioActualizaID,
+          u.usuarioModificaID,
           u.tipo,
           u.minPorcentajeLuz,
           u.maxPorcentajeLuz,
@@ -83,7 +83,7 @@ class UmbralService {
           u.orden,
           u.activo,
           u.fechaCreacion,
-          u.fechaActualizacion,
+          u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
         FROM evalImagen.UmbralLuz u
@@ -109,7 +109,7 @@ class UmbralService {
           u.umbralID,
           u.variedadID,
           u.usuarioCreaID,
-          u.usuarioActualizaID,
+          u.usuarioModificaID,
           u.tipo,
           u.minPorcentajeLuz,
           u.maxPorcentajeLuz,
@@ -118,7 +118,7 @@ class UmbralService {
           u.orden,
           u.activo,
           u.fechaCreacion,
-          u.fechaActualizacion,
+          u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
         FROM evalImagen.UmbralLuz u
@@ -146,7 +146,7 @@ class UmbralService {
           u.umbralID,
           u.variedadID,
           u.usuarioCreaID,
-          u.usuarioActualizaID,
+          u.usuarioModificaID,
           u.tipo,
           u.minPorcentajeLuz,
           u.maxPorcentajeLuz,
@@ -155,7 +155,7 @@ class UmbralService {
           u.orden,
           u.activo,
           u.fechaCreacion,
-          u.fechaActualizacion,
+          u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
         FROM evalImagen.UmbralLuz u
@@ -267,7 +267,7 @@ class UmbralService {
     colorHex?: string | null;
     orden?: number;
     activo?: boolean;
-    usuarioActualizaID: number;
+    usuarioModificaID: number;
   }): Promise<boolean> {
     try {
       // Validar rangos si se proporcionan
@@ -288,7 +288,7 @@ class UmbralService {
       }
 
       const updates: string[] = [];
-      const params: Record<string, unknown> = { umbralID, usuarioActualizaID: data.usuarioActualizaID };
+      const params: Record<string, unknown> = { umbralID, usuarioModificaID: data.usuarioModificaID };
 
       if (data.variedadID !== undefined) {
         updates.push('variedadID = @variedadID');
@@ -327,8 +327,8 @@ class UmbralService {
         throw new Error('No hay campos para actualizar');
       }
 
-      updates.push('usuarioActualizaID = @usuarioActualizaID');
-      updates.push('fechaActualizacion = GETDATE()');
+      updates.push('usuarioModificaID = @usuarioModificaID');
+      updates.push('fechaModificacion = GETDATE()');
 
       await query(`
         UPDATE evalImagen.UmbralLuz
@@ -354,7 +354,7 @@ class UmbralService {
         UPDATE evalImagen.UmbralLuz
         SET statusID = 0,
             activo = 0,
-            fechaActualizacion = GETDATE()
+            fechaModificacion = GETDATE()
         WHERE umbralID = @umbralID
           AND statusID = 1
       `, { umbralID });

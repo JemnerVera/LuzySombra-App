@@ -36,25 +36,28 @@ await query(`EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = @lotID`, { lotID
 
 ## 🔄 Migración a Stored Procedures
 
-### **Endpoints que deben migrar a SP:**
+**📋 Ver documento completo:** [`MIGRACION_STORED_PROCEDURES.md`](./MIGRACION_STORED_PROCEDURES.md)
 
-**Lectura (SELECT):**
+### **Resumen de Endpoints que deben migrar:**
+
+**PRIORIDAD ALTA (Escritura - INSERT/UPDATE):**
+1. `POST /api/procesar-imagen` / `POST /api/photo-upload` → `evalImagen.sp_InsertAnalisisImagen`
+2. `POST /api/auth/login` → `evalImagen.sp_ValidateDeviceAndUpdateAccess`
+3. `POST /api/alertas/consolidar` → `evalImagen.sp_ConsolidarAlertasPorFundo`
+4. Creación de mensajes → `evalImagen.sp_CreateMensajeFromAlerta`
+
+**PRIORIDAD MEDIA (Lectura - SELECT):**
 1. `GET /api/field-data` → `evalImagen.sp_GetFieldData`
 2. `GET /api/historial` → `evalImagen.sp_GetHistorial`
 3. `GET /api/tabla-consolidada` → `evalImagen.sp_GetTablaConsolidada`
-4. `GET /api/tabla-consolidada/detalle` → `evalImagen.sp_GetDetalleHistorial`
+4. `GET /api/tabla-consolidada/detalle` → `evalImagen.sp_GetLoteDetalleHistorial`
 5. `GET /api/tabla-consolidada/detalle-planta` → `evalImagen.sp_GetDetallePlanta`
 6. `GET /api/imagen/:id` → `evalImagen.sp_GetImagen`
 7. `GET /api/estadisticas` → `evalImagen.sp_GetEstadisticas`
+8. `GET /api/alertas/consolidar` → `evalImagen.sp_GetEstadisticasAlertas`
 
-**Escritura (INSERT/UPDATE):**
-1. `POST /api/procesar-imagen` → `evalImagen.sp_InsertAnalisisImagen`
-2. `POST /api/photo-upload` → `evalImagen.sp_InsertAnalisisImagen`
-3. `POST /api/auth/login` → `evalImagen.sp_ValidateDevice`
-
-**Alertas:**
-1. `POST /api/alertas/consolidar` → `evalImagen.sp_ConsolidarAlertasPorFundo`
-2. `GET /api/alertas` → `evalImagen.sp_GetAlertas`
+**PRIORIDAD BAJA (Auxiliares):**
+- `sp_GetLoteInfo`, `sp_GetUmbralInfo`, `sp_GetDestinatarios`, `sp_GetMensajesPendientes`
 
 ---
 

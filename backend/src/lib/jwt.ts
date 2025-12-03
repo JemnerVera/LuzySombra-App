@@ -14,8 +14,13 @@ export function getJwtSecret(): string {
 
 /**
  * Firma un token JWT
+ * @param payload - Payload del token
+ * @param options - Opciones de firma (expiresIn puede ser string o number)
  */
-export function signToken(payload: object | string | Buffer, options?: jwt.SignOptions): string {
+export function signToken(
+  payload: object | string | Buffer, 
+  options?: jwt.SignOptions | { expiresIn?: string | number; [key: string]: any }
+): string {
   const secret = getJwtSecret();
   return jwt.sign(payload, secret, options as jwt.SignOptions);
 }

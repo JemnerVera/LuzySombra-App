@@ -95,11 +95,10 @@ router.post('/login', async (req: Request, res: Response) => {
     await userService.updateLastAccess(usuario.usuarioID);
 
     // Registrar intento exitoso
-    const ipAddress = rateLimitService.getClientIp(req);
     await rateLimitService.registrarIntento(true, ipAddress, undefined, username);
 
     // Generar JWT token
-    const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
+    const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
 
     const token = signToken(
       {
@@ -203,7 +202,7 @@ router.get('/me', authenticateWebUser, async (req: Request, res: Response) => {
 router.post('/refresh', authenticateWebUser, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
+    const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
 
     // Verificar que el usuario sigue activo
     const usuario = await userService.findByUsername(user.username);

@@ -326,7 +326,7 @@ class SqlServerService {
           usuarioCreaID: null // El SP obtendrá el usuario por defecto
         },
         ['analisisID'], // Parámetro OUTPUT
-        { analisisID: sql.Int } // Tipo SQL para OUTPUT
+        { analisisID: sql.Int() } // Tipo SQL para OUTPUT
       );
 
       const analisisID = spResult.output?.analisisID;

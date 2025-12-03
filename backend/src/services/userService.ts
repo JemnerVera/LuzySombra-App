@@ -36,7 +36,7 @@ class UserService {
           rol,
           activo,
           ultimoAcceso
-        FROM evalImagen.UsuarioWeb
+        FROM evalImagen.usuarioWeb
         WHERE username = @username
           AND statusID = 1
       `, { username });
@@ -76,7 +76,7 @@ class UserService {
   async updateLastAccess(usuarioID: number): Promise<void> {
     try {
       await query(`
-        UPDATE evalImagen.UsuarioWeb
+        UPDATE evalImagen.usuarioWeb
         SET ultimoAcceso = GETDATE()
         WHERE usuarioID = @usuarioID
       `, { usuarioID });
@@ -91,7 +91,7 @@ class UserService {
   async incrementFailedAttempts(usuarioID: number): Promise<void> {
     try {
       await query(`
-        UPDATE evalImagen.UsuarioWeb
+        UPDATE evalImagen.usuarioWeb
         SET intentosLogin = intentosLogin + 1,
             bloqueadoHasta = CASE 
               WHEN intentosLogin >= 4 THEN DATEADD(MINUTE, 15, GETDATE())
@@ -110,7 +110,7 @@ class UserService {
   async resetFailedAttempts(usuarioID: number): Promise<void> {
     try {
       await query(`
-        UPDATE evalImagen.UsuarioWeb
+        UPDATE evalImagen.usuarioWeb
         SET intentosLogin = 0,
             bloqueadoHasta = NULL
         WHERE usuarioID = @usuarioID
@@ -127,7 +127,7 @@ class UserService {
     try {
       const rows = await query<{ bloqueadoHasta: Date | null }>(`
         SELECT bloqueadoHasta
-        FROM evalImagen.UsuarioWeb
+        FROM evalImagen.usuarioWeb
         WHERE usuarioID = @usuarioID
       `, { usuarioID });
 

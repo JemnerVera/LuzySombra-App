@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
     }>(`
       SELECT 
         (SELECT COUNT(*) FROM GROWER.LOT WHERE statusID = 1) as total_lotes,
-        (SELECT COUNT(*) FROM evalImagen.AnalisisImagen WHERE statusID = 1) as total_analisis,
-        (SELECT COUNT(*) FROM evalImagen.Alerta WHERE statusID = 1) as total_alertas
+        (SELECT COUNT(*) FROM evalImagen.analisisImagen WHERE statusID = 1) as total_analisis,
+        (SELECT COUNT(*) FROM evalImagen.alerta WHERE statusID = 1) as total_alertas
     `);
     
     res.json({

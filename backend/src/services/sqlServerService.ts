@@ -1,4 +1,4 @@
-import { query, connectDb } from '../lib/db';
+import { query, connectDb, executeProcedure } from '../lib/db';
 import sql from 'mssql';
 
 // Re-exportar interfaces y tipos para uso en otros módulos
@@ -75,26 +75,9 @@ class SqlServerService {
         return this.fieldDataCache.data;
       }
 
-      const rows = await query<JerarquiaRow>(`
-        SELECT 
-          g.businessName as [empresa],
-          f.Description as [fundo],
-          s.stage as [sector],
-          l.name as [lote],
-          g.growerID,
-          f.farmID,
-          s.stageID,
-          l.lotID
-        FROM GROWER.LOT l
-        INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
-        INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
-        INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
-        WHERE l.statusID = 1 
-          AND s.statusID = 1 
-          AND f.statusID = 1 
-          AND g.statusID = 1
-        ORDER BY g.businessName, f.Description, s.stage, l.name
-      `);
+      // Usar Stored Procedure
+      const result = await executeProcedure<JerarquiaRow>('evalImagen.sp_GetFieldData');
+      const rows = result.recordset;
 
       if (rows.length === 0) {
         return {
@@ -191,7 +174,7 @@ class SqlServerService {
 
       const countQuery = `
         SELECT COUNT(*) as total
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
@@ -222,7 +205,7 @@ class SqlServerService {
           '' as dispositivo,
           '' as software,
           '' as direccion
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
@@ -310,77 +293,7 @@ class SqlServerService {
     originalThumbnail?: string;
   }): Promise<number> {
     try {
-      const empresaResult = await query<{ growerID: string }>(`
-        SELECT growerID FROM GROWER.GROWERS 
-        WHERE businessName = @empresa AND statusID = 1
-      `, { empresa: result.empresa });
-
-      if (empresaResult.length === 0) {
-        throw new Error(`Empresa no encontrada: ${result.empresa}`);
-      }
-      const growerID = empresaResult[0].growerID;
-
-      const fundoResult = await query<{ farmID: string }>(`
-        SELECT DISTINCT f.farmID 
-        FROM GROWER.FARMS f
-        INNER JOIN GROWER.STAGE s ON f.farmID = s.farmID
-        WHERE f.Description = @fundo 
-          AND s.growerID = @growerID 
-          AND f.statusID = 1 
-          AND s.statusID = 1
-      `, { fundo: result.fundo, growerID });
-
-      if (fundoResult.length === 0) {
-        throw new Error(`Fundo no encontrado: ${result.fundo} en empresa ${result.empresa}`);
-      }
-      const farmID = fundoResult[0].farmID;
-
-      const sectorResult = await query<{ stageID: number }>(`
-        SELECT stageID FROM GROWER.STAGE 
-        WHERE stage = @sector AND farmID = @farmID AND statusID = 1
-      `, { sector: result.sector, farmID });
-
-      if (sectorResult.length === 0) {
-        throw new Error(`Sector no encontrado: ${result.sector} en fundo ${result.fundo}`);
-      }
-      const stageID = sectorResult[0].stageID;
-
-      const loteResult = await query<{ lotID: number }>(`
-        SELECT lotID FROM GROWER.LOT 
-        WHERE name = @lote AND stageID = @stageID AND statusID = 1
-      `, { lote: result.lote, stageID });
-
-      if (loteResult.length === 0) {
-        throw new Error(`Lote no encontrado: ${result.lote} en sector ${result.sector}`);
-      }
-      const lotID = loteResult[0].lotID;
-
-      let userCreatedID = 1;
-      try {
-        const usuarioResult = await query<{ userID: number }>(`
-          SELECT TOP 1 userID 
-          FROM MAST.USERS 
-          WHERE statusID = 1 
-          ORDER BY userID
-        `);
-        
-        if (usuarioResult.length > 0 && usuarioResult[0].userID) {
-          userCreatedID = Number(usuarioResult[0].userID);
-        }
-      } catch (userError) {
-        console.warn('⚠️ Error al obtener usuario de MAST.USERS, usando valor por defecto:', userError);
-      }
-
-      const pool = await connectDb();
-      const request = pool.request();
-
-      request.input('lotID', sql.Int, lotID);
-      request.input('hilera', sql.NVarChar(50), result.hilera || '');
-      request.input('planta', sql.NVarChar(50), result.numero_planta || '');
-      request.input('filename', sql.NVarChar(500), result.fileName);
-      request.input('processedImageUrl', sql.NVarChar(sql.MAX), result.thumbnail || null);
-      request.input('originalImageUrl', sql.NVarChar(sql.MAX), result.originalThumbnail || null);
-      
+      // Preparar fecha de captura
       let fechaCaptura = null;
       if (result.exifDateTime) {
         try {
@@ -391,34 +304,35 @@ class SqlServerService {
           console.warn('⚠️ Error parsing EXIF date:', e);
         }
       }
+
+      // Usar Stored Procedure sp_InsertAnalisisImagen
+      const spResult = await executeProcedure(
+        'evalImagen.sp_InsertAnalisisImagen',
+        {
+          empresa: result.empresa,
+          fundo: result.fundo,
+          sector: result.sector,
+          lote: result.lote,
+          hilera: result.hilera || '',
+          planta: result.numero_planta || '',
+          filename: result.fileName,
+          processedImageUrl: result.thumbnail || result.processed_image || null,
+          originalImageUrl: result.originalThumbnail || null,
+          fechaCaptura: fechaCaptura,
+          porcentajeLuz: parseFloat(result.porcentaje_luz.toFixed(2)),
+          porcentajeSombra: parseFloat(result.porcentaje_sombra.toFixed(2)),
+          latitud: result.latitud,
+          longitud: result.longitud,
+          usuarioCreaID: null // El SP obtendrá el usuario por defecto
+        },
+        ['analisisID'], // Parámetro OUTPUT
+        { analisisID: sql.Int } // Tipo SQL para OUTPUT
+      );
+
+      const analisisID = spResult.output?.analisisID;
       
-      request.input('fechaCaptura', sql.DateTime, fechaCaptura);
-      request.input('porcentajeLuz', sql.Decimal(5, 2), parseFloat(result.porcentaje_luz.toFixed(2)));
-      request.input('porcentajeSombra', sql.Decimal(5, 2), parseFloat(result.porcentaje_sombra.toFixed(2)));
-      request.input('latitud', sql.Decimal(10, 8), result.latitud);
-      request.input('longitud', sql.Decimal(11, 8), result.longitud);
-      request.input('usuarioCreaID', sql.Int, userCreatedID);
-
-      const insertResult = await request.query(`
-        INSERT INTO evalImagen.AnalisisImagen (
-          lotID, hilera, planta, filename, fechaCaptura,
-          porcentajeLuz, porcentajeSombra, latitud, longitud,
-          processedImageUrl, originalImageUrl, usuarioCreaID, statusID
-        )
-        OUTPUT INSERTED.analisisID
-        VALUES (
-          @lotID, @hilera, @planta, @filename, @fechaCaptura,
-          @porcentajeLuz, @porcentajeSombra, @latitud, @longitud,
-          @processedImageUrl, @originalImageUrl, @usuarioCreaID, 1
-        )
-      `);
-
-      const analisisID = insertResult.recordset[0].analisisID;
-
-      try {
-        await query(`EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = @lotID`, { lotID });
-      } catch (updateError) {
-        console.warn('⚠️ Error actualizando evalImagen.LoteEvaluacion (continuando):', updateError);
+      if (!analisisID) {
+        throw new Error('No se pudo obtener el ID del análisis insertado');
       }
 
       this.historialCache = null;
@@ -580,7 +494,7 @@ class SqlServerService {
           AND v.statusID = 1
         LEFT JOIN dbo.vwc_CianamidaFenologia cf WITH (NOLOCK) 
           ON lp.lotID = cf.lotID
-        LEFT JOIN evalImagen.LoteEvaluacion le WITH (NOLOCK) 
+        LEFT JOIN evalImagen.loteEvaluacion le WITH (NOLOCK) 
           ON lp.lotID = le.lotID 
           AND le.statusID = 1
         ORDER BY lp.fundo, lp.sector, lp.lote
@@ -661,7 +575,7 @@ class SqlServerService {
           MIN(ai.porcentajeSombra) AS sombraMin,
           MAX(ai.porcentajeSombra) AS sombraMax,
           AVG(CAST(ai.porcentajeSombra AS FLOAT)) AS sombraProm
-        FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
+        FROM evalImagen.analisisImagen ai WITH (NOLOCK)
         WHERE ai.lotID = @lotID 
           AND ai.statusID = 1
         GROUP BY CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE)
@@ -698,7 +612,7 @@ class SqlServerService {
       // Get total number of analyses
       const totalAnalisisResult = await query<{ total: number }>(`
         SELECT COUNT(*) as total
-        FROM evalImagen.AnalisisImagen
+        FROM evalImagen.analisisImagen
         WHERE statusID = 1
       `);
       const totalAnalisis = totalAnalisisResult[0]?.total || 0;
@@ -706,7 +620,7 @@ class SqlServerService {
       // Get total number of lots
       const totalLotesResult = await query<{ total: number }>(`
         SELECT COUNT(DISTINCT a.lotID) as total
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         WHERE a.statusID = 1
       `);
       const totalLotes = totalLotesResult[0]?.total || 0;
@@ -714,7 +628,7 @@ class SqlServerService {
       // Get average light percentage
       const avgLuzResult = await query<{ promedio: number }>(`
         SELECT AVG(CAST(porcentajeLuz AS FLOAT)) as promedio
-        FROM evalImagen.AnalisisImagen
+        FROM evalImagen.analisisImagen
         WHERE porcentajeLuz IS NOT NULL AND statusID = 1
       `);
       const promedioLuz = avgLuzResult[0]?.promedio || 0;
@@ -722,7 +636,7 @@ class SqlServerService {
       // Get average shadow percentage
       const avgSombraResult = await query<{ promedio: number }>(`
         SELECT AVG(CAST(porcentajeSombra AS FLOAT)) as promedio
-        FROM evalImagen.AnalisisImagen
+        FROM evalImagen.analisisImagen
         WHERE porcentajeSombra IS NOT NULL AND statusID = 1
       `);
       const promedioSombra = avgSombraResult[0]?.promedio || 0;
@@ -739,7 +653,7 @@ class SqlServerService {
           COUNT(*) as total,
           AVG(CAST(a.porcentajeLuz AS FLOAT)) as promedioLuz,
           AVG(CAST(a.porcentajeSombra AS FLOAT)) as promedioSombra
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         INNER JOIN GROWER.LOT l ON a.lotID = l.lotID
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
@@ -758,7 +672,7 @@ class SqlServerService {
           FORMAT(a.fechaCreacion, 'yyyy-MM') AS mes,
           COUNT(*) as total,
           AVG(CAST(a.porcentajeLuz AS FLOAT)) as promedioLuz
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         WHERE a.statusID = 1
           AND a.fechaCreacion >= DATEADD(MONTH, -12, GETDATE())
         GROUP BY FORMAT(a.fechaCreacion, 'yyyy-MM')
@@ -780,8 +694,8 @@ class SqlServerService {
             ELSE '80-100%'
           END AS rango,
           COUNT(*) as total,
-          CAST(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM evalImagen.AnalisisImagen WHERE statusID = 1) AS DECIMAL(5,2)) as porcentaje
-        FROM evalImagen.AnalisisImagen
+          CAST(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM evalImagen.analisisImagen WHERE statusID = 1) AS DECIMAL(5,2)) as porcentaje
+        FROM evalImagen.analisisImagen
         WHERE porcentajeLuz IS NOT NULL AND statusID = 1
         GROUP BY 
           CASE 
@@ -802,7 +716,7 @@ class SqlServerService {
         SELECT 
           CAST(a.fechaCreacion AS DATE) AS fecha,
           COUNT(*) as total
-        FROM evalImagen.AnalisisImagen a
+        FROM evalImagen.analisisImagen a
         WHERE a.statusID = 1
           AND a.fechaCreacion >= DATEADD(DAY, -7, GETDATE())
         GROUP BY CAST(a.fechaCreacion AS DATE)

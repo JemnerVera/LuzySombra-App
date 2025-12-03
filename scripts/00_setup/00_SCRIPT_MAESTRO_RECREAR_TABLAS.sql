@@ -12,15 +12,16 @@
 -- ORDEN DE EJECUCIÓN (ejecutar manualmente en este orden):
 -- 
 -- 1️⃣ TABLAS (01_tables) - Ejecutar en este orden:
---    ✅ 01_evalImagen.AnalisisImagen.sql      (crea schema evalImagen)
---    ✅ 02_evalImagen.UmbralLuz.sql             (depende de schema evalImagen)
---    ✅ 03_evalImagen.LoteEvaluacion.sql       (depende de evalImagen.UmbralLuz)
---    ✅ 04_evalImagen.Alerta.sql               (depende de evalImagen.LoteEvaluacion + evalImagen.UmbralLuz)
---    ✅ 05_evalImagen.Mensaje.sql              (depende de evalImagen.Alerta)
---    ✅ 06_evalImagen.Contacto.sql             (independiente)
---    ✅ 07_evalImagen.Dispositivo.sql          (independiente)
---    ✅ 08_evalImagen.MensajeAlerta.sql        (depende de evalImagen.Mensaje + evalImagen.Alerta)
---    ✅ 09_evalImagen.UsuarioWeb.sql           (independiente - autenticación usuarios web)
+--    ✅ 01_evalImagen.analisisImagen.sql      (crea schema evalImagen)
+--    ✅ 02_evalImagen.umbralLuz.sql             (depende de schema evalImagen)
+--    ✅ 03_evalImagen.loteEvaluacion.sql       (depende de evalImagen.umbralLuz)
+--    ✅ 04_evalImagen.alerta.sql               (depende de evalImagen.loteEvaluacion + evalImagen.umbralLuz)
+--    ✅ 05_evalImagen.mensaje.sql              (depende de evalImagen.alerta)
+--    ✅ 06_evalImagen.contacto.sql             (independiente)
+--    ✅ 07_evalImagen.dispositivo.sql          (independiente)
+--    ✅ 08_evalImagen.mensajeAlerta.sql        (depende de evalImagen.mensaje + evalImagen.alerta)
+--    ✅ 09_evalImagen.usuarioWeb.sql           (independiente - autenticación usuarios web)
+--    ✅ 10_evalImagen.intentoLogin.sql         (independiente - rate limiting y auditoría)
 -- 
 -- 2️⃣ STORED PROCEDURES (03_stored_procedures):
 --    ✅ 01_sp_CalcularLoteEvaluacion.sql   (depende de evalImagen.LoteEvaluacion)
@@ -52,15 +53,16 @@ PRINT '  PASO 1: CREAR TABLAS (01_tables)';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 PRINT 'Ejecutar en este orden:';
-PRINT '  1. scripts/01_tables/01_evalImagen.AnalisisImagen.sql';
-PRINT '  2. scripts/01_tables/02_evalImagen.UmbralLuz.sql';
-PRINT '  3. scripts/01_tables/03_evalImagen.LoteEvaluacion.sql';
-PRINT '  4. scripts/01_tables/04_evalImagen.Alerta.sql';
-PRINT '  5. scripts/01_tables/05_evalImagen.Mensaje.sql';
-PRINT '  6. scripts/01_tables/06_evalImagen.Contacto.sql';
-PRINT '  7. scripts/01_tables/07_evalImagen.Dispositivo.sql';
-PRINT '  8. scripts/01_tables/08_evalImagen.UsuarioWeb.sql';
-PRINT '  9. scripts/01_tables/09_evalImagen.MensajeAlerta.sql';
+PRINT '  1. scripts/01_tables/01_evalImagen.analisisImagen.sql';
+PRINT '  2. scripts/01_tables/02_evalImagen.umbralLuz.sql';
+PRINT '  3. scripts/01_tables/03_evalImagen.loteEvaluacion.sql';
+PRINT '  4. scripts/01_tables/04_evalImagen.alerta.sql';
+PRINT '  5. scripts/01_tables/05_evalImagen.mensaje.sql';
+PRINT '  6. scripts/01_tables/06_evalImagen.contacto.sql';
+PRINT '  7. scripts/01_tables/07_evalImagen.dispositivo.sql';
+PRINT '  8. scripts/01_tables/08_evalImagen.mensajeAlerta.sql';
+PRINT '  9. scripts/01_tables/09_evalImagen.usuarioWeb.sql';
+PRINT ' 10. scripts/01_tables/10_evalImagen.intentoLogin.sql';
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '  PASO 2: CREAR STORED PROCEDURES (03_stored_procedures)';

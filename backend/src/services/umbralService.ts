@@ -51,7 +51,7 @@ class UmbralService {
           u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
-        FROM evalImagen.UmbralLuz u
+        FROM evalImagen.umbralLuz u
         LEFT JOIN GROWER.VARIETY v ON u.variedadID = v.varietyID
         ${whereClause}
         ORDER BY u.orden ASC, u.tipo ASC, u.minPorcentajeLuz ASC
@@ -86,7 +86,7 @@ class UmbralService {
           u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
-        FROM evalImagen.UmbralLuz u
+        FROM evalImagen.umbralLuz u
         LEFT JOIN GROWER.VARIETY v ON u.variedadID = v.varietyID
         WHERE u.umbralID = @umbralID
           AND u.statusID = 1
@@ -121,7 +121,7 @@ class UmbralService {
           u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
-        FROM evalImagen.UmbralLuz u
+        FROM evalImagen.umbralLuz u
         LEFT JOIN GROWER.VARIETY v ON u.variedadID = v.varietyID
         WHERE u.tipo = @tipo
           AND u.statusID = 1
@@ -158,7 +158,7 @@ class UmbralService {
           u.fechaModificacion,
           u.statusID,
           v.name AS variedadNombre
-        FROM evalImagen.UmbralLuz u
+        FROM evalImagen.umbralLuz u
         LEFT JOIN GROWER.VARIETY v ON u.variedadID = v.varietyID
         WHERE (u.variedadID = @variedadID OR (u.variedadID IS NULL AND @variedadID IS NOT NULL))
           AND u.statusID = 1
@@ -203,7 +203,7 @@ class UmbralService {
       }
 
       const result = await query<{ umbralID: number }>(`
-        INSERT INTO evalImagen.UmbralLuz (
+        INSERT INTO evalImagen.umbralLuz (
           variedadID,
           tipo,
           minPorcentajeLuz,
@@ -331,7 +331,7 @@ class UmbralService {
       updates.push('fechaModificacion = GETDATE()');
 
       await query(`
-        UPDATE evalImagen.UmbralLuz
+        UPDATE evalImagen.umbralLuz
         SET ${updates.join(', ')}
         WHERE umbralID = @umbralID
           AND statusID = 1
@@ -351,7 +351,7 @@ class UmbralService {
   async deleteUmbral(umbralID: number): Promise<boolean> {
     try {
       await query(`
-        UPDATE evalImagen.UmbralLuz
+        UPDATE evalImagen.umbralLuz
         SET statusID = 0,
             activo = 0,
             fechaModificacion = GETDATE()

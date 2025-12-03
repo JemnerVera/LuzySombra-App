@@ -61,7 +61,7 @@ class ContactService {
           c.statusID,
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
-        FROM evalImagen.Contacto c
+        FROM evalImagen.contacto c
         LEFT JOIN GROWER.FARMS f ON c.fundoID = f.farmID
         LEFT JOIN GROWER.STAGE s ON c.sectorID = s.stageID
         ${whereClause}
@@ -102,7 +102,7 @@ class ContactService {
           c.statusID,
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
-        FROM evalImagen.Contacto c
+        FROM evalImagen.contacto c
         LEFT JOIN GROWER.FARMS f ON c.fundoID = f.farmID
         LEFT JOIN GROWER.STAGE s ON c.sectorID = s.stageID
         WHERE c.contactoID = @contactoID
@@ -138,7 +138,7 @@ class ContactService {
       // Validar email único
       const existing = await query<{ contactoID: number }>(`
         SELECT contactoID
-        FROM evalImagen.Contacto
+        FROM evalImagen.contacto
         WHERE email = @email
           AND statusID = 1
       `, { email: data.email });
@@ -148,7 +148,7 @@ class ContactService {
       }
 
       const result = await query<{ contactoID: number }>(`
-        INSERT INTO evalImagen.Contacto (
+        INSERT INTO evalImagen.contacto (
           nombre,
           email,
           telefono,
@@ -235,7 +235,7 @@ class ContactService {
       if (data.email) {
         const existing = await query<{ contactoID: number }>(`
           SELECT contactoID
-          FROM evalImagen.Contacto
+          FROM evalImagen.contacto
           WHERE email = @email
             AND contactoID != @contactoID
             AND statusID = 1
@@ -306,7 +306,7 @@ class ContactService {
       updates.push('fechaModificacion = GETDATE()');
 
       await query(`
-        UPDATE evalImagen.Contacto
+        UPDATE evalImagen.contacto
         SET ${updates.join(', ')}
         WHERE contactoID = @contactoID
           AND statusID = 1
@@ -326,7 +326,7 @@ class ContactService {
   async deleteContacto(contactoID: number): Promise<boolean> {
     try {
       await query(`
-        UPDATE evalImagen.Contacto
+        UPDATE evalImagen.contacto
         SET statusID = 0,
             activo = 0,
             fechaModificacion = GETDATE()

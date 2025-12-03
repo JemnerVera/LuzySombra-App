@@ -62,7 +62,7 @@ router.get('/', async (req: Request, res: Response) => {
         ai.analisisID,
         ai.processedImageUrl,
         ai.originalImageUrl
-      FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
+      FROM evalImagen.analisisImagen ai WITH (NOLOCK)
       WHERE ai.lotID = @lotID
         AND CAST(COALESCE(ai.fechaCaptura, ai.fechaCreacion) AS DATE) = @fecha
         AND ai.statusID = 1

@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
+import QRCode from 'qrcode';
 import { authenticateWebUser, requirePermission } from '../middleware/auth-web';
 import { deviceService } from '../services/deviceService';
+import { query } from '../lib/db';
 
 const router = express.Router();
 
@@ -240,6 +242,198 @@ router.get('/:id/stats', requirePermission('dispositivos:read'), async (req: Req
     });
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+/**
+ * POST /api/dispositivos/:id/generate-qr
+ * Genera un QR Code con código de activación temporal
+ */
+router.post('/:id/generate-qr', requirePermission('dispositivos:read'), async (req: Request, res: Response) => {
+  try {
+    const dispositivoID = parseInt(req.params.id);
+    const { operarioNombre } = req.body;
+    const usuarioModificaID = (req as any).user.usuarioID;
+
+    if (isNaN(dispositivoID)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de dispositivo inválido'
+      });
+    }
+
+    // Obtener dispositivo
+    const device = await deviceService.getDeviceById(dispositivoID);
+    
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dispositivo no encontrado'
+      });
+    }
+
+    // Verificar que esté activo
+    if (!device.activo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dispositivo está desactivado'
+      });
+    }
+
+    // Generar código de activación
+    const { activationCode, expiresAt } = await deviceService.generateActivationCode(
+      dispositivoID,
+      operarioNombre,
+      usuarioModificaID
+    );
+
+    // Crear objeto con datos para QR
+    const baseUrl = process.env.BACKEND_BASE_URL || process.env.FRONTEND_URL?.replace('/frontend', '') || 'https://luzsombra-backend.azurewebsites.net/api/';
+    const qrData = {
+      type: 'agriqr-setup',
+      version: '1.0',
+      baseUrl: baseUrl,
+      deviceId: device.deviceId,
+      activationCode: activationCode,
+      expiresAt: expiresAt.toISOString()
+    };
+
+    // Generar QR Code como imagen base64
+    const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData), {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 512
+    });
+
+    res.json({
+      success: true,
+      qrCodeUrl: qrCodeBase64,  // Data URL: "data:image/png;base64,..."
+      qrData: qrData,            // Datos para debugging
+      expiresAt: expiresAt,
+      operarioNombre: operarioNombre || null,
+      message: 'QR Code generado exitosamente. Válido por 24 horas.'
+    });
+
+  } catch (error) {
+    console.error('❌ Error generando QR Code:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+/**
+ * PUT /api/dispositivos/:id/revoke
+ * Revoca acceso de un dispositivo (desactiva)
+ */
+router.put('/:id/revoke', requirePermission('dispositivos:write'), async (req: Request, res: Response) => {
+  try {
+    const dispositivoID = parseInt(req.params.id);
+    const usuarioModificaID = (req as any).user.usuarioID;
+
+    if (isNaN(dispositivoID)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de dispositivo inválido'
+      });
+    }
+
+    // Verificar que el dispositivo existe
+    const device = await deviceService.getDeviceById(dispositivoID);
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dispositivo no encontrado'
+      });
+    }
+
+    // Desactivar dispositivo y revocar acceso
+    await query(`
+      UPDATE evalImagen.dispositivo
+      SET activo = 0,
+          fechaRevocacion = GETDATE(),
+          activationCode = NULL,
+          activationCodeExpires = NULL,
+          usuarioModificaID = @usuarioModificaID,
+          fechaModificacion = GETDATE()
+      WHERE dispositivoID = @dispositivoID
+        AND statusID = 1
+    `, { dispositivoID, usuarioModificaID });
+
+    res.json({
+      success: true,
+      message: 'Acceso revocado exitosamente. El dispositivo ya no podrá autenticarse.'
+    });
+
+  } catch (error) {
+    console.error('❌ Error revocando acceso:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+/**
+ * PUT /api/dispositivos/:id/reassign
+ * Reasigna dispositivo a otro operario
+ */
+router.put('/:id/reassign', requirePermission('dispositivos:write'), async (req: Request, res: Response) => {
+  try {
+    const dispositivoID = parseInt(req.params.id);
+    const { operarioNombre } = req.body;
+    const usuarioModificaID = (req as any).user.usuarioID;
+
+    if (isNaN(dispositivoID)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de dispositivo inválido'
+      });
+    }
+
+    if (!operarioNombre || operarioNombre.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'operarioNombre es requerido'
+      });
+    }
+
+    // Verificar que el dispositivo existe
+    const device = await deviceService.getDeviceById(dispositivoID);
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dispositivo no encontrado'
+      });
+    }
+
+    // Reasignar dispositivo
+    await query(`
+      UPDATE evalImagen.dispositivo
+      SET operarioNombre = @operarioNombre,
+          fechaAsignacion = GETDATE(),
+          fechaRevocacion = NULL,
+          activo = 1,
+          activationCode = NULL,
+          activationCodeExpires = NULL,
+          usuarioModificaID = @usuarioModificaID,
+          fechaModificacion = GETDATE()
+      WHERE dispositivoID = @dispositivoID
+        AND statusID = 1
+    `, { dispositivoID, operarioNombre: operarioNombre.trim(), usuarioModificaID });
+
+    res.json({
+      success: true,
+      message: `Dispositivo reasignado a ${operarioNombre.trim()}. Genera un nuevo QR Code para configurar.`
+    });
+
+  } catch (error) {
+    console.error('❌ Error reasignando dispositivo:', error);
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'

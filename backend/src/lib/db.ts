@@ -133,29 +133,104 @@ export async function query<T = any>(
  * Ejecuta un stored procedure con parámetros
  * @param procedureName - Nombre del stored procedure
  * @param params - Objeto con parámetros para el SP
- * @returns Resultado del stored procedure
+ * @param outputParams - Array con nombres de parámetros OUTPUT (opcional)
+ * @param outputTypes - Objeto opcional con tipos SQL para parámetros OUTPUT específicos
+ * @returns Resultado del stored procedure y valores OUTPUT
  */
 export async function executeProcedure<T = any>(
   procedureName: string,
-  params?: Record<string, any>
-): Promise<T> {
+  params?: Record<string, any>,
+  outputParams?: string[],
+  outputTypes?: Record<string, sql.ISqlType>
+): Promise<{ recordset: T[]; output?: Record<string, any> }> {
   try {
     const connection = await getConnection();
     const request = connection.request();
     
-    // Agregar parámetros si existen
+    // Agregar parámetros INPUT si existen
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        request.input(key, value);
+        // Si el parámetro está en outputParams, es OUTPUT
+        if (outputParams && outputParams.includes(key)) {
+          // Usar tipo específico si se proporciona, sino inferir
+          const sqlType = outputTypes?.[key] || inferSqlType(value);
+          request.output(key, sqlType);
+        } else {
+          request.input(key, value);
+        }
+      });
+    }
+    
+    // Agregar parámetros OUTPUT adicionales si se especifican
+    if (outputParams) {
+      outputParams.forEach(paramName => {
+        if (!params || !(paramName in params)) {
+          // Si no está en params, agregarlo como OUTPUT sin valor inicial
+          const sqlType = outputTypes?.[paramName] || inferSqlType(null);
+          request.output(paramName, sqlType);
+        }
       });
     }
     
     const result = await request.execute(procedureName);
-    return result.recordset as T;
+    
+    // Extraer valores OUTPUT
+    const output: Record<string, any> = {};
+    if (outputParams) {
+      outputParams.forEach(paramName => {
+        const param = request.parameters[paramName];
+        if (param) {
+          output[paramName] = param.value;
+        }
+      });
+    }
+    
+    return {
+      recordset: result.recordset as T[],
+      output: Object.keys(output).length > 0 ? output : undefined
+    };
   } catch (error) {
     console.error('❌ Error ejecutando stored procedure:', error);
     throw error;
   }
+}
+
+/**
+ * Infiere el tipo SQL basado en el valor
+ */
+function inferSqlType(value: any): sql.ISqlType {
+  if (value === null || value === undefined) {
+    return sql.Int; // Tipo por defecto para OUTPUT
+  }
+  
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) {
+      return sql.Int;
+    }
+    return sql.Decimal(18, 2);
+  }
+  
+  if (typeof value === 'boolean') {
+    return sql.Bit;
+  }
+  
+  if (value instanceof Date) {
+    return sql.DateTime;
+  }
+  
+  if (typeof value === 'string') {
+    if (value.length <= 50) {
+      return sql.NVarChar(50);
+    } else if (value.length <= 100) {
+      return sql.NVarChar(100);
+    } else if (value.length <= 255) {
+      return sql.NVarChar(255);
+    } else {
+      return sql.NVarChar(sql.MAX);
+    }
+  }
+  
+  return sql.NVarChar(sql.MAX); // Tipo por defecto
 }
 
 /**

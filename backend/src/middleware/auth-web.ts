@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { verifyToken } from '../lib/jwt';
 
 export interface UserPayload {
   usuarioID: number;
@@ -32,8 +33,7 @@ export function authenticateWebUser(
     }
 
     // Verificar token
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const decoded = jwt.verify(token, jwtSecret) as UserPayload;
+    const decoded = verifyToken(token) as UserPayload;
 
     // Agregar información del usuario al request
     (req as any).user = decoded;

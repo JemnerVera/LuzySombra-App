@@ -1,10 +1,12 @@
-import { query } from '../lib/db';
+import { query, executeProcedure, sql } from '../lib/db';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 export interface Dispositivo {
   dispositivoID: number;
   deviceId: string;
-  apiKey: string;
+  apiKey?: string; // Solo para respuesta (no se almacena)
+  apiKeyHash: string; // Hash almacenado en BD
   nombreDispositivo: string | null;
   modeloDispositivo: string | null;
   versionApp: string | null;
@@ -30,15 +32,30 @@ class DeviceService {
   }
 
   /**
-   * Lista todos los dispositivos
+   * Hashea una API key usando bcrypt
    */
-  async getAllDevices(): Promise<Dispositivo[]> {
+  async hashApiKey(apiKey: string): Promise<string> {
+    const saltRounds = 10;
+    return await bcrypt.hash(apiKey, saltRounds);
+  }
+
+  /**
+   * Compara una API key con su hash
+   */
+  async compareApiKey(apiKey: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(apiKey, hash);
+  }
+
+  /**
+   * Lista todos los dispositivos
+   * NOTA: No retorna apiKeyHash por seguridad
+   */
+  async getAllDevices(): Promise<Omit<Dispositivo, 'apiKeyHash'>[]> {
     try {
       const devices = await query<Dispositivo>(`
         SELECT 
           dispositivoID,
           deviceId,
-          apiKey,
           nombreDispositivo,
           modeloDispositivo,
           versionApp,
@@ -50,7 +67,7 @@ class DeviceService {
           fechaCreacion,
           usuarioModificaID,
           fechaModificacion
-        FROM evalImagen.Dispositivo
+        FROM evalImagen.dispositivo
         WHERE statusID = 1
         ORDER BY fechaCreacion DESC
       `);
@@ -64,14 +81,14 @@ class DeviceService {
 
   /**
    * Obtiene un dispositivo por ID
+   * NOTA: No retorna apiKeyHash por seguridad
    */
-  async getDeviceById(dispositivoID: number): Promise<Dispositivo | null> {
+  async getDeviceById(dispositivoID: number): Promise<Omit<Dispositivo, 'apiKeyHash'> | null> {
     try {
       const devices = await query<Dispositivo>(`
         SELECT 
           dispositivoID,
           deviceId,
-          apiKey,
           nombreDispositivo,
           modeloDispositivo,
           versionApp,
@@ -83,7 +100,7 @@ class DeviceService {
           fechaCreacion,
           usuarioModificaID,
           fechaModificacion
-        FROM evalImagen.Dispositivo
+        FROM evalImagen.dispositivo
         WHERE dispositivoID = @dispositivoID
           AND statusID = 1
       `, { dispositivoID });
@@ -92,6 +109,35 @@ class DeviceService {
     } catch (error) {
       console.error('❌ Error obteniendo dispositivo:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Obtiene dispositivo con hash para autenticación (solo para uso interno)
+   */
+  async getDeviceForAuth(deviceId: string): Promise<{
+    dispositivoID: number;
+    deviceId: string;
+    apiKeyHash: string;
+    nombreDispositivo: string | null;
+    activo: boolean;
+  } | null> {
+    try {
+      const result = await executeProcedure(
+        'evalImagen.sp_GetDeviceForAuth',
+        { deviceId },
+        [],
+        {}
+      );
+
+      if (result.recordset && result.recordset.length > 0) {
+        return result.recordset[0];
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Error obteniendo dispositivo para auth:', error);
+      return null;
     }
   }
 
@@ -106,12 +152,13 @@ class DeviceService {
   }): Promise<{ dispositivoID: number; apiKey: string }> {
     try {
       const apiKey = this.generateApiKey();
+      const apiKeyHash = await this.hashApiKey(apiKey);
       const deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       const result = await query<{ dispositivoID: number }>(`
-        INSERT INTO evalImagen.Dispositivo (
+        INSERT INTO evalImagen.dispositivo (
           deviceId,
-          apiKey,
+          apiKeyHash,
           nombreDispositivo,
           modeloDispositivo,
           versionApp,
@@ -124,7 +171,7 @@ class DeviceService {
         OUTPUT INSERTED.dispositivoID
         VALUES (
           @deviceId,
-          @apiKey,
+          @apiKeyHash,
           @nombreDispositivo,
           @modeloDispositivo,
           @versionApp,
@@ -136,7 +183,7 @@ class DeviceService {
         )
       `, {
         deviceId,
-        apiKey,
+        apiKeyHash,
         nombreDispositivo: data.nombreDispositivo,
         modeloDispositivo: data.modeloDispositivo || null,
         versionApp: data.versionApp || null,
@@ -149,7 +196,7 @@ class DeviceService {
 
       return {
         dispositivoID: result[0].dispositivoID,
-        apiKey
+        apiKey // Retornar la key en texto plano solo una vez
       };
     } catch (error) {
       console.error('❌ Error creando dispositivo:', error);
@@ -202,7 +249,7 @@ class DeviceService {
       updates.push('fechaModificacion = GETDATE()');
 
       await query(`
-        UPDATE evalImagen.Dispositivo
+        UPDATE evalImagen.dispositivo
         SET ${updates.join(', ')}
         WHERE dispositivoID = @dispositivoID
           AND statusID = 1
@@ -221,17 +268,18 @@ class DeviceService {
   async regenerateApiKey(dispositivoID: number, usuarioModificaID: number): Promise<string> {
     try {
       const newApiKey = this.generateApiKey();
+      const newApiKeyHash = await this.hashApiKey(newApiKey);
 
       await query(`
-        UPDATE evalImagen.Dispositivo
-        SET apiKey = @apiKey,
+        UPDATE evalImagen.dispositivo
+        SET apiKeyHash = @apiKeyHash,
             usuarioModificaID = @usuarioModificaID,
             fechaModificacion = GETDATE()
         WHERE dispositivoID = @dispositivoID
           AND statusID = 1
-      `, { dispositivoID, apiKey: newApiKey, usuarioModificaID });
+      `, { dispositivoID, apiKeyHash: newApiKeyHash, usuarioModificaID });
 
-      return newApiKey;
+      return newApiKey; // Retornar la key en texto plano solo una vez
     } catch (error) {
       console.error('❌ Error regenerando API key:', error);
       throw error;
@@ -244,7 +292,7 @@ class DeviceService {
   async deleteDevice(dispositivoID: number, usuarioModificaID: number): Promise<boolean> {
     try {
       await query(`
-        UPDATE evalImagen.Dispositivo
+        UPDATE evalImagen.dispositivo
         SET statusID = 0,
             usuarioModificaID = @usuarioModificaID,
             fechaModificacion = GETDATE()
@@ -286,6 +334,105 @@ class DeviceService {
       };
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene dispositivo por código de activación
+   */
+  async getDeviceByActivationCode(activationCode: string): Promise<{
+    dispositivoID: number;
+    deviceId: string;
+    activo: boolean;
+    activationCodeExpires: Date | null;
+  } | null> {
+    try {
+      const result = await query<{
+        dispositivoID: number;
+        deviceId: string;
+        activo: boolean;
+        activationCodeExpires: Date | null;
+      }>(`
+        SELECT 
+          dispositivoID,
+          deviceId,
+          activo,
+          activationCodeExpires
+        FROM evalImagen.dispositivo
+        WHERE activationCode = @activationCode
+          AND statusID = 1
+      `, { activationCode });
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('❌ Error obteniendo dispositivo por código:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Limpia código de activación (después de usarse)
+   */
+  async clearActivationCode(dispositivoID: number): Promise<boolean> {
+    try {
+      await query(`
+        UPDATE evalImagen.dispositivo
+        SET activationCode = NULL,
+            activationCodeExpires = NULL,
+            ultimoAcceso = GETDATE()
+        WHERE dispositivoID = @dispositivoID
+      `, { dispositivoID });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error limpiando código de activación:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Genera código de activación para un dispositivo
+   */
+  async generateActivationCode(
+    dispositivoID: number,
+    operarioNombre?: string,
+    usuarioModificaID: number = 1
+  ): Promise<{ activationCode: string; expiresAt: Date }> {
+    try {
+      const activationCode = `luzsombra_${crypto.randomBytes(32).toString('hex')}`;
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+
+      const updates: string[] = [];
+      const params: Record<string, unknown> = {
+        dispositivoID,
+        activationCode,
+        expiresAt,
+        usuarioModificaID
+      };
+
+      updates.push('activationCode = @activationCode');
+      updates.push('activationCodeExpires = @expiresAt');
+
+      if (operarioNombre) {
+        updates.push('operarioNombre = @operarioNombre');
+        updates.push('fechaAsignacion = GETDATE()');
+        params.operarioNombre = operarioNombre.trim();
+      }
+
+      updates.push('usuarioModificaID = @usuarioModificaID');
+      updates.push('fechaModificacion = GETDATE()');
+
+      await query(`
+        UPDATE evalImagen.dispositivo
+        SET ${updates.join(', ')}
+        WHERE dispositivoID = @dispositivoID
+          AND statusID = 1
+      `, params);
+
+      return { activationCode, expiresAt };
+    } catch (error) {
+      console.error('❌ Error generando código de activación:', error);
       throw error;
     }
   }

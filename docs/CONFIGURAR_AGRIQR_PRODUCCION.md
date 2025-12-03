@@ -264,6 +264,17 @@ buildTypes {
 1. Verificar que `deviceId` y `apiKey` son correctos
 2. Verificar que el token JWT no expiró
 3. Verificar que el backend valida correctamente
+4. **NUEVO:** Si la API key fue regenerada después de la migración, usar la nueva API key
+
+### **Problema: "429 Too Many Requests" (NUEVO)**
+
+**Causa:**
+- Se excedió el límite de 5 intentos fallidos en 15 minutos
+
+**Soluciones:**
+1. Esperar 15 minutos antes de intentar nuevamente
+2. Verificar que las credenciales (`deviceId` y `apiKey`) son correctas
+3. Si el problema persiste, contactar al administrador para verificar el estado del dispositivo en la BD
 
 ---
 

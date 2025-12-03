@@ -22,30 +22,30 @@ scripts/
 4. `01_tables/04_evalImagen.Alerta.sql` - Tabla de alertas
 5. `01_tables/05_evalImagen.Mensaje.sql` - Tabla de mensajes
 6. `01_tables/06_evalImagen.Contacto.sql` - Tabla de contactos
-7. `01_tables/07_evalImagen.Dispositivo.sql` - Tabla de dispositivos
+7. `01_tables/07_evalImagen.Dispositivo.sql` - Tabla de dispositivos (incluye apiKeyHash y campos de activación)
 8. `01_tables/08_evalImagen.MensajeAlerta.sql` - Tabla de relación (junction table)
 9. `01_tables/09_evalImagen.UsuarioWeb.sql` - Tabla de usuarios web
-8. `01_tables/08_evalImagen.MensajeAlerta.sql` - Tabla de relación (junction table)
+10. `01_tables/10_evalImagen.IntentoLogin.sql` - Tabla de auditoría para rate limiting
 
-**Nota:** Las tablas ya incluyen todas las columnas necesarias (`originalImageUrl`, `fundoID`, `sectorID`, etc.). No se requieren scripts de modificación.
+**Nota:** Las tablas ya incluyen todas las columnas necesarias (`originalImageUrl`, `fundoID`, `sectorID`, `apiKeyHash`, campos de activación, etc.). No se requieren scripts de modificación o migración.
 
 ### 2. Vistas
-9. `02_views/01_vwc_CianamidaFenologia.sql` - Vista de cianamida y fenología (puede ejecutarse antes)
+11. `02_views/01_vwc_CianamidaFenologia.sql` - Vista de cianamida y fenología (puede ejecutarse antes)
 
 ### 3. Stored Procedures
-10. `03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql` - SP para calcular estadísticas
+12. `03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql` - SP para calcular estadísticas
 
 ### 4. Triggers
-11. `05_triggers/01_trg_LoteEvaluacion_Alerta.sql` - Trigger que crea alertas automáticamente
+13. `05_triggers/01_trg_LoteEvaluacion_Alerta.sql` - Trigger que crea alertas automáticamente
 
 ### 5. Poblar Datos
-12. Ejecutar SP para calcular estadísticas iniciales:
+14. Ejecutar SP para calcular estadísticas iniciales:
    ```sql
    EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = <lotID>;
    ```
 
 ### 6. Verificación
-13. `00_setup/01_verificar_sistema_alertas.sql` - Verifica que todos los componentes existen
+15. `00_setup/01_verificar_sistema_alertas.sql` - Verifica que todos los componentes existen
 
 ## 🎯 Scripts Maestros
 

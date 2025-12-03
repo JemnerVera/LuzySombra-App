@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { verifyToken } from '../lib/jwt';
 
 // Interfaz para el payload del JWT
 interface JwtPayload {
@@ -26,8 +27,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     }
 
     // Verificar token
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+    const decoded = verifyToken(token) as JwtPayload;
 
     // Agregar información del dispositivo al request
     (req as any).deviceId = decoded.deviceId;

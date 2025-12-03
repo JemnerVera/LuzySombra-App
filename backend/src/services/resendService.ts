@@ -50,7 +50,7 @@ class ResendService {
           intentosEnvio,
           resendMessageID,
           errorMessage
-        FROM evalImagen.Mensaje
+        FROM evalImagen.mensaje
         WHERE estado = 'Pendiente'
           AND statusID = 1
           AND intentosEnvio < 3
@@ -71,7 +71,7 @@ class ResendService {
         try {
           // Actualizar estado a 'Enviando'
           await query(`
-            UPDATE evalImagen.Mensaje
+            UPDATE evalImagen.mensaje
             SET estado = 'Enviando',
                 intentosEnvio = intentosEnvio + 1,
                 ultimoIntentoEnvio = GETDATE()
@@ -84,7 +84,7 @@ class ResendService {
           if (resultado.exito) {
             // Actualizar como enviado
             await query(`
-              UPDATE evalImagen.Mensaje
+              UPDATE evalImagen.mensaje
               SET estado = 'Enviado',
                   fechaEnvio = GETDATE(),
                   resendMessageID = @resendMessageID,
@@ -101,8 +101,8 @@ class ResendService {
               UPDATE a
               SET a.fechaEnvio = GETDATE(),
                   a.estado = 'Enviada'
-              FROM evalImagen.Alerta a
-              INNER JOIN evalImagen.MensajeAlerta ma ON a.alertaID = ma.alertaID
+              FROM evalImagen.alerta a
+              INNER JOIN evalImagen.mensajeAlerta ma ON a.alertaID = ma.alertaID
               WHERE ma.mensajeID = @mensajeID
                 AND a.statusID = 1
                 AND ma.statusID = 1
@@ -113,7 +113,7 @@ class ResendService {
           } else {
             // Actualizar como error
             await query(`
-              UPDATE evalImagen.Mensaje
+              UPDATE evalImagen.mensaje
               SET estado = 'Error',
                   errorMessage = @errorMessage,
                   resendResponse = @resendResponse
@@ -134,7 +134,7 @@ class ResendService {
 
           // Actualizar como error
           await query(`
-            UPDATE evalImagen.Mensaje
+            UPDATE evalImagen.mensaje
             SET estado = 'Error',
                 errorMessage = @errorMessage
             WHERE mensajeID = @mensajeID
@@ -247,7 +247,7 @@ class ResendService {
           destinatariosBCC,
           estado,
           intentosEnvio
-        FROM evalImagen.Mensaje
+        FROM evalImagen.mensaje
         WHERE mensajeID = @mensajeID
           AND statusID = 1
       `, { mensajeID });
@@ -262,7 +262,7 @@ class ResendService {
 
       if (resultado.exito) {
         await query(`
-          UPDATE evalImagen.Mensaje
+          UPDATE evalImagen.mensaje
           SET estado = 'Enviado',
               fechaEnvio = GETDATE(),
               resendMessageID = @resendMessageID,
@@ -276,7 +276,7 @@ class ResendService {
         return true;
       } else {
         await query(`
-          UPDATE evalImagen.Mensaje
+          UPDATE evalImagen.mensaje
           SET estado = 'Error',
               errorMessage = @errorMessage
           WHERE mensajeID = @mensajeID

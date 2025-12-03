@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import { userService } from '../services/userService';
 import { authenticateWebUser } from '../middleware/auth-web';
+import { signToken } from '../lib/jwt';
+import { rateLimitService } from '../services/rateLimitService';
 
 const router = express.Router();
 
@@ -14,14 +15,30 @@ const router = express.Router();
  * - password: Contraseña
  */
 router.post('/login', async (req: Request, res: Response) => {
+  const ipAddress = rateLimitService.getClientIp(req);
+  let username: string | undefined;
+
   try {
-    const { username, password } = req.body;
+    const { username: reqUsername, password } = req.body;
+    username = reqUsername;
 
     // Validaciones
     if (!username || !password) {
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'Missing username or password');
       return res.status(400).json({
         success: false,
         error: 'username y password son requeridos'
+      });
+    }
+
+    // Verificar rate limiting
+    const rateLimit = await rateLimitService.checkRateLimit(undefined, username, ipAddress);
+    if (rateLimit.estaBloqueado) {
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'Rate limit exceeded');
+      return res.status(429).json({
+        success: false,
+        error: 'Demasiados intentos fallidos. Intenta nuevamente en 15 minutos.',
+        retryAfter: 900
       });
     }
 
@@ -29,6 +46,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const usuario = await userService.findByUsername(username);
 
     if (!usuario) {
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'User not found');
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
@@ -37,15 +55,17 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Verificar si está activo
     if (!usuario.activo) {
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'User disabled');
       return res.status(403).json({
         success: false,
         error: 'Usuario desactivado. Contacta al administrador.'
       });
     }
 
-    // Verificar si está bloqueado
+    // Verificar si está bloqueado (bloqueo por intentos fallidos en UsuarioWeb)
     const isBlocked = await userService.isUserBlocked(usuario.usuarioID);
     if (isBlocked) {
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'User temporarily blocked');
       return res.status(423).json({
         success: false,
         error: 'Usuario temporalmente bloqueado por múltiples intentos fallidos. Intenta en 15 minutos.'
@@ -59,8 +79,10 @@ router.post('/login', async (req: Request, res: Response) => {
     );
 
     if (!passwordValid) {
-      // Incrementar intentos fallidos
+      // Incrementar intentos fallidos (en UsuarioWeb)
       await userService.incrementFailedAttempts(usuario.usuarioID);
+      // Registrar intento fallido (en IntentoLogin)
+      await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'Invalid password');
       
       return res.status(401).json({
         success: false,
@@ -72,19 +94,21 @@ router.post('/login', async (req: Request, res: Response) => {
     await userService.resetFailedAttempts(usuario.usuarioID);
     await userService.updateLastAccess(usuario.usuarioID);
 
+    // Registrar intento exitoso
+    const ipAddress = rateLimitService.getClientIp(req);
+    await rateLimitService.registrarIntento(true, ipAddress, undefined, username);
+
     // Generar JWT token
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
     const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
 
-    const token = jwt.sign(
+    const token = signToken(
       {
         usuarioID: usuario.usuarioID,
         username: usuario.username,
         rol: usuario.rol,
         permisos: userService.getPermissions(usuario.rol)
       },
-      jwtSecret,
-      { expiresIn } as jwt.SignOptions
+      { expiresIn }
     );
 
     // Calcular expiración en segundos
@@ -179,7 +203,6 @@ router.get('/me', authenticateWebUser, async (req: Request, res: Response) => {
 router.post('/refresh', authenticateWebUser, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
     const expiresIn: string = process.env.JWT_EXPIRES_IN || '24h';
 
     // Verificar que el usuario sigue activo
@@ -193,15 +216,14 @@ router.post('/refresh', authenticateWebUser, async (req: Request, res: Response)
     }
 
     // Generar nuevo token
-    const token = jwt.sign(
+    const token = signToken(
       {
         usuarioID: usuario.usuarioID,
         username: usuario.username,
         rol: usuario.rol,
         permisos: userService.getPermissions(usuario.rol)
       },
-      jwtSecret,
-      { expiresIn } as jwt.SignOptions
+      { expiresIn }
     );
 
     const expiresInSeconds = expiresIn === '24h' ? 86400 : 

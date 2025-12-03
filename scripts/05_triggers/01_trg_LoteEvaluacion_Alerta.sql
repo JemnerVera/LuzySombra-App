@@ -11,18 +11,18 @@
 -- 
 -- OBJETOS MODIFICADOS:
 --   ✅ Tablas (al ejecutarse):
---      - evalImagen.Alerta (INSERT cuando cambia umbral)
+--      - evalImagen.alerta (INSERT cuando cambia umbral)
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: evalImagen.LoteEvaluacion (tabla debe existir)
---   ⚠️  Requiere: evalImagen.Alerta (tabla debe existir)
---   ⚠️  Requiere: evalImagen.UmbralLuz (tabla debe existir)
+--   ⚠️  Requiere: evalImagen.loteEvaluacion (tabla debe existir)
+--   ⚠️  Requiere: evalImagen.alerta (tabla debe existir)
+--   ⚠️  Requiere: evalImagen.umbralLuz (tabla debe existir)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   Después de crear evalImagen.LoteEvaluacion y evalImagen.Alerta
+--   Después de crear evalImagen.loteEvaluacion y evalImagen.alerta
 -- 
 -- LÓGICA:
---   - Se ejecuta AFTER INSERT, UPDATE en evalImagen.LoteEvaluacion
+--   - Se ejecuta AFTER INSERT, UPDATE en evalImagen.loteEvaluacion
 --   - SOLO crea alerta si tipoUmbralActual es CriticoRojo o CriticoAmarillo
 --   - NO crea alerta si tipoUmbralActual es 'Normal' o NULL
 --   - Crea alerta si NO existe una alerta Pendiente/Enviada del mismo tipo (evita duplicados)
@@ -37,12 +37,12 @@ GO
 -- =====================================================
 -- Crear Trigger
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.loteEvaluacion'))
     DROP TRIGGER evalImagen.trg_LoteEvaluacion_Alerta;
 GO
 
 CREATE TRIGGER evalImagen.trg_LoteEvaluacion_Alerta
-ON evalImagen.LoteEvaluacion
+ON evalImagen.loteEvaluacion
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -51,7 +51,7 @@ BEGIN
     -- Crear alertas SOLO cuando tipoUmbralActual es CriticoRojo o CriticoAmarillo
     -- IMPORTANTE: NO se crean alertas cuando tipoUmbralActual es 'Normal'
     -- Maneja tanto INSERT (primera vez) como UPDATE (cambio de estado)
-    INSERT INTO evalImagen.Alerta (
+    INSERT INTO evalImagen.alerta (
         lotID, 
         loteEvaluacionID, 
         umbralID, 
@@ -92,7 +92,7 @@ BEGIN
         -- La lógica es: si el tipoUmbralActual es crítico y no hay alerta activa pendiente/enviada, crear alerta
         AND NOT EXISTS (
             SELECT 1 
-            FROM evalImagen.Alerta a 
+            FROM evalImagen.alerta a 
             WHERE a.lotID = i.lotID 
               AND a.tipoUmbral = i.tipoUmbralActual
               AND a.estado IN ('Pendiente', 'Enviada')
@@ -128,7 +128,7 @@ GO
 -- =====================================================
 EXEC sp_addextendedproperty 
     @name = N'MS_Description', 
-    @value = N'Trigger que crea alertas automáticamente cuando tipoUmbralActual cambia a CriticoRojo o CriticoAmarillo en evalImagen.LoteEvaluacion. También resuelve alertas cuando vuelve a Normal.', 
+    @value = N'Trigger que crea alertas automáticamente cuando tipoUmbralActual cambia a CriticoRojo o CriticoAmarillo en evalImagen.loteEvaluacion. También resuelve alertas cuando vuelve a Normal.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
     @level1type = N'TABLE', @level1name = N'LoteEvaluacion',
     @level2type = N'TRIGGER', @level2name = N'trg_LoteEvaluacion_Alerta';

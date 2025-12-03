@@ -76,7 +76,7 @@ BEGIN
             MAX(ai.porcentajeSombra) AS porcentajeSombraMax,
             MAX(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaUltimaEvaluacion,
             MIN(COALESCE(ai.fechaCaptura, ai.fechaCreacion)) AS fechaPrimeraEvaluacion
-        FROM evalImagen.AnalisisImagen ai WITH (NOLOCK)
+        FROM evalImagen.analisisImagen ai WITH (NOLOCK)
         INNER JOIN GROWER.LOT l WITH (NOLOCK) ON ai.lotID = l.lotID
         INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
@@ -106,7 +106,7 @@ BEGIN
             -- Obtener umbral correspondiente (prioridad: variedad específica > todas las variedades)
             (
                 SELECT TOP 1 u.umbralID
-                FROM evalImagen.UmbralLuz u
+                FROM evalImagen.umbralLuz u
                 WHERE u.activo = 1 
                     AND u.statusID = 1
                     AND (u.variedadID = el.varietyID OR u.variedadID IS NULL)
@@ -123,7 +123,7 @@ BEGIN
             ) AS umbralIDActual,
             (
                 SELECT TOP 1 u.tipo
-                FROM evalImagen.UmbralLuz u
+                FROM evalImagen.umbralLuz u
                 WHERE u.activo = 1 
                     AND u.statusID = 1
                     AND (u.variedadID = el.varietyID OR u.variedadID IS NULL)
@@ -141,7 +141,7 @@ BEGIN
         FROM EstadisticasLote el
     )
     -- MERGE para actualizar o insertar
-    MERGE evalImagen.LoteEvaluacion AS target
+    MERGE evalImagen.loteEvaluacion AS target
     USING UmbralesLote AS source
     ON target.lotID = source.lotID
     WHEN MATCHED AND (@ForzarRecalculo = 1 OR target.fechaUltimaActualizacion < source.fechaUltimaEvaluacion)
@@ -210,7 +210,7 @@ BEGIN
     -- Retornar resumen
     SELECT 
         @@ROWCOUNT AS registrosProcesados,
-        (SELECT COUNT(*) FROM evalImagen.LoteEvaluacion WHERE statusID = 1) AS totalLotesEvaluados;
+        (SELECT COUNT(*) FROM evalImagen.loteEvaluacion WHERE statusID = 1) AS totalLotesEvaluados;
 END;
 GO
 
@@ -219,7 +219,7 @@ GO
 -- =====================================================
 EXEC sp_addextendedproperty 
     @name = N'MS_Description', 
-    @value = N'Calcula estadísticas agregadas por lote y actualiza/inserta en evalImagen.LoteEvaluacion. Puede calcular para un lote específico o todos los lotes con evaluaciones.', 
+    @value = N'Calcula estadísticas agregadas por lote y actualiza/inserta en evalImagen.loteEvaluacion. Puede calcular para un lote específico o todos los lotes con evaluaciones.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
     @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion';
 GO

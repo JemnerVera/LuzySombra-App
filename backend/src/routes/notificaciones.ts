@@ -20,7 +20,7 @@ router.get('/contador', authenticateWebUser, async (req: Request, res: Response)
     // Contar alertas nuevas (pendientes o enviadas)
     const result = await query<{ total: number }>(`
       SELECT COUNT(*) as total
-      FROM evalImagen.Alerta
+      FROM evalImagen.alerta
       WHERE estado IN ('Pendiente', 'Enviada')
         AND fechaCreacion > @ultimaConsulta
         AND statusID = 1
@@ -70,7 +70,7 @@ router.get('/lista', authenticateWebUser, async (req: Request, res: Response) =>
         a.fechaCreacion,
         a.porcentajeLuzEvaluado,
         a.lotID
-      FROM evalImagen.Alerta a
+      FROM evalImagen.alerta a
       WHERE a.statusID = 1
       ORDER BY a.fechaCreacion DESC
     `, { limit });

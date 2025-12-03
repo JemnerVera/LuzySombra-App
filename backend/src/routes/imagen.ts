@@ -21,7 +21,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const result = await query<{ processedImageUrl: string | null }>(`
       SELECT processedImageUrl 
-      FROM evalImagen.AnalisisImagen 
+      FROM evalImagen.analisisImagen 
       WHERE analisisID = @analisisID 
         AND statusID = 1
     `, { analisisID });

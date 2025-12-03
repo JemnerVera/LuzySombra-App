@@ -17,9 +17,9 @@
 --      - evalImagen.UsuarioWeb
 --      - evalImagen.MensajeAlerta
 --   ✅ Stored Procedures (1):
---      - evalImagen.sp_CalcularLoteEvaluacion
+--      - evalImagen.usp_evalImagen_calcularLoteEvaluacion
 --   ✅ Triggers (1):
---      - evalImagen.trg_LoteEvaluacion_Alerta
+--      - evalImagen.trg_loteEvaluacionAlerta_AF_IU
 -- 
 -- ORDEN DE EJECUCIÓN:
 --   Ejecutar DESPUÉS de crear todos los componentes
@@ -162,13 +162,13 @@ PRINT '';
 PRINT '>>> VERIFICANDO STORED PROCEDURES...';
 PRINT '';
 
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_calcularLoteEvaluacion') AND type in (N'P', N'PC'))
 BEGIN
-    PRINT '✅ evalImagen.sp_CalcularLoteEvaluacion';
+    PRINT '✅ evalImagen.usp_evalImagen_calcularLoteEvaluacion';
 END
 ELSE
 BEGIN
-    PRINT '❌ evalImagen.sp_CalcularLoteEvaluacion - FALTA';
+    PRINT '❌ evalImagen.usp_evalImagen_calcularLoteEvaluacion - FALTA';
 END
 
 PRINT '';
@@ -179,13 +179,13 @@ PRINT '';
 PRINT '>>> VERIFICANDO TRIGGERS...';
 PRINT '';
 
-IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_loteEvaluacionAlerta_AF_IU' AND parent_id = OBJECT_ID('evalImagen.loteEvaluacion'))
 BEGIN
-    PRINT '✅ evalImagen.trg_LoteEvaluacion_Alerta';
+    PRINT '✅ evalImagen.trg_loteEvaluacionAlerta_AF_IU';
 END
 ELSE
 BEGIN
-    PRINT '❌ evalImagen.trg_LoteEvaluacion_Alerta - FALTA';
+    PRINT '❌ evalImagen.trg_loteEvaluacionAlerta_AF_IU - FALTA';
 END
 
 PRINT '';
@@ -199,8 +199,8 @@ PRINT '════════════════════════�
 PRINT '';
 
 IF @TablasFaltantes = 0 
-   AND EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
-   AND EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.LoteEvaluacion'))
+   AND EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_calcularLoteEvaluacion') AND type in (N'P', N'PC'))
+   AND EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_loteEvaluacionAlerta_AF_IU' AND parent_id = OBJECT_ID('evalImagen.loteEvaluacion'))
 BEGIN
     PRINT '✅ SISTEMA COMPLETO - Todos los componentes están instalados';
     PRINT '';

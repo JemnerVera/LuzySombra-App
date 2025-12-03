@@ -17,7 +17,7 @@ class RateLimitService {
   ): Promise<{ estaBloqueado: boolean; intentosRestantes: number }> {
     try {
       const result = await executeProcedure(
-        'evalImagen.sp_CheckRateLimit',
+        'evalImagen.usp_evalImagen_checkRateLimit',
         {
           deviceId: deviceId || null,
           username: username || null,
@@ -56,7 +56,7 @@ class RateLimitService {
   ): Promise<void> {
     try {
       await executeProcedure(
-        'evalImagen.sp_RegistrarIntentoLogin',
+        'evalImagen.usp_evalImagen_registrarIntentoLogin',
         {
           deviceId: deviceId || null,
           username: username || null,

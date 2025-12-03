@@ -2,7 +2,7 @@
 
 ## 🔄 Tablas que DEBEN ELIMINARSE y RECREARSE
 
-### 1. `evalImagen.Dispositivo` ⚠️
+### 1. `evalImagen.dispositivo` ⚠️
 
 **Razón:** Se agregaron nuevos campos y se modificaron constraints:
 - ✅ Nuevos campos: `apiKeyHash`, `apiKeyPlain`, `activationCode`, `activationCodeExpires`, `operarioNombre`, `fechaAsignacion`, `fechaRevocacion`
@@ -15,7 +15,7 @@
 **Scripts a ejecutar:**
 ```sql
 -- 1. Eliminar tabla (si existe)
-DROP TABLE IF EXISTS evalImagen.Dispositivo;
+DROP TABLE IF EXISTS evalImagen.dispositivo;
 GO
 
 -- 2. Recrear tabla con nuevos campos
@@ -26,7 +26,7 @@ GO
 
 ## 🆕 Tablas NUEVAS (crear por primera vez)
 
-### 1. `evalImagen.IntentoLogin` ✨
+### 1. `evalImagen.intentoLogin` ✨
 
 **Razón:** Tabla nueva para rate limiting y auditoría de intentos de login.
 
@@ -40,14 +40,14 @@ GO
 ## ✅ Tablas que NO necesitan cambios
 
 Las siguientes tablas **NO** fueron modificadas y **NO** necesitan recrearse:
-- ✅ `evalImagen.AnalisisImagen`
-- ✅ `evalImagen.UmbralLuz`
-- ✅ `evalImagen.LoteEvaluacion`
-- ✅ `evalImagen.Alerta`
-- ✅ `evalImagen.Mensaje`
-- ✅ `evalImagen.Contacto`
-- ✅ `evalImagen.MensajeAlerta`
-- ✅ `evalImagen.UsuarioWeb`
+- ✅ `evalImagen.analisisImagen`
+- ✅ `evalImagen.umbralLuz`
+- ✅ `evalImagen.loteEvaluacion`
+- ✅ `evalImagen.alerta`
+- ✅ `evalImagen.mensaje`
+- ✅ `evalImagen.contacto`
+- ✅ `evalImagen.mensajeAlerta`
+- ✅ `evalImagen.usuarioWeb`
 
 ---
 
@@ -57,7 +57,7 @@ Las siguientes tablas **NO** fueron modificadas y **NO** necesitan recrearse:
 
 ```sql
 -- 1. Eliminar tabla Dispositivo
-DROP TABLE IF EXISTS evalImagen.Dispositivo;
+DROP TABLE IF EXISTS evalImagen.dispositivo;
 GO
 
 -- 2. Recrear Dispositivo con nuevos campos
@@ -71,12 +71,12 @@ GO
 
 ```sql
 -- 1. BACKUP de datos existentes
-SELECT * INTO evalImagen.Dispositivo_BACKUP 
-FROM evalImagen.Dispositivo;
+SELECT * INTO evalImagen.dispositivo_BACKUP 
+FROM evalImagen.dispositivo;
 GO
 
 -- 2. Eliminar tabla Dispositivo
-DROP TABLE evalImagen.Dispositivo;
+DROP TABLE evalImagen.dispositivo;
 GO
 
 -- 3. Recrear Dispositivo con nuevos campos
@@ -90,7 +90,7 @@ GO
 -- Ejecutar: scripts/01_tables/10_evalImagen.IntentoLogin.sql
 
 -- 6. (Opcional) Eliminar backup después de verificar
--- DROP TABLE evalImagen.Dispositivo_BACKUP;
+-- DROP TABLE evalImagen.dispositivo_BACKUP;
 ```
 
 ---

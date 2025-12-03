@@ -76,7 +76,7 @@ class SqlServerService {
       }
 
       // Usar Stored Procedure
-      const result = await executeProcedure<JerarquiaRow>('evalImagen.sp_GetFieldData');
+      const result = await executeProcedure<JerarquiaRow>('evalImagen.usp_evalImagen_getFieldData');
       const rows = result.recordset;
 
       if (rows.length === 0) {
@@ -307,7 +307,7 @@ class SqlServerService {
 
       // Usar Stored Procedure sp_InsertAnalisisImagen
       const spResult = await executeProcedure(
-        'evalImagen.sp_InsertAnalisisImagen',
+        'evalImagen.usp_evalImagen_insertAnalisisImagen',
         {
           empresa: result.empresa,
           fundo: result.fundo,
@@ -492,7 +492,7 @@ class SqlServerService {
         LEFT JOIN GROWER.VARIETY v WITH (NOLOCK) 
           ON p.varietyID = v.varietyID 
           AND v.statusID = 1
-        LEFT JOIN dbo.vwc_CianamidaFenologia cf WITH (NOLOCK) 
+        LEFT JOIN dbo.vwc_Cianamida_fenologia cf WITH (NOLOCK) 
           ON lp.lotID = cf.lotID
         LEFT JOIN evalImagen.loteEvaluacion le WITH (NOLOCK) 
           ON lp.lotID = le.lotID 

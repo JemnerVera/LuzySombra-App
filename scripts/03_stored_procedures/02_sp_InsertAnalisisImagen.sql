@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_InsertAnalisisImagen
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Insertar análisis de imagen y obtener IDs necesarios desde nombres
@@ -7,7 +7,7 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Stored Procedures:
---      - evalImagen.sp_InsertAnalisisImagen
+--      - evalImagen.usp_evalImagen_insertAnalisisImagen
 --   ✅ Extended Properties:
 --      - Documentación de stored procedure y parámetros
 -- 
@@ -56,11 +56,11 @@ GO
 -- =====================================================
 -- Crear Stored Procedure
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_InsertAnalisisImagen') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_InsertAnalisisImagen;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_insertAnalisisImagen') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_insertAnalisisImagen;
 GO
 
-CREATE PROCEDURE evalImagen.sp_InsertAnalisisImagen
+CREATE PROCEDURE evalImagen.usp_evalImagen_insertAnalisisImagen
     @empresa VARCHAR(100),
     @fundo VARCHAR(100),
     @sector VARCHAR(100),
@@ -199,9 +199,9 @@ BEGIN
         -- 7. Obtener el ID insertado
         SET @analisisID = SCOPE_IDENTITY();
         
-        -- 8. Ejecutar sp_CalcularLoteEvaluacion para actualizar estadísticas
+        -- 8. Ejecutar usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas
         BEGIN TRY
-            EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = @lotID;
+            EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @LotID = @lotID;
         END TRY
         BEGIN CATCH
             -- Si falla el cálculo, solo loguear pero no fallar la inserción
@@ -229,16 +229,16 @@ GO
 -- =====================================================
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description',
-    @value = N'Inserta un análisis de imagen en evalImagen.analisisImagen, obteniendo automáticamente los IDs necesarios desde los nombres de empresa, fundo, sector y lote. También ejecuta sp_CalcularLoteEvaluacion para actualizar estadísticas.',
+    @value = N'Inserta un análisis de imagen en evalImagen.analisisImagen, obteniendo automáticamente los IDs necesarios desde los nombres de empresa, fundo, sector y lote. También ejecuta usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas.',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen';
 GO
 
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description',
     @value = N'Nombre de la empresa (businessName)',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
     @level2type = N'PARAMETER', @level2name = N'@empresa';
 GO
 
@@ -246,7 +246,7 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Nombre del fundo (Description)',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
     @level2type = N'PARAMETER', @level2name = N'@fundo';
 GO
 
@@ -254,7 +254,7 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Nombre del sector (stage)',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
     @level2type = N'PARAMETER', @level2name = N'@sector';
 GO
 
@@ -262,7 +262,7 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Nombre del lote (name)',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
     @level2type = N'PARAMETER', @level2name = N'@lote';
 GO
 
@@ -270,10 +270,10 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'ID del análisis insertado (OUTPUT)',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_InsertAnalisisImagen',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
     @level2type = N'PARAMETER', @level2name = N'@analisisID';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_InsertAnalisisImagen creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen creado exitosamente';
 GO
 

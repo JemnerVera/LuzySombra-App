@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Tabla evalImagen.IntentoLogin
+-- SCRIPT: Crear Tabla evalImagen.intentoLogin
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Servidor: 10.1.10.4
 -- Tipo: Tabla
@@ -8,7 +8,17 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - evalImagen.IntentoLogin
+--      - evalImagen.intentoLogin
+--   ✅ Índices:
+--      - IDX_intentoLogin_deviceId_fechaIntento_001 (NONCLUSTERED, filtered)
+--      - IDX_intentoLogin_username_fechaIntento_002 (NONCLUSTERED, filtered)
+--      - IDX_intentoLogin_ipAddress_fechaIntento_003 (NONCLUSTERED, filtered)
+--   ✅ Constraints:
+--      - PK_intentoLogin (PRIMARY KEY)
+--      - CK_intentoLogin_deviceOrUser_01 (CHECK)
+--   ✅ Extended Properties:
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
@@ -45,11 +55,11 @@ END
 GO
 
 -- =====================================================
--- 2. Crear Tabla evalImagen.IntentoLogin
+-- 2. Crear Tabla evalImagen.intentoLogin
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.IntentoLogin') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.intentoLogin') AND type in (N'U'))
 BEGIN
-    CREATE TABLE evalImagen.IntentoLogin (
+    CREATE TABLE evalImagen.intentoLogin (
         -- Clave primaria
         intentoID INT IDENTITY(1,1) NOT NULL,
         
@@ -65,129 +75,142 @@ BEGIN
         -- Timestamp
         fechaIntento DATETIME NOT NULL DEFAULT GETDATE(),
         
-        -- Constraints
-        CONSTRAINT PK_IntentoLogin PRIMARY KEY (intentoID),
-        CONSTRAINT CK_IntentoLogin_DeviceOrUser CHECK (
+        -- Constraints (con correlativo según estándar)
+        CONSTRAINT PK_intentoLogin PRIMARY KEY (intentoID),
+        CONSTRAINT CK_intentoLogin_deviceOrUser_01 CHECK (
             (deviceId IS NOT NULL AND username IS NULL) OR 
             (deviceId IS NULL AND username IS NOT NULL)
         )
     );
     
-    PRINT '[OK] Tabla evalImagen.IntentoLogin creada';
+    PRINT '[OK] Tabla evalImagen.intentoLogin creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.IntentoLogin ya existe';
+    PRINT '[INFO] Tabla evalImagen.intentoLogin ya existe';
 END
 GO
 
 -- =====================================================
--- 3. Crear Índices
+-- 3. Crear Índices (con correlativo)
 -- =====================================================
 
 -- Índice para rate limiting por deviceId
 IF NOT EXISTS (
     SELECT * FROM sys.indexes 
-    WHERE name = 'IX_IntentoLogin_DeviceId_Fecha' 
-    AND object_id = OBJECT_ID('evalImagen.IntentoLogin')
+    WHERE name = 'IDX_intentoLogin_deviceId_fechaIntento_001' 
+    AND object_id = OBJECT_ID('evalImagen.intentoLogin')
 )
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_IntentoLogin_DeviceId_Fecha 
-    ON evalImagen.IntentoLogin(deviceId, fechaIntento DESC)
+    CREATE NONCLUSTERED INDEX IDX_intentoLogin_deviceId_fechaIntento_001 
+    ON evalImagen.intentoLogin(deviceId, fechaIntento DESC)
     WHERE exitoso = 0;
     
-    PRINT '[OK] Índice IX_IntentoLogin_DeviceId_Fecha creado';
+    PRINT '[OK] Índice IDX_intentoLogin_deviceId_fechaIntento_001 creado';
 END
 GO
 
 -- Índice para rate limiting por username
 IF NOT EXISTS (
     SELECT * FROM sys.indexes 
-    WHERE name = 'IX_IntentoLogin_Username_Fecha' 
-    AND object_id = OBJECT_ID('evalImagen.IntentoLogin')
+    WHERE name = 'IDX_intentoLogin_username_fechaIntento_002' 
+    AND object_id = OBJECT_ID('evalImagen.intentoLogin')
 )
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_IntentoLogin_Username_Fecha 
-    ON evalImagen.IntentoLogin(username, fechaIntento DESC)
+    CREATE NONCLUSTERED INDEX IDX_intentoLogin_username_fechaIntento_002 
+    ON evalImagen.intentoLogin(username, fechaIntento DESC)
     WHERE exitoso = 0;
     
-    PRINT '[OK] Índice IX_IntentoLogin_Username_Fecha creado';
+    PRINT '[OK] Índice IDX_intentoLogin_username_fechaIntento_002 creado';
 END
 GO
 
 -- Índice para rate limiting por IP
 IF NOT EXISTS (
     SELECT * FROM sys.indexes 
-    WHERE name = 'IX_IntentoLogin_IpAddress_Fecha' 
-    AND object_id = OBJECT_ID('evalImagen.IntentoLogin')
+    WHERE name = 'IDX_intentoLogin_ipAddress_fechaIntento_003' 
+    AND object_id = OBJECT_ID('evalImagen.intentoLogin')
 )
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_IntentoLogin_IpAddress_Fecha 
-    ON evalImagen.IntentoLogin(ipAddress, fechaIntento DESC)
+    CREATE NONCLUSTERED INDEX IDX_intentoLogin_ipAddress_fechaIntento_003 
+    ON evalImagen.intentoLogin(ipAddress, fechaIntento DESC)
     WHERE exitoso = 0;
     
-    PRINT '[OK] Índice IX_IntentoLogin_IpAddress_Fecha creado';
+    PRINT '[OK] Índice IDX_intentoLogin_ipAddress_fechaIntento_003 creado';
 END
 GO
 
 -- =====================================================
--- 4. Comentarios
+-- 4. Agregar Extended Properties (según estándar)
 -- =====================================================
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
-    @value = N'Registra intentos de login (exitosos y fallidos) para rate limiting y auditoría', 
-    @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin';
+
+-- Tabla (MS_TablaDescription según estándar)
+IF NOT EXISTS (
+    SELECT * FROM sys.extended_properties 
+    WHERE major_id = OBJECT_ID('evalImagen.intentoLogin') 
+    AND minor_id = 0 
+    AND name = 'MS_TablaDescription'
+)
+BEGIN
+    EXEC sys.sp_addextendedproperty 
+        @name = N'MS_TablaDescription', 
+        @value = N'Registra intentos de login (exitosos y fallidos) para rate limiting y auditoría', 
+        @level0type = N'SCHEMA', @level0name = 'evalImagen',
+        @level1type = N'TABLE', @level1name = 'intentoLogin';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
+END
 GO
 
+-- Columnas (MS_ColXDesc según estándar)
 EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col1Desc', 
     @value = N'ID del dispositivo Android (NULL si es usuario web)', 
     @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin',
+    @level1type = N'TABLE', @level1name = 'intentoLogin',
     @level2type = N'COLUMN', @level2name = 'deviceId';
 GO
 
 EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col2Desc', 
     @value = N'Username del usuario web (NULL si es dispositivo)', 
     @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin',
+    @level1type = N'TABLE', @level1name = 'intentoLogin',
     @level2type = N'COLUMN', @level2name = 'username';
 GO
 
 EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col3Desc', 
     @value = N'IP del cliente (IPv4 o IPv6)', 
     @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin',
+    @level1type = N'TABLE', @level1name = 'intentoLogin',
     @level2type = N'COLUMN', @level2name = 'ipAddress';
 GO
 
 EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col4Desc', 
     @value = N'1 = login exitoso, 0 = fallido', 
     @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin',
+    @level1type = N'TABLE', @level1name = 'intentoLogin',
     @level2type = N'COLUMN', @level2name = 'exitoso';
 GO
 
 EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col5Desc', 
     @value = N'Razón del fallo (ej: "Invalid credentials", "Device disabled")', 
     @level0type = N'SCHEMA', @level0name = 'evalImagen',
-    @level1type = N'TABLE', @level1name = 'IntentoLogin',
+    @level1type = N'TABLE', @level1name = 'intentoLogin',
     @level2type = N'COLUMN', @level2name = 'motivoFallo';
 GO
 
 PRINT '';
 PRINT '========================================';
-PRINT 'TABLA evalImagen.IntentoLogin CREADA EXITOSAMENTE';
+PRINT 'TABLA evalImagen.intentoLogin CREADA EXITOSAMENTE';
 PRINT '========================================';
 PRINT '';
 PRINT 'Índices creados:';
-PRINT '  - IX_IntentoLogin_DeviceId_Fecha (rate limiting por dispositivo)';
-PRINT '  - IX_IntentoLogin_Username_Fecha (rate limiting por usuario)';
-PRINT '  - IX_IntentoLogin_IpAddress_Fecha (rate limiting por IP)';
+PRINT '  - IDX_intentoLogin_deviceId_fechaIntento_001 (rate limiting por dispositivo)';
+PRINT '  - IDX_intentoLogin_username_fechaIntento_002 (rate limiting por usuario)';
+PRINT '  - IDX_intentoLogin_ipAddress_fechaIntento_003 (rate limiting por IP)';
 PRINT '';
-
+PRINT '[✅] Script completado según estándares AgroMigiva';
+GO

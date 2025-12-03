@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_GetFieldData
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_getFieldData
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Obtener datos jerárquicos de empresas, fundos, sectores y lotes
@@ -7,7 +7,7 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Stored Procedures:
---      - evalImagen.sp_GetFieldData
+--      - evalImagen.usp_evalImagen_getFieldData
 --   ✅ Extended Properties:
 --      - Documentación de stored procedure
 -- 
@@ -44,11 +44,11 @@ GO
 -- =====================================================
 -- Crear Stored Procedure
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_GetFieldData') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_GetFieldData;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_getFieldData') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_getFieldData;
 GO
 
-CREATE PROCEDURE evalImagen.sp_GetFieldData
+CREATE PROCEDURE evalImagen.usp_evalImagen_getFieldData
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -81,9 +81,9 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Obtiene la jerarquía completa de empresas, fundos, sectores y lotes activos para uso en filtros del frontend.',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_GetFieldData';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_getFieldData';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_GetFieldData creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_getFieldData creado exitosamente';
 GO
 

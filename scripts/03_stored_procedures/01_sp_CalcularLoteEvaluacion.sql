@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_CalcularLoteEvaluacion
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_calcularLoteEvaluacion
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Calcular estadísticas agregadas por lote y actualizar/insertar en LoteEvaluacion
@@ -7,7 +7,7 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Stored Procedures:
---      - evalImagen.sp_CalcularLoteEvaluacion
+--      - evalImagen.usp_evalImagen_calcularLoteEvaluacion
 --   ✅ Extended Properties:
 --      - Documentación de stored procedure y parámetros
 -- 
@@ -45,11 +45,11 @@ GO
 -- =====================================================
 -- Crear Stored Procedure
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_CalcularLoteEvaluacion') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_CalcularLoteEvaluacion;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_calcularLoteEvaluacion') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_calcularLoteEvaluacion;
 GO
 
-CREATE PROCEDURE evalImagen.sp_CalcularLoteEvaluacion
+CREATE PROCEDURE evalImagen.usp_evalImagen_calcularLoteEvaluacion
     @LotID INT = NULL, -- NULL = calcular todos los lotes con evaluaciones
     @PeriodoDias INT = 30, -- Período de evaluación en días (por defecto último mes)
     @ForzarRecalculo BIT = 0 -- Si 1, recalcula incluso si ya existe
@@ -221,34 +221,34 @@ EXEC sp_addextendedproperty
     @name = N'MS_Description', 
     @value = N'Calcula estadísticas agregadas por lote y actualiza/inserta en evalImagen.loteEvaluacion. Puede calcular para un lote específico o todos los lotes con evaluaciones.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_calcularLoteEvaluacion';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID del lote a calcular. NULL = calcular todos los lotes con evaluaciones', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@LotID';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_calcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@LotID';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Período de evaluación en días desde la fecha actual (por defecto 30 días = último mes)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@PeriodoDias';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_calcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@PeriodoDias';
 GO
 
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recalcula incluso si ya existe una evaluación reciente', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'sp_CalcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@ForzarRecalculo';
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_calcularLoteEvaluacion', @level2type = N'PARAMETER', @level2name = N'@ForzarRecalculo';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_CalcularLoteEvaluacion creado';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_calcularLoteEvaluacion creado';
 PRINT '';
 PRINT '=== Ejemplos de uso ===';
 PRINT '-- Calcular para un lote específico:';
-PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = 1003;';
+PRINT 'EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @LotID = 1003;';
 PRINT '';
 PRINT '-- Calcular todos los lotes (último mes):';
-PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion;';
+PRINT 'EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion;';
 PRINT '';
 PRINT '-- Calcular todos los lotes (últimos 60 días):';
-PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @PeriodoDias = 60;';
+PRINT 'EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @PeriodoDias = 60;';
 PRINT '';
 PRINT '-- Forzar recálculo de todos los lotes:';
-PRINT 'EXEC evalImagen.sp_CalcularLoteEvaluacion @ForzarRecalculo = 1;';
+PRINT 'EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @ForzarRecalculo = 1;';
 GO
 

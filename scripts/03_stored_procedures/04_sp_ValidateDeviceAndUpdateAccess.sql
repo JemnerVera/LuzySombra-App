@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_ValidateDeviceAndUpdateAccess
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Validar credenciales de dispositivo y actualizar último acceso
@@ -7,7 +7,7 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Stored Procedures:
---      - evalImagen.sp_ValidateDeviceAndUpdateAccess
+--      - evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess
 --   ✅ Extended Properties:
 --      - Documentación de stored procedure y parámetros
 -- 
@@ -44,11 +44,11 @@ GO
 -- =====================================================
 -- Crear Stored Procedure
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_ValidateDeviceAndUpdateAccess') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_ValidateDeviceAndUpdateAccess;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess;
 GO
 
-CREATE PROCEDURE evalImagen.sp_ValidateDeviceAndUpdateAccess
+CREATE PROCEDURE evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess
     @deviceId VARCHAR(100),
     @apiKey VARCHAR(255),
     @dispositivoID INT OUTPUT,
@@ -109,14 +109,14 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Valida las credenciales de un dispositivo (deviceId y apiKey) y actualiza su último acceso si es válido y está activo.',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_ValidateDeviceAndUpdateAccess';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_validateDeviceAndUpdateAccess';
 GO
 
 EXEC sys.sp_addextendedproperty 
     @name = N'MS_Description',
     @value = N'ID único del dispositivo',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_ValidateDeviceAndUpdateAccess',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_validateDeviceAndUpdateAccess',
     @level2type = N'PARAMETER', @level2name = N'@deviceId';
 GO
 
@@ -124,7 +124,7 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'API Key del dispositivo',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_ValidateDeviceAndUpdateAccess',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_validateDeviceAndUpdateAccess',
     @level2type = N'PARAMETER', @level2name = N'@apiKey';
 GO
 
@@ -132,10 +132,10 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'1 si las credenciales son válidas y el dispositivo está activo, 0 en caso contrario',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_ValidateDeviceAndUpdateAccess',
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_validateDeviceAndUpdateAccess',
     @level2type = N'PARAMETER', @level2name = N'@isValid';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_ValidateDeviceAndUpdateAccess creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_validateDeviceAndUpdateAccess creado exitosamente';
 GO
 

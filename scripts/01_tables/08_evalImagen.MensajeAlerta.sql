@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Tabla evalImagen.MensajeAlerta
+-- SCRIPT: Crear Tabla evalImagen.mensajeAlerta
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Servidor: 10.1.10.4
 -- Schema: evalImagen
@@ -8,30 +8,31 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - evalImagen.MensajeAlerta
+--      - evalImagen.mensajeAlerta
 --   ✅ Constraints:
---      - PK_MensajeAlerta (PRIMARY KEY)
---      - FK_MensajeAlerta_Mensaje (FOREIGN KEY → evalImagen.Mensaje)
---      - FK_MensajeAlerta_Alerta (FOREIGN KEY → evalImagen.Alerta)
---      - FK_MensajeAlerta_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_MensajeAlerta_UsuarioModifica (FOREIGN KEY → MAST.USERS)
---      - UQ_MensajeAlerta_MensajeAlerta (UNIQUE - evita duplicados)
+--      - PK_mensajeAlerta (PRIMARY KEY)
+--      - FK_mensajeAlerta_mensaje_01 (FOREIGN KEY → evalImagen.mensaje)
+--      - FK_mensajeAlerta_alerta_02 (FOREIGN KEY → evalImagen.alerta)
+--      - FK_mensajeAlerta_usuarioCrea_03 (FOREIGN KEY → MAST.USERS)
+--      - FK_mensajeAlerta_usuarioModifica_04 (FOREIGN KEY → MAST.USERS)
+--      - UQ_mensajeAlerta_mensajeID_alertaID_01 (UNIQUE - evita duplicados)
 --   ✅ Índices:
---      - IDX_MensajeAlerta_MensajeID (NONCLUSTERED)
---      - IDX_MensajeAlerta_AlertaID (NONCLUSTERED)
+--      - IDX_mensajeAlerta_mensajeID_statusID_001 (NONCLUSTERED)
+--      - IDX_mensajeAlerta_alertaID_statusID_002 (NONCLUSTERED)
 --   ✅ Extended Properties:
---      - Documentación de tabla y columnas principales
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
 -- 
 -- DEPENDENCIAS:
 --   ⚠️  Requiere: Schema evalImagen (debe existir)
---   ⚠️  Requiere: evalImagen.Mensaje (tabla debe existir)
---   ⚠️  Requiere: evalImagen.Alerta (tabla debe existir)
+--   ⚠️  Requiere: evalImagen.mensaje (tabla debe existir)
+--   ⚠️  Requiere: evalImagen.alerta (tabla debe existir)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   8 de 8 - Después de crear evalImagen.Mensaje y evalImagen.Alerta
+--   8 de 10 - Después de crear evalImagen.mensaje y evalImagen.alerta
 -- 
 -- USADO POR:
 --   - Backend: src/services/alertService.ts (mensajes consolidados)
@@ -46,11 +47,11 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- Crear Tabla evalImagen.MensajeAlerta
+-- Crear Tabla evalImagen.mensajeAlerta
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.MensajeAlerta') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.mensajeAlerta') AND type in (N'U'))
 BEGIN
-    CREATE TABLE evalImagen.MensajeAlerta (
+    CREATE TABLE evalImagen.mensajeAlerta (
         -- Clave primaria compuesta
         mensajeID INT NOT NULL,
         alertaID INT NOT NULL,
@@ -62,76 +63,87 @@ BEGIN
         usuarioModificaID INT NULL,
         fechaModificacion DATETIME NULL,
         
-        -- Constraints con nomenclatura estándar Migiva
-        CONSTRAINT PK_MensajeAlerta PRIMARY KEY (mensajeID, alertaID),
-        CONSTRAINT FK_MensajeAlerta_Mensaje 
-            FOREIGN KEY (mensajeID) REFERENCES evalImagen.Mensaje(mensajeID),
-        CONSTRAINT FK_MensajeAlerta_Alerta 
-            FOREIGN KEY (alertaID) REFERENCES evalImagen.Alerta(alertaID),
-        CONSTRAINT FK_MensajeAlerta_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_MensajeAlerta_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT UQ_MensajeAlerta_MensajeAlerta 
+        -- Constraints con nomenclatura estándar Migiva (con correlativos)
+        CONSTRAINT PK_mensajeAlerta PRIMARY KEY (mensajeID, alertaID),
+        CONSTRAINT FK_mensajeAlerta_mensaje_01 
+            FOREIGN KEY (mensajeID) REFERENCES evalImagen.mensaje(mensajeID),
+        CONSTRAINT FK_mensajeAlerta_alerta_02 
+            FOREIGN KEY (alertaID) REFERENCES evalImagen.alerta(alertaID),
+        CONSTRAINT FK_mensajeAlerta_usuarioCrea_03 
+            FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_mensajeAlerta_usuarioModifica_04 
+            FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT UQ_mensajeAlerta_mensajeID_alertaID_01 
             UNIQUE (mensajeID, alertaID)
     );
     
-    PRINT '[OK] Tabla evalImagen.MensajeAlerta creada';
+    PRINT '[OK] Tabla evalImagen.mensajeAlerta creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.MensajeAlerta ya existe';
+    PRINT '[INFO] Tabla evalImagen.mensajeAlerta ya existe';
 END
 GO
 
 -- =====================================================
--- Crear Índices
+-- Crear Índices (con correlativo)
 -- =====================================================
 
 -- Índice para búsqueda por mensajeID
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_MensajeAlerta_MensajeID' AND object_id = OBJECT_ID('evalImagen.MensajeAlerta'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensajeAlerta_mensajeID_statusID_001' AND object_id = OBJECT_ID('evalImagen.mensajeAlerta'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_MensajeAlerta_MensajeID 
-    ON evalImagen.MensajeAlerta(mensajeID, statusID)
+    CREATE NONCLUSTERED INDEX IDX_mensajeAlerta_mensajeID_statusID_001 
+    ON evalImagen.mensajeAlerta(mensajeID, statusID)
     WHERE statusID = 1;
-    PRINT '[OK] Índice IDX_MensajeAlerta_MensajeID creado';
+    PRINT '[OK] Índice IDX_mensajeAlerta_mensajeID_statusID_001 creado';
 END
 GO
 
 -- Índice para búsqueda por alertaID
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_MensajeAlerta_AlertaID' AND object_id = OBJECT_ID('evalImagen.MensajeAlerta'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensajeAlerta_alertaID_statusID_002' AND object_id = OBJECT_ID('evalImagen.mensajeAlerta'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_MensajeAlerta_AlertaID 
-    ON evalImagen.MensajeAlerta(alertaID, statusID)
+    CREATE NONCLUSTERED INDEX IDX_mensajeAlerta_alertaID_statusID_002 
+    ON evalImagen.mensajeAlerta(alertaID, statusID)
     WHERE statusID = 1;
-    PRINT '[OK] Índice IDX_MensajeAlerta_AlertaID creado';
+    PRINT '[OK] Índice IDX_mensajeAlerta_alertaID_statusID_002 creado';
 END
 GO
 
 -- =====================================================
--- Agregar Extended Properties (Documentación)
+-- Agregar Extended Properties (según estándar)
 -- =====================================================
 
--- Tabla
-EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
-    @value = N'Tabla de relación entre Mensaje y Alerta. Permite que un mensaje consolidado agrupe múltiples alertas.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'MensajeAlerta';
+-- Tabla (MS_TablaDescription según estándar)
+IF NOT EXISTS (
+    SELECT * FROM sys.extended_properties 
+    WHERE major_id = OBJECT_ID('evalImagen.mensajeAlerta') 
+    AND minor_id = 0 
+    AND name = 'MS_TablaDescription'
+)
+BEGIN
+    EXEC sp_addextendedproperty 
+        @name = N'MS_TablaDescription', 
+        @value = N'Tabla de relación entre mensaje y alerta. Permite que un mensaje consolidado agrupe múltiples alertas.', 
+        @level0type = N'SCHEMA', @level0name = N'evalImagen',
+        @level1type = N'TABLE', @level1name = N'mensajeAlerta';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
+END
 GO
 
--- Columnas
+-- Columnas (MS_ColXDesc según estándar)
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col1Desc', 
     @value = N'Foreign Key al mensaje consolidado', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'MensajeAlerta',
+    @level1type = N'TABLE', @level1name = N'mensajeAlerta',
     @level2type = N'COLUMN', @level2name = N'mensajeID';
 GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col2Desc', 
     @value = N'Foreign Key a la alerta incluida en el mensaje', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'MensajeAlerta',
+    @level1type = N'TABLE', @level1name = N'mensajeAlerta',
     @level2type = N'COLUMN', @level2name = N'alertaID';
 GO
 
@@ -139,7 +151,5 @@ PRINT '[OK] Comentarios extendidos agregados';
 GO
 
 PRINT '[✅] Script completado exitosamente';
-PRINT '';
-PRINT 'Tabla evalImagen.MensajeAlerta creada para mensajes consolidados.';
+PRINT 'Tabla evalImagen.mensajeAlerta creada según estándares AgroMigiva';
 GO
-

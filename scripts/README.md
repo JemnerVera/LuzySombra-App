@@ -30,18 +30,18 @@ scripts/
 **Nota:** Las tablas ya incluyen todas las columnas necesarias (`originalImageUrl`, `fundoID`, `sectorID`, `apiKeyHash`, campos de activación, etc.). No se requieren scripts de modificación o migración.
 
 ### 2. Vistas
-11. `02_views/01_vwc_CianamidaFenologia.sql` - Vista de cianamida y fenología (puede ejecutarse antes)
+11. `02_views/01_vwc_CianamidaFenologia.sql` - Vista de cianamida y fenología (ahora: `vwc_Cianamida_fenologia`) (puede ejecutarse antes)
 
 ### 3. Stored Procedures
 12. `03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql` - SP para calcular estadísticas
 
 ### 4. Triggers
-13. `05_triggers/01_trg_LoteEvaluacion_Alerta.sql` - Trigger que crea alertas automáticamente
+13. `05_triggers/01_trg_loteEvaluacion_Alerta.sql` - Trigger que crea alertas automáticamente (ahora: `trg_loteEvaluacionAlerta_AF_IU`)
 
 ### 5. Poblar Datos
 14. Ejecutar SP para calcular estadísticas iniciales:
    ```sql
-   EXEC evalImagen.sp_CalcularLoteEvaluacion @LotID = <lotID>;
+   EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @LotID = <lotID>;
    ```
 
 ### 6. Verificación
@@ -64,9 +64,9 @@ scripts/
 ## 📝 Convenciones de Nomenclatura
 
 - **Tablas**: `<numero>_<schema>.<tabla>.sql` (ej: `01_evalImagen.AnalisisImagen.sql`)
-- **Vistas**: `<numero>_<nombre_vista>.sql` (ej: `01_vwc_CianamidaFenologia.sql`)
-- **Stored Procedures**: `<numero>_sp_<nombre>.sql` (ej: `01_sp_CalcularLoteEvaluacion.sql`)
-- **Triggers**: `<numero>_trg_<nombre>.sql` (ej: `01_trg_LoteEvaluacion_Alerta.sql`)
+- **Vistas**: `<numero>_<nombre_vista>.sql` (ej: `01_vwc_CianamidaFenologia.sql`) - Nombres internos: `vwc_[Modulo]_[nombreLowerCamelCase]` o `vwp_[Modulo]_[nombreLowerCamelCase]`
+- **Stored Procedures**: `<numero>_sp_<nombre>.sql` (ej: `01_sp_CalcularLoteEvaluacion.sql`) - Nombres internos: `usp_evalImagen_<nombreLowerCamelCase>`
+- **Triggers**: `<numero>_trg_<nombre>.sql` (ej: `01_trg_loteEvaluacion_Alerta.sql`) - Nombres internos: `trg_[nombreLowerCamelCase]_[Tipo]_[DML]` (ej: `trg_loteEvaluacionAlerta_AF_IU`)
 - **Modificaciones**: (Ya no se requieren - las tablas están completas)
 - **Utilidades**: `<numero>_<descripcion>.sql` (ej: `01_delete_analisis_imagen.sql`)
 - **Tests**: `<numero>_test_<objeto>.sql` (ej: `01_test_vwc_CianamidaFenologia.sql`)

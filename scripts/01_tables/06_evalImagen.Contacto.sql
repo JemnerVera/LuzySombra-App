@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear tabla evalImagen.Contacto
+-- SCRIPT: Crear tabla evalImagen.contacto
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Almacenar contactos/destinatarios para alertas por email
@@ -7,21 +7,24 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - evalImagen.Contacto
+--      - evalImagen.contacto
 --   ✅ Índices:
---      - IDX_Contacto_Email (UNIQUE)
---      - IDX_Contacto_Activo (NONCLUSTERED, filtered)
---      - IDX_Contacto_Tipo (NONCLUSTERED, filtered)
---      - IDX_Contacto_FundoSector (NONCLUSTERED, filtered)
+--      - IDX_contacto_email_001 (UNIQUE)
+--      - IDX_contacto_activo_statusID_tipo_002 (NONCLUSTERED, filtered)
+--      - IDX_contacto_tipo_recibirAlertasCriticas_recibirAlertasAdvertencias_003 (NONCLUSTERED, filtered)
+--      - IDX_contacto_fundoID_sectorID_activo_004 (NONCLUSTERED, filtered)
 --   ✅ Constraints:
---      - PK_Contacto (PRIMARY KEY)
---      - FK_Contacto_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_Contacto_UsuarioModifica (FOREIGN KEY → MAST.USERS)
---      - CK_Contacto_Tipo (CHECK)
---      - CK_Contacto_Email (CHECK)
---      - UQ_Contacto_Email (UNIQUE)
+--      - PK_contacto (PRIMARY KEY)
+--      - FK_contacto_farm_01 (FOREIGN KEY → GROWER.FARMS)
+--      - FK_contacto_stage_02 (FOREIGN KEY → GROWER.STAGE)
+--      - FK_contacto_usuarioCrea_03 (FOREIGN KEY → MAST.USERS)
+--      - FK_contacto_usuarioModifica_04 (FOREIGN KEY → MAST.USERS)
+--      - CK_contacto_tipoValido_01 (CHECK)
+--      - CK_contacto_emailValido_02 (CHECK)
+--      - UQ_contacto_email_01 (UNIQUE)
 --   ✅ Extended Properties:
---      - Documentación de tabla y columnas principales
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
@@ -42,11 +45,11 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- Crear tabla evalImagen.Contacto
+-- Crear tabla evalImagen.contacto
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Contacto' AND schema_id = SCHEMA_ID('evalImagen'))
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'contacto' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    CREATE TABLE evalImagen.Contacto (
+    CREATE TABLE evalImagen.contacto (
         contactoID INT IDENTITY(1,1) NOT NULL,
         
         -- Información del contacto
@@ -78,10 +81,10 @@ BEGIN
         usuarioModificaID INT NULL,
         fechaModificacion DATETIME NULL,
         
-        CONSTRAINT PK_Contacto PRIMARY KEY CLUSTERED (contactoID),
-        CONSTRAINT UQ_Contacto_Email UNIQUE (email),
-        CONSTRAINT CK_Contacto_Tipo CHECK (tipo IN ('General', 'Admin', 'Agronomo', 'Manager', 'Supervisor', 'Tecnico', 'Otro')),
-        CONSTRAINT CK_Contacto_Email CHECK (
+        CONSTRAINT PK_contacto PRIMARY KEY CLUSTERED (contactoID),
+        CONSTRAINT UQ_contacto_email_01 UNIQUE (email),
+        CONSTRAINT CK_contacto_tipoValido_01 CHECK (tipo IN ('General', 'Admin', 'Agronomo', 'Manager', 'Supervisor', 'Tecnico', 'Otro')),
+        CONSTRAINT CK_contacto_emailValido_02 CHECK (
             email LIKE '%_@_%._%' 
             AND email NOT LIKE '%..%' 
             AND email NOT LIKE '%@%@%'
@@ -89,128 +92,111 @@ BEGIN
             AND LEFT(email, 1) != '@'
             AND RIGHT(email, 1) != '@'
         ), -- Validación mejorada de email
-        CONSTRAINT FK_Contacto_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
-        CONSTRAINT FK_Contacto_Stage FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
-        CONSTRAINT FK_Contacto_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_Contacto_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID)
+        CONSTRAINT FK_contacto_farm_01 FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
+        CONSTRAINT FK_contacto_stage_02 FOREIGN KEY (sectorID) REFERENCES GROWER.STAGE(stageID),
+        CONSTRAINT FK_contacto_usuarioCrea_03 FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_contacto_usuarioModifica_04 FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID)
     );
     
-    PRINT '[OK] Tabla evalImagen.Contacto creada';
+    PRINT '[OK] Tabla evalImagen.contacto creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.Contacto ya existe';
+    PRINT '[INFO] Tabla evalImagen.contacto ya existe';
 END
 GO
 
 -- =====================================================
--- Crear índices
+-- Crear índices (con correlativo)
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Email' AND object_id = OBJECT_ID('evalImagen.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_contacto_email_001' AND object_id = OBJECT_ID('evalImagen.contacto'))
 BEGIN
-    CREATE UNIQUE NONCLUSTERED INDEX IDX_Contacto_Email 
-    ON evalImagen.Contacto(email)
+    CREATE UNIQUE NONCLUSTERED INDEX IDX_contacto_email_001 
+    ON evalImagen.contacto(email)
     WHERE statusID = 1;
-    PRINT '[OK] Índice IDX_Contacto_Email creado';
+    PRINT '[OK] Índice IDX_contacto_email_001 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Activo' AND object_id = OBJECT_ID('evalImagen.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_contacto_activo_statusID_tipo_002' AND object_id = OBJECT_ID('evalImagen.contacto'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Contacto_Activo 
-    ON evalImagen.Contacto(activo, statusID, tipo)
+    CREATE NONCLUSTERED INDEX IDX_contacto_activo_statusID_tipo_002 
+    ON evalImagen.contacto(activo, statusID, tipo)
     WHERE statusID = 1 AND activo = 1;
-    PRINT '[OK] Índice IDX_Contacto_Activo creado';
+    PRINT '[OK] Índice IDX_contacto_activo_statusID_tipo_002 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_Tipo' AND object_id = OBJECT_ID('evalImagen.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_contacto_tipo_recibirAlertasCriticas_recibirAlertasAdvertencias_003' AND object_id = OBJECT_ID('evalImagen.contacto'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Contacto_Tipo 
-    ON evalImagen.Contacto(tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)
+    CREATE NONCLUSTERED INDEX IDX_contacto_tipo_recibirAlertasCriticas_recibirAlertasAdvertencias_003 
+    ON evalImagen.contacto(tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)
     WHERE statusID = 1 AND activo = 1;
-    PRINT '[OK] Índice IDX_Contacto_Tipo creado';
+    PRINT '[OK] Índice IDX_contacto_tipo_recibirAlertasCriticas_recibirAlertasAdvertencias_003 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Contacto_FundoSector' AND object_id = OBJECT_ID('evalImagen.Contacto'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_contacto_fundoID_sectorID_activo_004' AND object_id = OBJECT_ID('evalImagen.contacto'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Contacto_FundoSector
-    ON evalImagen.Contacto(fundoID, sectorID, activo)
+    CREATE NONCLUSTERED INDEX IDX_contacto_fundoID_sectorID_activo_004
+    ON evalImagen.contacto(fundoID, sectorID, activo)
     WHERE statusID = 1 AND activo = 1;
-    PRINT '[OK] Índice IDX_Contacto_FundoSector creado';
+    PRINT '[OK] Índice IDX_contacto_fundoID_sectorID_activo_004 creado';
 END
 GO
 
 -- =====================================================
--- Agregar Extended Properties
+-- Agregar Extended Properties (según estándar)
 -- =====================================================
 IF NOT EXISTS (
     SELECT * FROM sys.extended_properties 
-    WHERE major_id = OBJECT_ID('evalImagen.Contacto') 
+    WHERE major_id = OBJECT_ID('evalImagen.contacto') 
     AND minor_id = 0 
-    AND name = 'MS_Description'
+    AND name = 'MS_TablaDescription'
 )
 BEGIN
     EXEC sp_addextendedproperty 
-        @name = N'MS_Description', 
+        @name = N'MS_TablaDescription', 
         @value = N'Almacena contactos/destinatarios para alertas por email. Permite configurar filtros por tipo de alerta, variedad, fundo o sector.', 
         @level0type = N'SCHEMA', @level0name = N'evalImagen',
-        @level1type = N'TABLE', @level1name = N'Contacto';
-    PRINT '[OK] Extended property agregado a tabla';
+        @level1type = N'TABLE', @level1name = N'contacto';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
 END
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Identificador único del contacto', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'contactoID';
+EXEC sp_addextendedproperty @name = N'MS_Col1Desc', @value = N'Identificador único del contacto', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'contactoID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Nombre completo del contacto', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'nombre';
+EXEC sp_addextendedproperty @name = N'MS_Col2Desc', @value = N'Nombre completo del contacto', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'nombre';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Email del contacto (único, validado)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'email';
+EXEC sp_addextendedproperty @name = N'MS_Col3Desc', @value = N'Email del contacto (único, validado)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'email';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Tipo de contacto: General, Admin, Agronomo, Manager, Supervisor, Tecnico, Otro', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'tipo';
+EXEC sp_addextendedproperty @name = N'MS_Col4Desc', @value = N'Tipo de contacto: General, Admin, Agronomo, Manager, Supervisor, Tecnico, Otro', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'tipo';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas críticas (CriticoRojo)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasCriticas';
+EXEC sp_addextendedproperty @name = N'MS_Col5Desc', @value = N'Si 1, recibe alertas críticas (CriticoRojo)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasCriticas';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si 1, recibe alertas de advertencia (CriticoAmarillo)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasAdvertencias';
+EXEC sp_addextendedproperty @name = N'MS_Col6Desc', @value = N'Si 1, recibe alertas de advertencia (CriticoAmarillo)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'recibirAlertasAdvertencias';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si NULL, recibe alertas de todos los fundos. Si tiene valor, solo de ese fundo específico. Se hace match con el fundo del lote que tiene la alerta.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'fundoID';
+EXEC sp_addextendedproperty @name = N'MS_Col7Desc', @value = N'Si NULL, recibe alertas de todos los fundos. Si tiene valor, solo de ese fundo específico. Se hace match con el fundo del lote que tiene la alerta.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'fundoID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Si NULL, recibe alertas de todos los sectores. Si tiene valor, solo de ese sector específico. Se hace match con el sector del lote que tiene la alerta.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Contacto', @level2type = N'COLUMN', @level2name = N'sectorID';
+EXEC sp_addextendedproperty @name = N'MS_Col8Desc', @value = N'Si NULL, recibe alertas de todos los sectores. Si tiene valor, solo de ese sector específico. Se hace match con el sector del lote que tiene la alerta.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'contacto', @level2type = N'COLUMN', @level2name = N'sectorID';
 GO
 
 PRINT '';
 PRINT '=== Script completado ===';
-PRINT '';
-PRINT 'Ejemplos de uso:';
-PRINT '  -- Insertar contacto que recibe todas las alertas:';
-PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, activo)';
-PRINT '  VALUES (''Juan Pérez'', ''juan@example.com'', ''Admin'', 1);';
-PRINT '';
-PRINT '  -- Insertar contacto que solo recibe alertas críticas:';
-PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, recibirAlertasCriticas, recibirAlertasAdvertencias)';
-PRINT '  VALUES (''María García'', ''maria@example.com'', ''Manager'', 1, 0);';
-PRINT '';
-PRINT '  -- Insertar contacto para un fundo específico:';
-PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, fundoID)';
-PRINT '  VALUES (''Carlos López'', ''carlos@example.com'', ''Agronomo'', 1);';
-PRINT '';
-PRINT '  -- Insertar contacto para un sector específico:';
-PRINT '  INSERT INTO evalImagen.Contacto (nombre, email, tipo, sectorID)';
-PRINT '  VALUES (''Ana Rodríguez'', ''ana@example.com'', ''Supervisor'', 5);';
+PRINT '[✅] Tabla evalImagen.contacto creada según estándares AgroMigiva';
 GO
-

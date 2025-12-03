@@ -7,20 +7,21 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - evalImagen.UmbralLuz
+--      - evalImagen.umbralLuz
 --   ✅ Índices:
---      - IDX_UmbralLuz_VariedadID (NONCLUSTERED, filtered)
---      - IDX_UmbralLuz_Tipo (NONCLUSTERED)
---      - IDX_UmbralLuz_Rango (NONCLUSTERED, filtered)
+--      - IDX_umbralLuz_variedadID_001 (NONCLUSTERED, filtered)
+--      - IDX_umbralLuz_tipo_activo_statusID_002 (NONCLUSTERED)
+--      - IDX_umbralLuz_minPorcentajeLuz_maxPorcentajeLuz_003 (NONCLUSTERED, filtered)
 --   ✅ Constraints:
---      - PK_UmbralLuz (PRIMARY KEY)
---      - FK_UmbralLuz_Variety (FOREIGN KEY → GROWER.VARIETY)
---      - FK_UmbralLuz_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_UmbralLuz_UsuarioModifica (FOREIGN KEY → MAST.USERS)
---      - CK_UmbralLuz_Tipo (CHECK)
---      - CK_UmbralLuz_Porcentaje (CHECK)
+--      - PK_umbralLuz (PRIMARY KEY)
+--      - FK_umbralLuz_variety_01 (FOREIGN KEY → GROWER.VARIETY)
+--      - FK_umbralLuz_usuarioCrea_02 (FOREIGN KEY → MAST.USERS)
+--      - FK_umbralLuz_usuarioModifica_03 (FOREIGN KEY → MAST.USERS)
+--      - CK_umbralLuz_tipoValido_01 (CHECK)
+--      - CK_umbralLuz_porcentajeValido_02 (CHECK)
 --   ✅ Extended Properties:
---      - Documentación de tabla y columnas principales
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 --   ✅ Datos Iniciales:
 --      - 5 umbrales insertados (CriticoRojo, CriticoAmarillo, Normal)
 -- 
@@ -33,12 +34,12 @@
 --   ⚠️  Requiere: MAST.USERS (tabla existente)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   2 de 5 - Después de crear evalImagen.Analisis_Imagen
+--   2 de 10 - Después de crear evalImagen.analisisImagen
 -- 
 -- USADO POR:
---   - evalImagen.sp_CalcularLoteEvaluacion (para clasificar umbrales)
---   - evalImagen.LoteEvaluacion (FK a umbralIDActual)
---   - evalImagen.Alerta (FK a umbralID)
+--   - evalImagen.usp_evalImagen_calcularLoteEvaluacion (para clasificar umbrales)
+--   - evalImagen.loteEvaluacion (FK a umbralIDActual)
+--   - evalImagen.alerta (FK a umbralID)
 --   - Backend: lógica de generación de alertas
 -- 
 -- =====================================================
@@ -59,11 +60,11 @@ END
 GO
 
 -- =====================================================
--- Crear tabla evalImagen.UmbralLuz
+-- Crear tabla evalImagen.umbralLuz
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'UmbralLuz' AND schema_id = SCHEMA_ID('evalImagen'))
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'umbralLuz' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    CREATE TABLE evalImagen.UmbralLuz (
+    CREATE TABLE evalImagen.umbralLuz (
         umbralID INT IDENTITY(1,1) NOT NULL,
         tipo VARCHAR(20) NOT NULL, -- 'CriticoRojo', 'CriticoAmarillo', 'Normal'
         minPorcentajeLuz DECIMAL(5,2) NOT NULL, -- Porcentaje mínimo (inclusive)
@@ -79,102 +80,102 @@ BEGIN
         usuarioModificaID INT NULL,
         fechaModificacion DATETIME NULL,
         
-        CONSTRAINT PK_UmbralLuz PRIMARY KEY CLUSTERED (umbralID),
-        CONSTRAINT FK_UmbralLuz_Variety FOREIGN KEY (variedadID) 
+        CONSTRAINT PK_umbralLuz PRIMARY KEY CLUSTERED (umbralID),
+        CONSTRAINT FK_umbralLuz_variety_01 FOREIGN KEY (variedadID) 
             REFERENCES GROWER.VARIETY(varietyID),
-        CONSTRAINT FK_UmbralLuz_UsuarioCrea FOREIGN KEY (usuarioCreaID) 
+        CONSTRAINT FK_umbralLuz_usuarioCrea_02 FOREIGN KEY (usuarioCreaID) 
             REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_UmbralLuz_UsuarioModifica FOREIGN KEY (usuarioModificaID) 
+        CONSTRAINT FK_umbralLuz_usuarioModifica_03 FOREIGN KEY (usuarioModificaID) 
             REFERENCES MAST.USERS(userID),
-        CONSTRAINT CK_UmbralLuz_Tipo CHECK (tipo IN ('CriticoRojo', 'CriticoAmarillo', 'Normal')),
-        CONSTRAINT CK_UmbralLuz_Porcentaje CHECK (minPorcentajeLuz >= 0 AND maxPorcentajeLuz <= 100 AND minPorcentajeLuz <= maxPorcentajeLuz)
+        CONSTRAINT CK_umbralLuz_tipoValido_01 CHECK (tipo IN ('CriticoRojo', 'CriticoAmarillo', 'Normal')),
+        CONSTRAINT CK_umbralLuz_porcentajeValido_02 CHECK (minPorcentajeLuz >= 0 AND maxPorcentajeLuz <= 100 AND minPorcentajeLuz <= maxPorcentajeLuz)
     );
     
-    PRINT '[OK] Tabla evalImagen.UmbralLuz creada';
+    PRINT '[OK] Tabla evalImagen.umbralLuz creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.UmbralLuz ya existe';
+    PRINT '[INFO] Tabla evalImagen.umbralLuz ya existe';
 END
 GO
 
 -- =====================================================
--- Crear índices para optimizar consultas
+-- Crear índices para optimizar consultas (con correlativo)
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_UmbralLuz_VariedadID' AND object_id = OBJECT_ID('evalImagen.UmbralLuz'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_umbralLuz_variedadID_001' AND object_id = OBJECT_ID('evalImagen.umbralLuz'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_UmbralLuz_VariedadID 
-    ON evalImagen.UmbralLuz(variedadID)
+    CREATE NONCLUSTERED INDEX IDX_umbralLuz_variedadID_001 
+    ON evalImagen.umbralLuz(variedadID)
     WHERE activo = 1 AND statusID = 1;
-    PRINT '[OK] Índice IDX_UmbralLuz_VariedadID creado';
+    PRINT '[OK] Índice IDX_umbralLuz_variedadID_001 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_UmbralLuz_Tipo' AND object_id = OBJECT_ID('evalImagen.UmbralLuz'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_umbralLuz_tipo_activo_statusID_002' AND object_id = OBJECT_ID('evalImagen.umbralLuz'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_UmbralLuz_Tipo 
-    ON evalImagen.UmbralLuz(tipo, activo, statusID);
-    PRINT '[OK] Índice IDX_UmbralLuz_Tipo creado';
+    CREATE NONCLUSTERED INDEX IDX_umbralLuz_tipo_activo_statusID_002 
+    ON evalImagen.umbralLuz(tipo, activo, statusID);
+    PRINT '[OK] Índice IDX_umbralLuz_tipo_activo_statusID_002 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_UmbralLuz_Rango' AND object_id = OBJECT_ID('evalImagen.UmbralLuz'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_umbralLuz_minPorcentajeLuz_maxPorcentajeLuz_003' AND object_id = OBJECT_ID('evalImagen.umbralLuz'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_UmbralLuz_Rango 
-    ON evalImagen.UmbralLuz(minPorcentajeLuz, maxPorcentajeLuz)
+    CREATE NONCLUSTERED INDEX IDX_umbralLuz_minPorcentajeLuz_maxPorcentajeLuz_003 
+    ON evalImagen.umbralLuz(minPorcentajeLuz, maxPorcentajeLuz)
     WHERE activo = 1 AND statusID = 1;
-    PRINT '[OK] Índice IDX_UmbralLuz_Rango creado';
+    PRINT '[OK] Índice IDX_umbralLuz_minPorcentajeLuz_maxPorcentajeLuz_003 creado';
 END
 GO
 
 -- =====================================================
--- Agregar Extended Properties para documentación
+-- Agregar Extended Properties para documentación (según estándar)
 -- =====================================================
 
--- Tabla
+-- Tabla (MS_TablaDescription según estándar)
 IF NOT EXISTS (
     SELECT * FROM sys.extended_properties 
-    WHERE major_id = OBJECT_ID('evalImagen.UmbralLuz') 
+    WHERE major_id = OBJECT_ID('evalImagen.umbralLuz') 
     AND minor_id = 0 
-    AND name = 'MS_Description'
+    AND name = 'MS_TablaDescription'
 )
 BEGIN
     EXEC sp_addextendedproperty 
-        @name = N'MS_Description', 
+        @name = N'MS_TablaDescription', 
         @value = N'Almacena los umbrales de clasificación de porcentaje de luz para evaluaciones. Permite definir múltiples rangos por tipo (Crítico Rojo, Crítico Amarillo, Normal) y opcionalmente por variedad.', 
         @level0type = N'SCHEMA', @level0name = N'evalImagen',
-        @level1type = N'TABLE', @level1name = N'UmbralLuz';
-    PRINT '[OK] Extended property agregado a tabla';
+        @level1type = N'TABLE', @level1name = N'umbralLuz';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
 END
 GO
 
--- Columnas principales
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Identificador único del umbral', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'umbralID';
+-- Columnas (MS_ColXDesc según estándar)
+EXEC sp_addextendedproperty @name = N'MS_Col1Desc', @value = N'Identificador único del umbral', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'umbralID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Tipo de umbral: CriticoRojo, CriticoAmarillo, Normal', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'tipo';
+EXEC sp_addextendedproperty @name = N'MS_Col2Desc', @value = N'Tipo de umbral: CriticoRojo, CriticoAmarillo, Normal', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'tipo';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Porcentaje mínimo de luz (inclusive). Valor entre 0 y 100.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'minPorcentajeLuz';
+EXEC sp_addextendedproperty @name = N'MS_Col3Desc', @value = N'Porcentaje mínimo de luz (inclusive). Valor entre 0 y 100.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'minPorcentajeLuz';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Porcentaje máximo de luz (inclusive). Valor entre 0 y 100.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'maxPorcentajeLuz';
+EXEC sp_addextendedproperty @name = N'MS_Col4Desc', @value = N'Porcentaje máximo de luz (inclusive). Valor entre 0 y 100.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'maxPorcentajeLuz';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID de variedad específica. NULL = Umbral global aplicable a todas las variedades. Si tiene valor, el umbral es específico solo para esa variedad. Los umbrales específicos tienen prioridad sobre los globales.', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'variedadID';
+EXEC sp_addextendedproperty @name = N'MS_Col5Desc', @value = N'ID de variedad específica. NULL = Umbral global aplicable a todas las variedades. Si tiene valor, el umbral es específico solo para esa variedad. Los umbrales específicos tienen prioridad sobre los globales.', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'variedadID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Descripción del umbral (ej: "Muy bajo - Crítico")', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'descripcion';
+EXEC sp_addextendedproperty @name = N'MS_Col6Desc', @value = N'Descripción del umbral (ej: "Muy bajo - Crítico")', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'descripcion';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Color hexadecimal para UI (ej: #FF0000 para rojo, #FFA500 para amarillo, #00FF00 para verde)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'UmbralLuz', @level2type = N'COLUMN', @level2name = N'colorHex';
+EXEC sp_addextendedproperty @name = N'MS_Col7Desc', @value = N'Color hexadecimal para UI (ej: #FF0000 para rojo, #FFA500 para amarillo, #00FF00 para verde)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'umbralLuz', @level2type = N'COLUMN', @level2name = N'colorHex';
 GO
 
 -- =====================================================
@@ -184,26 +185,26 @@ PRINT '';
 PRINT '=== Insertando umbrales iniciales ===';
 
 -- Verificar si ya existen datos
-IF NOT EXISTS (SELECT * FROM evalImagen.UmbralLuz)
+IF NOT EXISTS (SELECT * FROM evalImagen.umbralLuz)
 BEGIN
     -- Crítico Rojo: X < 10%
-    INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+    INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
     VALUES ('CriticoRojo', 0.00, 9.99, NULL, 'Muy bajo - Crítico', '#FF0000', 1);
     
     -- Crítico Rojo: X > 35%
-    INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+    INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
     VALUES ('CriticoRojo', 35.01, 100.00, NULL, 'Muy alto - Crítico', '#FF0000', 2);
     
     -- Crítico Amarillo: 10% <= X < 15%
-    INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+    INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
     VALUES ('CriticoAmarillo', 10.00, 14.99, NULL, 'Bajo - Advertencia', '#FFA500', 3);
     
     -- Crítico Amarillo: 25% < X <= 35%
-    INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+    INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
     VALUES ('CriticoAmarillo', 25.01, 35.00, NULL, 'Alto - Advertencia', '#FFA500', 4);
     
     -- Normal: 15% <= X <= 25%
-    INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+    INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
     VALUES ('Normal', 15.00, 25.00, NULL, 'Rango óptimo - Normal', '#00FF00', 5);
     
     PRINT '[OK] Umbrales iniciales insertados (5 registros - para todas las variedades)';
@@ -245,7 +246,7 @@ INSERT INTO @Umbrales (tipo, minPorcentajeLuz, maxPorcentajeLuz, descripcion, co
     ('Normal', 15.00, 25.00, 'Rango óptimo - Normal', '#00FF00', 5);
 
 -- Insertar umbrales para cada variedad (solo si no existen)
-INSERT INTO evalImagen.UmbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
+INSERT INTO evalImagen.umbralLuz (tipo, minPorcentajeLuz, maxPorcentajeLuz, variedadID, descripcion, colorHex, orden)
 SELECT 
     u.tipo,
     u.minPorcentajeLuz,
@@ -258,7 +259,7 @@ FROM @Variedades v
 CROSS JOIN @Umbrales u
 WHERE NOT EXISTS (
     SELECT 1 
-    FROM evalImagen.UmbralLuz ul 
+    FROM evalImagen.umbralLuz ul 
     WHERE ul.variedadID = v.variedadID 
       AND ul.tipo = u.tipo 
       AND ul.minPorcentajeLuz = u.minPorcentajeLuz 
@@ -294,13 +295,13 @@ SELECT
     orden,
     activo,
     statusID
-FROM evalImagen.UmbralLuz
+FROM evalImagen.umbralLuz
 ORDER BY orden, tipo;
 GO
 
 PRINT '';
 PRINT '=== Script completado ===';
-PRINT 'Tabla evalImagen.UmbralLuz creada y poblada con umbrales.';
+PRINT 'Tabla evalImagen.umbralLuz creada y poblada con umbrales.';
 PRINT '';
 PRINT 'Umbrales definidos:';
 PRINT '  - Crítico Rojo: X < 10% y X > 35%';
@@ -311,5 +312,6 @@ PRINT 'Total de registros:';
 PRINT '  - 5 umbrales generales (variedadID = NULL)';
 PRINT '  - 5 umbrales por cada variedad específica (56 variedades)';
 PRINT '  - Total esperado: 5 + (56 * 5) = 285 registros';
+PRINT '';
+PRINT '[✅] Script completado según estándares AgroMigiva';
 GO
-

@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_RegistrarIntentoLogin
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_registrarIntentoLogin
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Registrar intentos de login (exitosos y fallidos)
@@ -8,11 +8,11 @@
 USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_RegistrarIntentoLogin') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_RegistrarIntentoLogin;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_registrarIntentoLogin') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_registrarIntentoLogin;
 GO
 
-CREATE PROCEDURE evalImagen.sp_RegistrarIntentoLogin
+CREATE PROCEDURE evalImagen.usp_evalImagen_registrarIntentoLogin
     @deviceId VARCHAR(100) = NULL,
     @username VARCHAR(100) = NULL,
     @ipAddress VARCHAR(45),
@@ -55,9 +55,9 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Registra un intento de login (exitoso o fallido) para rate limiting y auditoría.',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_RegistrarIntentoLogin';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_registrarIntentoLogin';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_RegistrarIntentoLogin creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_registrarIntentoLogin creado exitosamente';
 GO
 

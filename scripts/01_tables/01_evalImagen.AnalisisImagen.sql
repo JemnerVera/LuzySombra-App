@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Tabla evalImagen.AnalisisImagen
+-- SCRIPT: Crear Tabla evalImagen.analisisImagen
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Servidor: 10.1.10.4
 -- Schema: evalImagen
@@ -10,19 +10,20 @@
 --   ✅ Schema:
 --      - evalImagen (si no existe)
 --   ✅ Tablas:
---      - evalImagen.AnalisisImagen
+--      - evalImagen.analisisImagen
 --   ✅ Índices:
---      - IDX_Analisis_Imagen_FECHA_01 (NONCLUSTERED)
---      - IDX_Analisis_Imagen_LOT_01 (NONCLUSTERED)
---      - IDX_Analisis_Imagen_UBICACION_01 (NONCLUSTERED)
+--      - IDX_analisisImagen_fechaCreacion_001 (NONCLUSTERED)
+--      - IDX_analisisImagen_lotID_fechaCreacion_002 (NONCLUSTERED)
+--      - IDX_analisisImagen_lotID_hilera_planta_003 (NONCLUSTERED)
 --   ✅ Constraints:
---      - PK_AnalisisImagen (PRIMARY KEY)
---      - FK_AnalisisImagen_LOT_01 (FOREIGN KEY → GROWER.LOT)
---      - FK_AnalisisImagen_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_AnalisisImagen_UsuarioModifica (FOREIGN KEY → MAST.USERS)
---      - UQ_AnalisisImagen_FilenameLot_01 (UNIQUE)
+--      - PK_analisisImagen (PRIMARY KEY)
+--      - FK_analisisImagen_lot_01 (FOREIGN KEY → GROWER.LOT)
+--      - FK_analisisImagen_usuarioCrea_02 (FOREIGN KEY → MAST.USERS)
+--      - FK_analisisImagen_usuarioModifica_03 (FOREIGN KEY → MAST.USERS)
+--      - UQ_analisisImagen_filename_lotID_01 (UNIQUE)
 --   ✅ Extended Properties:
---      - Documentación de tabla y columnas principales
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
@@ -38,7 +39,7 @@
 -- USADO POR:
 --   - Backend: src/services/sqlServerService.ts (saveProcessingResult)
 --   - API: src/app/api/procesar-imagen/route.ts
---   - Query consolidada: getConsolidatedTable (indirectamente vía evalImagen.LoteEvaluacion)
+--   - Query consolidada: getConsolidatedTable (indirectamente vía evalImagen.loteEvaluacion)
 -- 
 -- IMPORTANTE: Ejecutar con usuario con permisos de CREATE TABLE
 -- Usuario: ucser_luzsombra_desa (DESA) / ucser_luzSombra (PROD)
@@ -62,11 +63,11 @@ END
 GO
 
 -- =====================================================
--- 2. Crear Tabla evalImagen.AnalisisImagen
+-- 2. Crear Tabla evalImagen.analisisImagen
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.AnalisisImagen') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.analisisImagen') AND type in (N'U'))
 BEGIN
-    CREATE TABLE evalImagen.AnalisisImagen (
+    CREATE TABLE evalImagen.analisisImagen (
         -- Clave primaria
         analisisID INT IDENTITY(1,1) NOT NULL,
         
@@ -101,156 +102,164 @@ BEGIN
         usuarioModificaID INT NULL,
         fechaModificacion DATETIME NULL,
         
-        -- Constraints con nomenclatura estándar Migiva
-        CONSTRAINT PK_AnalisisImagen PRIMARY KEY (analisisID),
-        CONSTRAINT FK_AnalisisImagen_LOT_01 
+        -- Constraints con nomenclatura estándar Migiva (con correlativos)
+        CONSTRAINT PK_analisisImagen PRIMARY KEY (analisisID),
+        CONSTRAINT FK_analisisImagen_lot_01 
             FOREIGN KEY (lotID) REFERENCES GROWER.LOT(lotID),
-        CONSTRAINT FK_AnalisisImagen_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_AnalisisImagen_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT UQ_AnalisisImagen_FilenameLot_01 
+        CONSTRAINT FK_analisisImagen_usuarioCrea_02 
+            FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_analisisImagen_usuarioModifica_03 
+            FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT UQ_analisisImagen_filename_lotID_01 
             UNIQUE (filename, lotID)
     );
     
-    -- Índices con nomenclatura estándar IDX_
-    CREATE NONCLUSTERED INDEX IDX_AnalisisImagen_Fecha_01 
-        ON evalImagen.AnalisisImagen(fechaCreacion DESC);
+    -- Índices con nomenclatura estándar IDX_ + correlativo
+    CREATE NONCLUSTERED INDEX IDX_analisisImagen_fechaCreacion_001 
+        ON evalImagen.analisisImagen(fechaCreacion DESC);
     
-    CREATE NONCLUSTERED INDEX IDX_AnalisisImagen_Lot_01 
-        ON evalImagen.AnalisisImagen(lotID, fechaCreacion DESC);
+    CREATE NONCLUSTERED INDEX IDX_analisisImagen_lotID_fechaCreacion_002 
+        ON evalImagen.analisisImagen(lotID, fechaCreacion DESC);
     
-    CREATE NONCLUSTERED INDEX IDX_AnalisisImagen_Ubicacion_01 
-        ON evalImagen.AnalisisImagen(lotID, hilera, planta);
+    CREATE NONCLUSTERED INDEX IDX_analisisImagen_lotID_hilera_planta_003 
+        ON evalImagen.analisisImagen(lotID, hilera, planta);
     
-    PRINT '[OK] Tabla evalImagen.AnalisisImagen creada con índices';
+    PRINT '[OK] Tabla evalImagen.analisisImagen creada con índices';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.AnalisisImagen ya existe';
+    PRINT '[INFO] Tabla evalImagen.analisisImagen ya existe';
 END
 GO
 
 -- =====================================================
--- 3. Verificar creación
+-- 3. Agregar comentarios extendidos (Documentación según estándar)
 -- =====================================================
-PRINT '=== Verificación de tabla creada ===';
-SELECT 
-    TABLE_SCHEMA,
-    TABLE_NAME,
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-     WHERE TABLE_SCHEMA = 'evalImagen' AND TABLE_NAME = 'AnalisisImagen') AS COLUMN_COUNT
-FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = 'evalImagen' 
-  AND TABLE_NAME = 'AnalisisImagen';
-
-PRINT '=== Índices creados ===';
-SELECT 
-    i.name AS INDEX_NAME,
-    i.type_desc AS INDEX_TYPE,
-    STRING_AGG(c.name, ', ') WITHIN GROUP (ORDER BY ic.key_ordinal) AS COLUMNS
-FROM sys.indexes i
-INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-WHERE i.object_id = OBJECT_ID('evalImagen.AnalisisImagen')
-  AND i.type > 0  -- Excluir índice clustered (PK)
-GROUP BY i.name, i.type_desc
-ORDER BY i.name;
-
+-- Tabla (MS_TablaDescription según estándar)
+IF NOT EXISTS (
+    SELECT * FROM sys.extended_properties 
+    WHERE major_id = OBJECT_ID('evalImagen.analisisImagen') 
+    AND minor_id = 0 
+    AND name = 'MS_TablaDescription'
+)
+BEGIN
+    EXEC sp_addextendedproperty 
+        @name = N'MS_TablaDescription', 
+        @value = N'Almacena resultados de análisis de imágenes para clasificación de luz/sombra en campos agrícolas', 
+        @level0type = N'SCHEMA', @level0name = N'evalImagen',
+        @level1type = N'TABLE', @level1name = N'analisisImagen';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
+END
 GO
 
--- =====================================================
--- 4. Agregar comentarios extendidos (Documentación)
--- =====================================================
--- Tabla
+-- Columnas (MS_ColXDesc según estándar)
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
-    @value = N'Almacena resultados de análisis de imágenes para clasificación de luz/sombra en campos agrícolas', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen';
-
--- Columnas principales
-EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col1Desc', 
     @value = N'Identificador único del análisis de imagen', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'analisisID';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col2Desc', 
     @value = N'Foreign Key al lote donde se tomó la imagen', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'lotID';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col3Desc', 
+    @value = N'Hilera donde se tomó la imagen', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
+    @level2type = N'COLUMN', @level2name = N'hilera';
+GO
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Col4Desc', 
+    @value = N'Planta donde se tomó la imagen', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
+    @level2type = N'COLUMN', @level2name = N'planta';
+GO
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Col5Desc', 
     @value = N'Nombre del archivo de la imagen procesada', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'filename';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col6Desc', 
     @value = N'Fecha y hora de captura de la imagen (desde EXIF)', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'fechaCaptura';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col7Desc', 
     @value = N'Porcentaje de área clasificada como luz (0-100)', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'porcentajeLuz';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col8Desc', 
     @value = N'Porcentaje de área clasificada como sombra (0-100)', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'porcentajeSombra';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col9Desc', 
     @value = N'Latitud GPS de la ubicación donde se tomó la imagen', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'latitud';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col10Desc', 
     @value = N'Longitud GPS de la ubicación donde se tomó la imagen', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'longitud';
+GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col11Desc', 
     @value = N'Thumbnail optimizado en Base64 (JPEG, ~100-200KB) para minimizar impacto en BD. Imagen procesada con Machine Learning (colores ML aplicados).', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'processedImageUrl';
 GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
-    @value = N'Imagen original en Base64 (antes del procesamiento con Machine Learning). Thumbnail altamente comprimido (400x300, calidad 0.5, ~50-100KB) para minimizar impacto en BD. La imagen procesada (con colores ML) se guarda en processedImageUrl.', 
+    @name = N'MS_Col12Desc', 
+    @value = N'Imagen original en Base64 (antes del procesamiento con Machine Learning). Thumbnail altamente comprimido (400x300, calidad 0.5, ~50-100KB) para minimizar impacto en BD.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'originalImageUrl';
 GO
 
 EXEC sp_addextendedproperty 
-    @name = N'MS_Description', 
+    @name = N'MS_Col13Desc', 
     @value = N'Versión del modelo de Machine Learning usado para el análisis', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'AnalisisImagen',
+    @level1type = N'TABLE', @level1name = N'analisisImagen',
     @level2type = N'COLUMN', @level2name = N'modeloVersion';
+GO
 
 PRINT '[OK] Comentarios extendidos agregados';
-
 GO
 
 PRINT '[✅] Script completado exitosamente';
+PRINT 'Tabla evalImagen.analisisImagen creada según estándares AgroMigiva';
 GO
-

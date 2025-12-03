@@ -24,10 +24,10 @@
 --    ✅ 10_evalImagen.intentoLogin.sql         (independiente - rate limiting y auditoría)
 -- 
 -- 2️⃣ STORED PROCEDURES (03_stored_procedures):
---    ✅ 01_sp_CalcularLoteEvaluacion.sql   (depende de evalImagen.LoteEvaluacion)
+--    ✅ 01_sp_CalcularLoteEvaluacion.sql   (depende de evalImagen.loteEvaluacion)
 -- 
 -- 3️⃣ TRIGGERS (05_triggers):
---    ✅ 01_trg_LoteEvaluacion_Alerta.sql   (depende de evalImagen.LoteEvaluacion + evalImagen.Alerta)
+--    ✅ 01_trg_loteEvaluacion_Alerta.sql   (depende de evalImagen.loteEvaluacion + evalImagen.alerta) (ahora: trg_loteEvaluacionAlerta_AF_IU)
 -- 
 -- 5️⃣ DATOS INICIALES (opcional):
 --    ⚠️  Los scripts de datos de ejemplo fueron eliminados
@@ -69,14 +69,14 @@ PRINT '  PASO 2: CREAR STORED PROCEDURES (03_stored_procedures)';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 PRINT 'Ejecutar:';
-PRINT '  scripts/03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql';
+PRINT '  scripts/03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql (ahora: usp_evalImagen_calcularLoteEvaluacion)';
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '  PASO 3: CREAR TRIGGERS (05_triggers)';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '';
 PRINT 'Ejecutar:';
-PRINT '  scripts/05_triggers/01_trg_LoteEvaluacion_Alerta.sql';
+PRINT '  scripts/05_triggers/01_trg_loteEvaluacion_Alerta.sql (ahora: trg_loteEvaluacionAlerta_AF_IU)';
 PRINT '';
 PRINT '═══════════════════════════════════════════════════════════════════';
 PRINT '  PASO 4: VERIFICAR INSTALACIÓN';

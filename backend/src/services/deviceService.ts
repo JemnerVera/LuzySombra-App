@@ -124,7 +124,7 @@ class DeviceService {
   } | null> {
     try {
       const result = await executeProcedure(
-        'evalImagen.sp_GetDeviceForAuth',
+        'evalImagen.usp_evalImagen_getDeviceForAuth',
         { deviceId },
         [],
         {}

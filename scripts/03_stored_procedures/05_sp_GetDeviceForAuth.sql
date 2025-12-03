@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.sp_GetDeviceForAuth
+-- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_getDeviceForAuth
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Obtener información del dispositivo para autenticación (incluye hash)
@@ -13,11 +13,11 @@
 USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.sp_GetDeviceForAuth') AND type in (N'P', N'PC'))
-    DROP PROCEDURE evalImagen.sp_GetDeviceForAuth;
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_getDeviceForAuth') AND type in (N'P', N'PC'))
+    DROP PROCEDURE evalImagen.usp_evalImagen_getDeviceForAuth;
 GO
 
-CREATE PROCEDURE evalImagen.sp_GetDeviceForAuth
+CREATE PROCEDURE evalImagen.usp_evalImagen_getDeviceForAuth
     @deviceId VARCHAR(100)
 AS
 BEGIN
@@ -50,9 +50,9 @@ EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'Obtiene información del dispositivo (incluyendo apiKeyHash) para autenticación. La comparación de hash se hace en el backend.',
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'sp_GetDeviceForAuth';
+    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_getDeviceForAuth';
 GO
 
-PRINT '[OK] Stored Procedure evalImagen.sp_GetDeviceForAuth creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_getDeviceForAuth creado exitosamente';
 GO
 

@@ -1,10 +1,10 @@
 -- =====================================================
--- SCRIPT: Test de Vista vwc_CianamidaFenologia
+-- SCRIPT: Test de Vista vwc_Cianamida_fenologia
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Tipo: Test / Verificación
 -- Propósito: Ejecutar query con la misma lógica que tendrá la vista
 -- para verificar que los datos son correctos antes de crear la vista
--- Vista: vwc_CianamidaFenologia (estándar: vwc_ para vistas compuestas)
+-- Vista: vwc_Cianamida_fenologia (estándar: vwc_[Modulo]_[nombreLowerCamelCase] para vistas compuestas)
 -- =====================================================
 -- 
 -- OBJETOS CREADOS:
@@ -14,7 +14,7 @@
 --   ❌ Ninguno (solo lectura)
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere las mismas tablas que vwc_CianamidaFenologia:
+--   ⚠️  Requiere las mismas tablas que vwc_Cianamida_fenologia:
 --      - GROWER.LOT
 --      - PPP.PROYECCION
 --      - PPP.PROYECCIONDETALLEFITOSANIDAD
@@ -31,7 +31,7 @@
 -- 
 -- CONTENIDO:
 --   - Query de prueba con límite de 50 registros
---   - Misma lógica que la vista vwc_CianamidaFenologia
+--   - Misma lógica que la vista vwc_Cianamida_fenologia
 --   - Útil para debugging y validación
 -- 
 -- NOTA: Este es un script de TEST, no crea objetos de producción

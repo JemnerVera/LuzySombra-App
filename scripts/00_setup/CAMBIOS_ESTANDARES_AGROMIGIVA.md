@@ -89,15 +89,32 @@ Este documento detalla todos los cambios aplicados a las tablas para cumplir con
 - ✅ `scripts/01_tables/09_evalImagen.usuarioWeb.sql`
 - ✅ `scripts/01_tables/10_evalImagen.intentoLogin.sql`
 
+### 5. **Nomenclatura de Stored Procedures**
+- **Antes:** `sp_[NombrePascalCase]` (ej: `sp_CalcularLoteEvaluacion`)
+- **Después:** `usp_[PREFIJO]_[nombreLowerCamelCase]` (ej: `usp_evalImagen_calcularLoteEvaluacion`)
+
+**SPs renombrados:**
+- ✅ `sp_CalcularLoteEvaluacion` → `usp_evalImagen_calcularLoteEvaluacion`
+- ✅ `sp_InsertAnalisisImagen` → `usp_evalImagen_insertAnalisisImagen`
+- ✅ `sp_GetFieldData` → `usp_evalImagen_getFieldData`
+- ✅ `sp_ValidateDeviceAndUpdateAccess` → `usp_evalImagen_validateDeviceAndUpdateAccess`
+- ✅ `sp_GetDeviceForAuth` → `usp_evalImagen_getDeviceForAuth`
+- ✅ `sp_RegistrarIntentoLogin` → `usp_evalImagen_registrarIntentoLogin`
+- ✅ `sp_CheckRateLimit` → `usp_evalImagen_checkRateLimit`
+
+---
+
 ### Scripts Maestros y Referencias (todos actualizados):
 - ✅ `scripts/00_setup/00_SCRIPT_MAESTRO_RECREAR_TABLAS.sql` (nombres de tablas actualizados)
-- ✅ `scripts/03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql` (referencias actualizadas)
-- ✅ `scripts/03_stored_procedures/02_sp_InsertAnalisisImagen.sql` (referencias actualizadas)
-- ✅ `scripts/03_stored_procedures/04_sp_ValidateDeviceAndUpdateAccess.sql` (referencias actualizadas)
-- ✅ `scripts/03_stored_procedures/05_sp_GetDeviceForAuth.sql` (referencias actualizadas)
-- ✅ `scripts/03_stored_procedures/06_sp_RegistrarIntentoLogin.sql` (referencias actualizadas)
-- ✅ `scripts/03_stored_procedures/07_sp_CheckRateLimit.sql` (referencias actualizadas)
-- ✅ `scripts/05_triggers/01_trg_LoteEvaluacion_Alerta.sql` (referencias actualizadas)
+- ✅ `scripts/03_stored_procedures/01_sp_CalcularLoteEvaluacion.sql` (renombrado a `usp_evalImagen_calcularLoteEvaluacion`)
+- ✅ `scripts/03_stored_procedures/02_sp_InsertAnalisisImagen.sql` (renombrado a `usp_evalImagen_insertAnalisisImagen`)
+- ✅ `scripts/03_stored_procedures/03_sp_GetFieldData.sql` (renombrado a `usp_evalImagen_getFieldData`)
+- ✅ `scripts/03_stored_procedures/04_sp_ValidateDeviceAndUpdateAccess.sql` (renombrado a `usp_evalImagen_validateDeviceAndUpdateAccess`)
+- ✅ `scripts/03_stored_procedures/05_sp_GetDeviceForAuth.sql` (renombrado a `usp_evalImagen_getDeviceForAuth`)
+- ✅ `scripts/03_stored_procedures/06_sp_RegistrarIntentoLogin.sql` (renombrado a `usp_evalImagen_registrarIntentoLogin`)
+- ✅ `scripts/03_stored_procedures/07_sp_CheckRateLimit.sql` (renombrado a `usp_evalImagen_checkRateLimit`)
+- ✅ `scripts/05_triggers/01_trg_loteEvaluacion_Alerta.sql` (renombrado a `trg_loteEvaluacionAlerta_AF_IU`)
+- ✅ `scripts/00_setup/01_verificar_sistema_alertas.sql` (referencias actualizadas)
 
 ---
 
@@ -147,9 +164,19 @@ Todas las referencias en el código TypeScript del backend han sido actualizadas
 ## ✅ Resumen Final
 
 **Total de tablas corregidas:** 10/10 (100%)
-**Total de stored procedures actualizados:** 7/7 (100%)
+**Total de stored procedures renombrados:** 7/7 (100%)
 **Total de triggers actualizados:** 1/1 (100%)
 **Script maestro actualizado:** ✅
 **Backend TypeScript actualizado:** ✅ (14 archivos)
+**Referencias internas actualizadas:** ✅ (SPs, documentación, scripts de verificación)
 
 **Estado general:** ✅ **COMPLETADO**
+
+---
+
+## 📝 Nota sobre Vistas
+
+La vista `vwc_Cianamida_fenologia` en el schema `dbo` ahora cumple con los estándares:
+- Formato: `vwc_[Modulo]_[Nombre]` ✅
+- Está en el schema correcto (`dbo`) ✅
+- No requiere cambios ✅

@@ -1,5 +1,5 @@
 -- =====================================================
--- SCRIPT: Crear tabla evalImagen.Mensaje
+-- SCRIPT: Crear tabla evalImagen.mensaje
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
 -- Propósito: Logs de mensajes enviados vía Resend API
@@ -7,41 +7,43 @@
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Tablas:
---      - evalImagen.Mensaje
+--      - evalImagen.mensaje
 --   ✅ Índices:
---      - IDX_Mensaje_AlertaID (NONCLUSTERED, filtered)
---      - IDX_Mensaje_Estado (NONCLUSTERED, filtered - para Pendiente/Enviando)
---      - IDX_Mensaje_ResendMessageID (NONCLUSTERED)
---      - IDX_Mensaje_FundoID (NONCLUSTERED, filtered)
---      - IDX_Mensaje_EstadoFecha (NONCLUSTERED, filtered)
+--      - IDX_mensaje_alertaID_statusID_001 (NONCLUSTERED, filtered)
+--      - IDX_mensaje_estado_fechaCreacion_002 (NONCLUSTERED, filtered)
+--      - IDX_mensaje_resendMessageID_003 (NONCLUSTERED)
+--      - IDX_mensaje_fundoID_estado_004 (NONCLUSTERED, filtered)
+--      - IDX_mensaje_estado_fechaCreacion_005 (NONCLUSTERED, filtered)
 --   ✅ Constraints:
---      - PK_Mensaje (PRIMARY KEY)
---      - FK_Mensaje_Alerta (FOREIGN KEY → evalImagen.Alerta)
---      - FK_Mensaje_UsuarioCrea (FOREIGN KEY → MAST.USERS)
---      - FK_Mensaje_UsuarioModifica (FOREIGN KEY → MAST.USERS)
---      - CK_Mensaje_Estado (CHECK)
---      - CK_Mensaje_Tipo (CHECK)
+--      - PK_mensaje (PRIMARY KEY)
+--      - FK_mensaje_alerta_01 (FOREIGN KEY → evalImagen.alerta)
+--      - FK_mensaje_farm_02 (FOREIGN KEY → GROWER.FARMS)
+--      - FK_mensaje_usuarioCrea_03 (FOREIGN KEY → MAST.USERS)
+--      - FK_mensaje_usuarioModifica_04 (FOREIGN KEY → MAST.USERS)
+--      - CK_mensaje_estadoValido_01 (CHECK)
+--      - CK_mensaje_tipoValido_02 (CHECK)
 --   ✅ Extended Properties:
---      - Documentación de tabla y columnas principales
+--      - MS_TablaDescription (tabla)
+--      - MS_Col1Desc, MS_Col2Desc, etc. (columnas)
 -- 
 -- OBJETOS MODIFICADOS:
 --   ❌ Ninguno
 --
 -- DEPENDENCIAS:
 --   ⚠️  Requiere: Schema evalImagen (debe existir)
---   ⚠️  Requiere: evalImagen.Alerta (debe ejecutarse después)
+--   ⚠️  Requiere: evalImagen.alerta (debe ejecutarse después)
 --   ⚠️  Requiere: GROWER.FARMS (tabla existente)
 --
 -- ORDEN DE EJECUCIÓN:
---   5 de 8 - Después de crear evalImagen.Alerta
+--   5 de 10 - Después de crear evalImagen.alerta
 --
 -- USADO POR:
---   - evalImagen.MensajeAlerta (relación N:N con Alerta)
+--   - evalImagen.mensajeAlerta (relación N:N con alerta)
 --   - Backend: servicio de envío de emails vía Resend
 --   - Queue jobs: procesamiento de mensajes pendientes
 --
--- NOTA: La relación con Alerta se maneja a través de evalImagen.MensajeAlerta
---       (no hay FK circular - Mensaje.alertaID puede ser NULL para consolidados)
+-- NOTA: La relación con alerta se maneja a través de evalImagen.mensajeAlerta
+--       (no hay FK circular - mensaje.alertaID puede ser NULL para consolidados)
 -- 
 -- =====================================================
 
@@ -49,13 +51,13 @@ USE BD_PACKING_AGROMIGIVA_DESA;
 GO
 
 -- =====================================================
--- Crear tabla evalImagen.Mensaje
+-- Crear tabla evalImagen.mensaje
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Mensaje' AND schema_id = SCHEMA_ID('evalImagen'))
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'mensaje' AND schema_id = SCHEMA_ID('evalImagen'))
 BEGIN
-    CREATE TABLE evalImagen.Mensaje (
+    CREATE TABLE evalImagen.mensaje (
         mensajeID INT IDENTITY(1,1) NOT NULL,
-        alertaID INT NULL, -- NULL para mensajes consolidados (usar tabla MensajeAlerta)
+        alertaID INT NULL, -- NULL para mensajes consolidados (usar tabla mensajeAlerta)
         fundoID CHAR(4) NULL, -- Para mensajes consolidados por fundo
         
         -- Contenido del mensaje
@@ -87,111 +89,123 @@ BEGIN
         fechaModificacion DATETIME NULL,
         errorMessage NVARCHAR(500) NULL,
         
-        CONSTRAINT PK_Mensaje PRIMARY KEY CLUSTERED (mensajeID),
-        CONSTRAINT FK_Mensaje_Alerta FOREIGN KEY (alertaID) REFERENCES evalImagen.Alerta(alertaID),
-        CONSTRAINT FK_Mensaje_Farm FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
-        CONSTRAINT FK_Mensaje_UsuarioCrea FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT FK_Mensaje_UsuarioModifica FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
-        CONSTRAINT CK_Mensaje_Estado CHECK (estado IN ('Pendiente', 'Enviando', 'Enviado', 'Error')),
-        CONSTRAINT CK_Mensaje_Tipo CHECK (tipoMensaje IN ('Email', 'SMS', 'Push'))
+        CONSTRAINT PK_mensaje PRIMARY KEY CLUSTERED (mensajeID),
+        CONSTRAINT FK_mensaje_alerta_01 FOREIGN KEY (alertaID) REFERENCES evalImagen.alerta(alertaID),
+        CONSTRAINT FK_mensaje_farm_02 FOREIGN KEY (fundoID) REFERENCES GROWER.FARMS(farmID),
+        CONSTRAINT FK_mensaje_usuarioCrea_03 FOREIGN KEY (usuarioCreaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT FK_mensaje_usuarioModifica_04 FOREIGN KEY (usuarioModificaID) REFERENCES MAST.USERS(userID),
+        CONSTRAINT CK_mensaje_estadoValido_01 CHECK (estado IN ('Pendiente', 'Enviando', 'Enviado', 'Error')),
+        CONSTRAINT CK_mensaje_tipoValido_02 CHECK (tipoMensaje IN ('Email', 'SMS', 'Push'))
     );
     
-    PRINT '[OK] Tabla evalImagen.Mensaje creada';
+    PRINT '[OK] Tabla evalImagen.mensaje creada';
 END
 ELSE
 BEGIN
-    PRINT '[INFO] Tabla evalImagen.Mensaje ya existe';
+    PRINT '[INFO] Tabla evalImagen.mensaje ya existe';
 END
 GO
 
 -- =====================================================
--- Crear índices
+-- Crear índices (con correlativo)
 -- =====================================================
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_AlertaID' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensaje_alertaID_statusID_001' AND object_id = OBJECT_ID('evalImagen.mensaje'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Mensaje_AlertaID 
-    ON evalImagen.Mensaje(alertaID, statusID)
+    CREATE NONCLUSTERED INDEX IDX_mensaje_alertaID_statusID_001 
+    ON evalImagen.mensaje(alertaID, statusID)
     WHERE statusID = 1;
-    PRINT '[OK] Índice IDX_Mensaje_AlertaID creado';
+    PRINT '[OK] Índice IDX_mensaje_alertaID_statusID_001 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_Estado' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensaje_estado_fechaCreacion_002' AND object_id = OBJECT_ID('evalImagen.mensaje'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Mensaje_Estado 
-    ON evalImagen.Mensaje(estado, fechaCreacion ASC)
+    CREATE NONCLUSTERED INDEX IDX_mensaje_estado_fechaCreacion_002 
+    ON evalImagen.mensaje(estado, fechaCreacion ASC)
     WHERE statusID = 1 AND estado IN ('Pendiente', 'Enviando');
-    PRINT '[OK] Índice IDX_Mensaje_Estado creado';
+    PRINT '[OK] Índice IDX_mensaje_estado_fechaCreacion_002 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_ResendMessageID' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensaje_resendMessageID_003' AND object_id = OBJECT_ID('evalImagen.mensaje'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Mensaje_ResendMessageID 
-    ON evalImagen.Mensaje(resendMessageID)
+    CREATE NONCLUSTERED INDEX IDX_mensaje_resendMessageID_003 
+    ON evalImagen.mensaje(resendMessageID)
     WHERE resendMessageID IS NOT NULL;
-    PRINT '[OK] Índice IDX_Mensaje_ResendMessageID creado';
+    PRINT '[OK] Índice IDX_mensaje_resendMessageID_003 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_FundoID' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensaje_fundoID_estado_004' AND object_id = OBJECT_ID('evalImagen.mensaje'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Mensaje_FundoID 
-    ON evalImagen.Mensaje(fundoID, estado)
+    CREATE NONCLUSTERED INDEX IDX_mensaje_fundoID_estado_004 
+    ON evalImagen.mensaje(fundoID, estado)
     WHERE statusID = 1 AND fundoID IS NOT NULL;
-    PRINT '[OK] Índice IDX_Mensaje_FundoID creado';
+    PRINT '[OK] Índice IDX_mensaje_fundoID_estado_004 creado';
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_Mensaje_EstadoFecha' AND object_id = OBJECT_ID('evalImagen.Mensaje'))
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_mensaje_estado_fechaCreacion_005' AND object_id = OBJECT_ID('evalImagen.mensaje'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IDX_Mensaje_EstadoFecha
-    ON evalImagen.Mensaje(estado, fechaCreacion DESC)
+    CREATE NONCLUSTERED INDEX IDX_mensaje_estado_fechaCreacion_005
+    ON evalImagen.mensaje(estado, fechaCreacion DESC)
     WHERE statusID = 1;
-    PRINT '[OK] Índice IDX_Mensaje_EstadoFecha creado';
+    PRINT '[OK] Índice IDX_mensaje_estado_fechaCreacion_005 creado';
 END
 GO
 
 -- =====================================================
--- Agregar Extended Properties
+-- Agregar Extended Properties (según estándar)
 -- =====================================================
 IF NOT EXISTS (
     SELECT * FROM sys.extended_properties 
-    WHERE major_id = OBJECT_ID('evalImagen.Mensaje') 
+    WHERE major_id = OBJECT_ID('evalImagen.mensaje') 
     AND minor_id = 0 
-    AND name = 'MS_Description'
+    AND name = 'MS_TablaDescription'
 )
 BEGIN
     EXEC sp_addextendedproperty 
-        @name = N'MS_Description', 
+        @name = N'MS_TablaDescription', 
         @value = N'Almacena logs de mensajes enviados vía Resend API. Incluye contenido, destinatarios, estado de envío y respuestas de la API.', 
         @level0type = N'SCHEMA', @level0name = N'evalImagen',
-        @level1type = N'TABLE', @level1name = N'Mensaje';
-    PRINT '[OK] Extended property agregado a tabla';
+        @level1type = N'TABLE', @level1name = N'mensaje';
+    PRINT '[OK] Extended property MS_TablaDescription agregado';
 END
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Identificador único del mensaje', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Mensaje', @level2type = N'COLUMN', @level2name = N'mensajeID';
+EXEC sp_addextendedproperty @name = N'MS_Col1Desc', @value = N'Identificador único del mensaje', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'mensajeID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Estado del envío: Pendiente (en cola), Enviando (en proceso), Enviado (exitoso), Error (falló)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Mensaje', @level2type = N'COLUMN', @level2name = N'estado';
+EXEC sp_addextendedproperty @name = N'MS_Col2Desc', @value = N'Foreign Key a la alerta (NULL para mensajes consolidados - usar tabla mensajeAlerta)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'alertaID';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Destinatarios en formato JSON array: ["email1@example.com", "email2@example.com"]', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Mensaje', @level2type = N'COLUMN', @level2name = N'destinatarios';
+EXEC sp_addextendedproperty @name = N'MS_Col3Desc', @value = N'Tipo de mensaje: Email, SMS, Push', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'tipoMensaje';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'ID del mensaje retornado por Resend API (para tracking y debugging)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Mensaje', @level2type = N'COLUMN', @level2name = N'resendMessageID';
+EXEC sp_addextendedproperty @name = N'MS_Col4Desc', @value = N'Asunto del mensaje', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'asunto';
 GO
 
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Respuesta completa de Resend API en formato JSON (para debugging y auditoría)', 
-    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'Mensaje', @level2type = N'COLUMN', @level2name = N'resendResponse';
+EXEC sp_addextendedproperty @name = N'MS_Col5Desc', @value = N'Cuerpo del mensaje en formato HTML', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'cuerpoHTML';
+GO
+
+EXEC sp_addextendedproperty @name = N'MS_Col6Desc', @value = N'Destinatarios en formato JSON array: ["email1@example.com", "email2@example.com"]', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'destinatarios';
+GO
+
+EXEC sp_addextendedproperty @name = N'MS_Col7Desc', @value = N'Estado del envío: Pendiente (en cola), Enviando (en proceso), Enviado (exitoso), Error (falló)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'estado';
+GO
+
+EXEC sp_addextendedproperty @name = N'MS_Col8Desc', @value = N'ID del mensaje retornado por Resend API (para tracking y debugging)', 
+    @level0type = N'SCHEMA', @level0name = N'evalImagen', @level1type = N'TABLE', @level1name = N'mensaje', @level2type = N'COLUMN', @level2name = N'resendMessageID';
 GO
 
 PRINT '';
 PRINT '=== Script completado ===';
+PRINT '[✅] Tabla evalImagen.mensaje creada según estándares AgroMigiva';
 GO
-

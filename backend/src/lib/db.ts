@@ -200,22 +200,22 @@ export async function executeProcedure<T = any>(
  */
 function inferSqlType(value: any): sql.ISqlType {
   if (value === null || value === undefined) {
-    return sql.Int; // Tipo por defecto para OUTPUT
+    return sql.Int(); // Tipo por defecto para OUTPUT
   }
   
   if (typeof value === 'number') {
     if (Number.isInteger(value)) {
-      return sql.Int;
+      return sql.Int();
     }
     return sql.Decimal(18, 2);
   }
   
   if (typeof value === 'boolean') {
-    return sql.Bit;
+    return sql.Bit();
   }
   
   if (value instanceof Date) {
-    return sql.DateTime;
+    return sql.DateTime();
   }
   
   if (typeof value === 'string') {

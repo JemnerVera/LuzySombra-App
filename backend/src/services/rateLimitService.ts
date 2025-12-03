@@ -27,8 +27,8 @@ class RateLimitService {
         },
         ['estaBloqueado', 'intentosRestantes'],
         {
-          estaBloqueado: sql.Bit,
-          intentosRestantes: sql.Int
+          estaBloqueado: sql.Bit(),
+          intentosRestantes: sql.Int()
         }
       );
 

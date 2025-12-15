@@ -102,10 +102,51 @@ router.post('/', requirePermission('dispositivos:write'), async (req: Request, r
       usuarioCreaID
     });
 
+    // Obtener dispositivo para generar QR
+    const device = await deviceService.getDeviceById(result.dispositivoID);
+    
+    if (!device) {
+      return res.status(500).json({
+        success: false,
+        error: 'Error obteniendo dispositivo después de crear'
+      });
+    }
+
+    // Generar código de activación y QR
+    const { activationCode, expiresAt } = await deviceService.generateActivationCode(
+      result.dispositivoID,
+      undefined, // operarioNombre (opcional)
+      usuarioCreaID
+    );
+
+    // Crear objeto con datos para QR
+    const baseUrl = process.env.BACKEND_BASE_URL || process.env.FRONTEND_URL?.replace('/frontend', '') || 'https://luzsombra-backend.azurewebsites.net/api/';
+    const qrData = {
+      type: 'agriqr-setup',
+      version: '1.0',
+      baseUrl: baseUrl,
+      deviceId: device.deviceId,
+      apiKey: result.apiKey, // Incluir API key en el QR
+      activationCode: activationCode,
+      expiresAt: expiresAt.toISOString()
+    };
+
+    // Generar QR Code como imagen base64
+    console.log('📱 Generando QR code para dispositivo:', device.deviceId);
+    const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData), {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 512
+    });
+    console.log('✅ QR code generado exitosamente, tamaño:', qrCodeBase64.length, 'caracteres');
+
     res.status(201).json({
       success: true,
       dispositivoID: result.dispositivoID,
       apiKey: result.apiKey, // Mostrar API key solo al crear
+      qrCodeUrl: qrCodeBase64,  // Data URL: "data:image/png;base64,..."
+      qrData: qrData,            // Datos para debugging
+      expiresAt: expiresAt,
       message: 'Dispositivo creado exitosamente. Guarda la API key, no se mostrará nuevamente.'
     });
   } catch (error) {
@@ -158,7 +199,7 @@ router.put('/:id', requirePermission('dispositivos:write'), async (req: Request,
 
 /**
  * POST /api/dispositivos/:id/regenerate-key
- * Regenera la API key de un dispositivo
+ * Regenera la API key de un dispositivo y genera QR code
  */
 router.post('/:id/regenerate-key', requirePermission('dispositivos:write'), async (req: Request, res: Response) => {
   try {
@@ -172,11 +213,53 @@ router.post('/:id/regenerate-key', requirePermission('dispositivos:write'), asyn
       });
     }
 
+    // Regenerar API key
     const newApiKey = await deviceService.regenerateApiKey(dispositivoID, usuarioModificaID);
+
+    // Obtener dispositivo para generar QR
+    const device = await deviceService.getDeviceById(dispositivoID);
+    
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dispositivo no encontrado'
+      });
+    }
+
+    // Generar código de activación y QR
+    const { activationCode, expiresAt } = await deviceService.generateActivationCode(
+      dispositivoID,
+      undefined, // operarioNombre (opcional)
+      usuarioModificaID
+    );
+
+    // Crear objeto con datos para QR
+    const baseUrl = process.env.BACKEND_BASE_URL || process.env.FRONTEND_URL?.replace('/frontend', '') || 'https://luzsombra-backend.azurewebsites.net/api/';
+    const qrData = {
+      type: 'agriqr-setup',
+      version: '1.0',
+      baseUrl: baseUrl,
+      deviceId: device.deviceId,
+      apiKey: newApiKey, // Incluir API key en el QR
+      activationCode: activationCode,
+      expiresAt: expiresAt.toISOString()
+    };
+
+    // Generar QR Code como imagen base64
+    console.log('📱 Generando QR code para regeneración de API key:', device.deviceId);
+    const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData), {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 512
+    });
+    console.log('✅ QR code generado exitosamente, tamaño:', qrCodeBase64.length, 'caracteres');
 
     res.json({
       success: true,
       apiKey: newApiKey,
+      qrCodeUrl: qrCodeBase64,  // Data URL: "data:image/png;base64,..."
+      qrData: qrData,            // Datos para debugging
+      expiresAt: expiresAt,
       message: 'API key regenerada exitosamente. Guarda la nueva API key, no se mostrará nuevamente.'
     });
   } catch (error) {

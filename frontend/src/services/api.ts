@@ -469,6 +469,9 @@ export const apiService = {
   }): Promise<ApiResponse<{
     dispositivoID: number;
     apiKey: string;
+    qrCodeUrl?: string;
+    qrData?: any;
+    expiresAt?: string;
   }>> => {
     const response = await api.post('/api/dispositivos', data);
     return response.data;
@@ -491,6 +494,9 @@ export const apiService = {
 
   regenerateApiKey: async (id: number): Promise<ApiResponse<{
     apiKey: string;
+    qrCodeUrl?: string;
+    qrData?: any;
+    expiresAt?: string;
   }>> => {
     const response = await api.post(`/api/dispositivos/${id}/regenerate-key`);
     return response.data;

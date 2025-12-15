@@ -57,7 +57,7 @@ BEGIN
         -- También verificar por IP (más restrictivo)
         DECLARE @intentosPorIP INT = 0;
         SELECT @intentosPorIP = COUNT(*)
-        FROM evalImagen.IntentoLogin
+        FROM evalImagen.intentoLogin
         WHERE ipAddress = @ipAddress
           AND exitoso = 0
           AND fechaIntento >= @fechaDesde;

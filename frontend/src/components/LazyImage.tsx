@@ -22,7 +22,8 @@ const LazyImage: React.FC<LazyImageProps> = ({
   placeholder,
   onLoad,
   onError,
-  threshold = 0.1
+  threshold = 0.1,
+  style
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);

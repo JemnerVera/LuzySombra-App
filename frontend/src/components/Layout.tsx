@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone, Package, Mail } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
@@ -14,7 +14,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) => {
   const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState(true);
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['consolidada']));
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['consolidada', 'sistema-alertas']));
 
   useEffect(() => {
     // Aplicar tema al HTML
@@ -53,6 +53,10 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <History className="h-5 w-5" />;
       case 'smartphone':
         return <Smartphone className="h-5 w-5" />;
+      case 'package':
+        return <Package className="h-5 w-5" />;
+      case 'mail':
+        return <Mail className="h-5 w-5" />;
       default:
         return null;
     }
@@ -129,6 +133,11 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
                       onClick={() => {
                         if (hasSubMenu && subTabs.length > 0) {
                           toggleMenu(tab.id);
+                          // Si tiene submenú y no hay ninguna subpestaña activa, navegar a la primera
+                          const activeSubTab = subTabs.find(st => currentTab === st.id);
+                          if (!activeSubTab && subTabs.length > 0) {
+                            onTabChange(subTabs[0].id as TabType);
+                          }
                         } else {
                           onTabChange(tab.id as TabType);
                         }

@@ -336,22 +336,49 @@ class SqlServerService {
       if (!analisisID) {
         // Verificar si el registro existe de todas formas (por si acaso)
         console.warn('⚠️ No se recibió analisisID del OUTPUT, verificando si el registro existe...');
-        const existingRecord = await query<{ analisisID: number }>(`
-          SELECT TOP 1 analisisID 
-          FROM evalImagen.analisisImagen 
-          WHERE filename = @filename 
-            AND lotID = (SELECT TOP 1 lotID FROM GROWER.LOT WHERE name = @lote AND statusID = 1 ORDER BY lotID)
-            AND statusID = 1
-          ORDER BY analisisID DESC
+        
+        // Obtener lotID primero
+        const lotResult = await query<{ lotID: number }>(`
+          SELECT TOP 1 lotID 
+          FROM GROWER.LOT l
+          INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+          INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+          INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
+          WHERE l.name = @lote
+            AND s.stage = @sector
+            AND f.Description = @fundo
+            AND g.businessName = @empresa
+            AND l.statusID = 1
+            AND s.statusID = 1
+            AND f.statusID = 1
+            AND g.statusID = 1
+          ORDER BY l.lotID
         `, { 
-          filename: result.fileName,
-          lote: result.lote 
+          lote: result.lote,
+          sector: result.sector,
+          fundo: result.fundo,
+          empresa: result.empresa
         });
         
-        if (existingRecord.length > 0) {
-          console.log(`✅ Registro encontrado en BD: analisisID=${existingRecord[0].analisisID}`);
-          this.historialCache = null;
-          return existingRecord[0].analisisID;
+        if (lotResult.length > 0) {
+          const lotID = lotResult[0].lotID;
+          const existingRecord = await query<{ analisisID: number }>(`
+            SELECT TOP 1 analisisID 
+            FROM evalImagen.analisisImagen 
+            WHERE filename = @filename 
+              AND lotID = @lotID
+              AND statusID = 1
+            ORDER BY analisisID DESC
+          `, { 
+            filename: result.fileName,
+            lotID: lotID
+          });
+          
+          if (existingRecord.length > 0) {
+            console.log(`✅ Registro encontrado en BD: analisisID=${existingRecord[0].analisisID}`);
+            this.historialCache = null;
+            return existingRecord[0].analisisID;
+          }
         }
         
         throw new Error('No se pudo obtener el ID del análisis insertado');

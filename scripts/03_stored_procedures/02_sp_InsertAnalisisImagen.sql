@@ -163,7 +163,8 @@ BEGIN
         END;
         
         -- 5.5. Verificar si el registro ya existe (para evitar error de duplicado)
-        SELECT TOP 1 @analisisID = analisisID
+        DECLARE @existingAnalisisID INT = NULL;
+        SELECT TOP 1 @existingAnalisisID = analisisID
         FROM evalImagen.analisisImagen
         WHERE filename = @filename
           AND lotID = @lotID
@@ -171,11 +172,12 @@ BEGIN
         ORDER BY analisisID DESC; -- Obtener el más reciente
         
         -- Si ya existe, retornar el ID existente y salir (sin error)
-        IF @analisisID IS NOT NULL
+        IF @existingAnalisisID IS NOT NULL
         BEGIN
+            SET @analisisID = @existingAnalisisID; -- Establecer OUTPUT explícitamente
             PRINT '⚠️ Registro ya existe para filename=' + @filename + ', lotID=' + CAST(@lotID AS VARCHAR(10)) + '. Retornando analisisID existente: ' + CAST(@analisisID AS VARCHAR(10));
             COMMIT TRANSACTION;
-            -- El OUTPUT @analisisID ya está establecido, se retornará automáticamente
+            -- El OUTPUT @analisisID está establecido explícitamente
             RETURN;
         END;
         

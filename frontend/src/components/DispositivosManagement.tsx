@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { Plus, Edit, Trash2, RefreshCw, Save, X, Smartphone, Key, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Save, X, Smartphone, Key, Eye, EyeOff, AlertCircle, Copy, Download, Check } from 'lucide-react';
 
 interface Dispositivo {
   dispositivoID: number;
@@ -26,6 +26,8 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
   const [showForm, setShowForm] = useState(false);
   const [showApiKey, setShowApiKey] = useState<number | null>(null);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
   const [filterActivo, setFilterActivo] = useState<'all' | 'active' | 'inactive'>('all');
   const [formData, setFormData] = useState<Partial<Dispositivo>>({
     nombreDispositivo: '',
@@ -53,7 +55,14 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
     loadDispositivos();
   }, []);
 
-  const resetForm = () => {
+  // Debug: Log cuando cambian newApiKey o qrCodeUrl
+  useEffect(() => {
+    if (newApiKey) {
+      console.log('🔍 Modal activado. newApiKey:', newApiKey.substring(0, 20) + '...', 'qrCodeUrl:', qrCodeUrl ? 'Presente' : 'Ausente');
+    }
+  }, [newApiKey, qrCodeUrl]);
+
+  const resetForm = (clearApiKey = false) => {
     setFormData({
       nombreDispositivo: '',
       modeloDispositivo: '',
@@ -62,6 +71,37 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
     });
     setEditingId(null);
     setShowForm(false);
+    if (clearApiKey) {
+      setNewApiKey(null);
+      setQrCodeUrl(null);
+      setApiKeyCopied(false);
+    }
+  };
+
+  const handleCopyApiKey = async () => {
+    if (newApiKey) {
+      try {
+        await navigator.clipboard.writeText(newApiKey);
+        setApiKeyCopied(true);
+        setTimeout(() => setApiKeyCopied(false), 2000);
+        onNotification('API Key copiada al portapapeles', 'success');
+      } catch (error) {
+        console.error('Error copiando API key:', error);
+        onNotification('Error al copiar API key', 'error');
+      }
+    }
+  };
+
+  const handleDownloadQR = () => {
+    if (qrCodeUrl) {
+      const link = document.createElement('a');
+      link.href = qrCodeUrl;
+      link.download = `qr-api-key-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      onNotification('QR Code descargado', 'success');
+    }
   };
 
   const handleCreate = async () => {
@@ -78,9 +118,16 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
       });
 
       if (response.success) {
-        onNotification(`Dispositivo creado. API Key: ${response.apiKey}`, 'success');
+        console.log('✅ Dispositivo creado - Respuesta completa:', response);
+        console.log('📱 API Key recibida:', response.apiKey ? 'Sí' : 'No');
+        console.log('📱 QR Code URL recibida:', response.qrCodeUrl ? 'Sí (' + response.qrCodeUrl.substring(0, 50) + '...)' : 'No');
+        onNotification('Dispositivo creado exitosamente', 'success');
+        // Establecer API key y QR antes de resetear el formulario
         setNewApiKey(response.apiKey || null);
-        resetForm();
+        setQrCodeUrl(response.qrCodeUrl || null);
+        setApiKeyCopied(false);
+        // Resetear solo el formulario, NO la API key (para que el modal se muestre)
+        resetForm(false);
         loadDispositivos();
       }
     } catch (error: any) {
@@ -139,8 +186,12 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
     try {
       const response = await apiService.regenerateApiKey(id);
       if (response.success && response.apiKey) {
-        onNotification(`Nueva API Key: ${response.apiKey}`, 'success');
+        console.log('✅ API Key regenerada:', response);
+        console.log('📱 QR Code URL recibido:', response.qrCodeUrl ? 'Sí' : 'No');
+        onNotification('API Key regenerada exitosamente', 'success');
         setNewApiKey(response.apiKey);
+        setQrCodeUrl(response.qrCodeUrl || null);
+        setApiKeyCopied(false);
         loadDispositivos();
       }
     } catch (error: any) {
@@ -201,27 +252,110 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
         </button>
       </div>
 
-      {/* Alerta de nueva API Key */}
+      {/* Modal de nueva API Key con QR */}
       {newApiKey && (
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-medium text-yellow-800 dark:text-yellow-300 mb-1">
-                Nueva API Key generada
-              </p>
-              <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-2 font-mono break-all">
-                {newApiKey}
-              </p>
-              <p className="text-xs text-yellow-600 dark:text-yellow-500">
-                ⚠️ Guarda esta key. No se mostrará nuevamente. El dispositivo deberá usar esta key para autenticarse.
-              </p>
-              <button
-                onClick={() => setNewApiKey(null)}
-                className="mt-2 text-xs text-yellow-700 dark:text-yellow-400 hover:underline"
-              >
-                Cerrar
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-dark-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Nueva API Key generada
+                </h3>
+                <button
+                  onClick={() => {
+                    setNewApiKey(null);
+                    setQrCodeUrl(null);
+                    setApiKeyCopied(false);
+                    resetForm(true); // Limpiar también el formulario al cerrar
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* QR Code */}
+                {qrCodeUrl ? (
+                  <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700">
+                    <p className="text-sm font-medium text-gray-700 dark:text-dark-300 mb-4">
+                      Escanea este código QR con la app AgriQR:
+                    </p>
+                    <div className="relative">
+                      <img 
+                        src={qrCodeUrl} 
+                        alt="QR Code para activación" 
+                        className="w-64 h-64 border-4 border-white dark:border-dark-700 rounded-lg shadow-lg"
+                      />
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={handleDownloadQR}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        Descargar QR
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-dark-400 mt-3 text-center max-w-md">
+                      El QR contiene la API key y código de activación. Válido por 24 horas.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                      ⚠️ No se pudo generar el QR code. Usa la API key manualmente.
+                    </p>
+                  </div>
+                )}
+
+                {/* API Key en texto */}
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                      API Key
+                    </p>
+                    <button
+                      onClick={handleCopyApiKey}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                    >
+                      {apiKeyCopied ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Copiado
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          Copiar
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="bg-white dark:bg-dark-900 p-3 rounded border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-gray-900 dark:text-white font-mono break-all select-all">
+                      {newApiKey}
+                    </p>
+                  </div>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-3">
+                    ⚠️ Guarda esta key. No se mostrará nuevamente. El dispositivo deberá usar esta key para autenticarse.
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
+                  <button
+                    onClick={() => {
+                      setNewApiKey(null);
+                      setQrCodeUrl(null);
+                      setApiKeyCopied(false);
+                      resetForm(true); // Limpiar también el formulario al cerrar
+                    }}
+                    className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

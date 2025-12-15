@@ -29,7 +29,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       });
     }
 
-    const { empresa, fundo, sector, lote, hilera, numero_planta, latitud, longitud } = req.body;
+    const { empresa, fundo, sector, lote, hilera, numero_planta, latitud, longitud, exifDate, exifTime } = req.body;
 
     const file = req.file;
     const imageBuffer = file.buffer;
@@ -58,12 +58,27 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     const finalHilera = hilera || filenameData.hilera || '';
     const finalNumeroPlanta = numero_planta || filenameData.planta || '';
 
-    // Extract date/time from EXIF (if available)
+    // Extract date/time from EXIF (priorizar fecha enviada desde frontend)
     let exifDateTime = null;
-    try {
-      exifDateTime = await extractDateTimeFromImageServer(imageBuffer, file.originalname);
-    } catch (error) {
-      // EXIF extraction failed, continue without date
+    
+    // Primero intentar usar la fecha EXIF enviada desde el frontend
+    if (exifDate && exifTime) {
+      exifDateTime = {
+        date: exifDate,
+        time: exifTime
+      };
+      console.log(`📅 Usando fecha EXIF del frontend para ${file.originalname}: ${exifDate} ${exifTime}`);
+    } else {
+      // Si no se recibió del frontend, intentar extraer del buffer
+      try {
+        exifDateTime = await extractDateTimeFromImageServer(imageBuffer, file.originalname);
+        if (exifDateTime) {
+          console.log(`📅 Fecha EXIF extraída del buffer para ${file.originalname}: ${exifDateTime.date} ${exifDateTime.time}`);
+        }
+      } catch (error) {
+        // EXIF extraction failed, continue without date
+        console.log(`❌ No se pudo extraer fecha EXIF para ${file.originalname}`);
+      }
     }
 
     // Create processing result
@@ -106,8 +121,10 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
           } catch (sqlError) {
             console.error('❌ Error saving to SQL Server:', sqlError);
             if (dataSource === 'sql') {
+              // Re-lanzar el error para que se maneje en el catch principal
               throw sqlError;
             }
+            // Si es hybrid, continuar sin guardar en SQL
           }
         }
 

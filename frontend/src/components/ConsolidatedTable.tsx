@@ -68,9 +68,15 @@ const ConsolidatedTable: React.FC<ConsolidatedTableProps> = ({ onNotification, o
       } else {
         setError('No se pudieron cargar los datos de la tabla consolidada');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Error loading consolidated table:', err);
-      setError(err instanceof Error ? err.message : 'Error cargando tabla consolidada');
+      
+      // Detectar errores de timeout específicamente
+      if (err?.code === 'ETIMEOUT' || err?.response?.status === 500 && err?.response?.data?.error?.includes('Timeout')) {
+        setError('La consulta está tardando demasiado. Por favor, intenta con filtros más específicos (fundo, sector o lote) para reducir el tiempo de respuesta.');
+      } else {
+        setError(err instanceof Error ? err.message : err?.response?.data?.error || 'Error cargando tabla consolidada');
+      }
     } finally {
       setLoading(false);
     }

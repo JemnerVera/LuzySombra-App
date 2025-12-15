@@ -1,13 +1,14 @@
 -- =====================================================
--- SCRIPT: Crear Trigger trg_LoteEvaluacion_Alerta
+-- SCRIPT: Crear Trigger trg_loteEvaluacionAlerta_AF_IU
 -- Base de datos: BD_PACKING_AGROMIGIVA_DESA
 -- Schema: evalImagen
--- Propósito: Crear alertas automáticamente cuando cambia tipoUmbralActual en LoteEvaluacion
+-- Propósito: Crear alertas automáticamente cuando cambia tipoUmbralActual en loteEvaluacion
+-- Estándar: trg_[nombreLowerCamelCase]_[Tipo]_[DML] (AF=After, IU=Insert+Update)
 -- =====================================================
 -- 
 -- OBJETOS CREADOS:
 --   ✅ Triggers:
---      - evalImagen.trg_LoteEvaluacion_Alerta
+--      - evalImagen.trg_loteEvaluacionAlerta_AF_IU
 -- 
 -- OBJETOS MODIFICADOS:
 --   ✅ Tablas (al ejecutarse):
@@ -37,11 +38,11 @@ GO
 -- =====================================================
 -- Crear Trigger
 -- =====================================================
-IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_LoteEvaluacion_Alerta' AND parent_id = OBJECT_ID('evalImagen.loteEvaluacion'))
-    DROP TRIGGER evalImagen.trg_LoteEvaluacion_Alerta;
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_loteEvaluacionAlerta_AF_IU' AND parent_id = OBJECT_ID('evalImagen.loteEvaluacion'))
+    DROP TRIGGER evalImagen.trg_loteEvaluacionAlerta_AF_IU;
 GO
 
-CREATE TRIGGER evalImagen.trg_LoteEvaluacion_Alerta
+CREATE TRIGGER evalImagen.trg_loteEvaluacionAlerta_AF_IU
 ON evalImagen.loteEvaluacion
 AFTER INSERT, UPDATE
 AS
@@ -107,7 +108,7 @@ BEGIN
         SET 
             estado = 'Resuelta',
             fechaResolucion = GETDATE()
-        FROM evalImagen.Alerta a
+        FROM evalImagen.alerta a
         INNER JOIN inserted i ON a.lotID = i.lotID
         INNER JOIN deleted d ON i.lotID = d.lotID
         WHERE 
@@ -130,12 +131,12 @@ EXEC sp_addextendedproperty
     @name = N'MS_Description', 
     @value = N'Trigger que crea alertas automáticamente cuando tipoUmbralActual cambia a CriticoRojo o CriticoAmarillo en evalImagen.loteEvaluacion. También resuelve alertas cuando vuelve a Normal.', 
     @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'TABLE', @level1name = N'LoteEvaluacion',
-    @level2type = N'TRIGGER', @level2name = N'trg_LoteEvaluacion_Alerta';
+    @level1type = N'TABLE', @level1name = N'loteEvaluacion',
+    @level2type = N'TRIGGER', @level2name = N'trg_loteEvaluacionAlerta_AF_IU';
 GO
 
 PRINT '';
-PRINT '✅ Trigger evalImagen.trg_LoteEvaluacion_Alerta creado exitosamente';
+PRINT '✅ Trigger evalImagen.trg_loteEvaluacionAlerta_AF_IU creado exitosamente';
 PRINT '';
 PRINT 'Funcionalidad:';
 PRINT '  - Crea alerta SOLO cuando tipoUmbralActual es CriticoRojo/CriticoAmarillo';

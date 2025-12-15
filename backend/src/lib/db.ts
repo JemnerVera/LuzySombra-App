@@ -32,7 +32,7 @@ const config: sql.config = {
     enableArithAbort: true,
     // Encriptar para servidor remoto (AgroMigiva), pero permitir desactivar para desarrollo local
     encrypt: process.env.SQL_ENCRYPT !== 'false',
-    requestTimeout: 60000, // 60 segundos timeout para requests (para queries complejas)
+    requestTimeout: 120000, // 120 segundos timeout para requests (para queries complejas como tabla consolidada)
     connectTimeout: 30000, // 30 segundos timeout para establecer conexión
     // Evitar warning de TLS ServerName con IP: usar hostname si es IP
     // Para IPs privadas, trustServerCertificate ya está en true, así que esto es solo para evitar el warning
@@ -189,8 +189,17 @@ export async function executeProcedure<T = any>(
       recordset: result.recordset as T[],
       output: Object.keys(output).length > 0 ? output : undefined
     };
-  } catch (error) {
-    console.error('❌ Error ejecutando stored procedure:', error);
+  } catch (error: any) {
+    console.error(`❌ Error ejecutando stored procedure ${procedureName}:`, error);
+    if (error.message) {
+      console.error(`   Mensaje: ${error.message}`);
+    }
+    if (error.number) {
+      console.error(`   Error SQL #${error.number}`);
+    }
+    if (params) {
+      console.error(`   Parámetros enviados:`, Object.keys(params).join(', '));
+    }
     throw error;
   }
 }

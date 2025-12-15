@@ -162,6 +162,23 @@ BEGIN
                 SET @usuarioCreaID = 1; -- Valor por defecto
         END;
         
+        -- 5.5. Verificar si el registro ya existe (para evitar error de duplicado)
+        SELECT TOP 1 @analisisID = analisisID
+        FROM evalImagen.analisisImagen
+        WHERE filename = @filename
+          AND lotID = @lotID
+          AND statusID = 1
+        ORDER BY analisisID DESC; -- Obtener el más reciente
+        
+        -- Si ya existe, retornar el ID existente y salir (sin error)
+        IF @analisisID IS NOT NULL
+        BEGIN
+            PRINT '⚠️ Registro ya existe para filename=' + @filename + ', lotID=' + CAST(@lotID AS VARCHAR(10)) + '. Retornando analisisID existente: ' + CAST(@analisisID AS VARCHAR(10));
+            COMMIT TRANSACTION;
+            -- El OUTPUT @analisisID ya está establecido, se retornará automáticamente
+            RETURN;
+        END;
+        
         -- 6. Insertar en evalImagen.AnalisisImagen
         INSERT INTO evalImagen.analisisImagen (
             lotID,

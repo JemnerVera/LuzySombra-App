@@ -331,19 +331,86 @@ class SqlServerService {
 
       const analisisID = spResult.output?.analisisID;
       
+      console.log(`📝 Stored procedure ejecutado. analisisID recibido: ${analisisID}`);
+      
       if (!analisisID) {
+        // Verificar si el registro existe de todas formas (por si acaso)
+        console.warn('⚠️ No se recibió analisisID del OUTPUT, verificando si el registro existe...');
+        const existingRecord = await query<{ analisisID: number }>(`
+          SELECT TOP 1 analisisID 
+          FROM evalImagen.analisisImagen 
+          WHERE filename = @filename 
+            AND lotID = (SELECT TOP 1 lotID FROM GROWER.LOT WHERE name = @lote AND statusID = 1 ORDER BY lotID)
+            AND statusID = 1
+          ORDER BY analisisID DESC
+        `, { 
+          filename: result.fileName,
+          lote: result.lote 
+        });
+        
+        if (existingRecord.length > 0) {
+          console.log(`✅ Registro encontrado en BD: analisisID=${existingRecord[0].analisisID}`);
+          this.historialCache = null;
+          return existingRecord[0].analisisID;
+        }
+        
         throw new Error('No se pudo obtener el ID del análisis insertado');
       }
 
+      console.log(`✅ Análisis guardado exitosamente: analisisID=${analisisID}`);
       this.historialCache = null;
 
       return analisisID;
     } catch (error: unknown) {
       console.error('❌ Error saving processing result to SQL Server:', error);
       
-      const sqlError = error as { number?: number; message?: string };
-      if (sqlError.number === 2627 || sqlError.number === 2601) {
-        throw new Error(`Esta imagen ya fue procesada anteriormente para el lote "${result.lote}". Archivo: ${result.fileName}`);
+      const sqlError = error as { number?: number; message?: string; originalError?: any };
+      
+      // Log detallado del error
+      if (sqlError.message) {
+        console.error(`   Mensaje SQL: ${sqlError.message}`);
+      }
+      if (sqlError.number) {
+        console.error(`   Error SQL #${sqlError.number}`);
+      }
+      if (sqlError.originalError) {
+        console.error(`   Error original:`, sqlError.originalError);
+      }
+      
+      // Errores conocidos - Duplicados
+      // 2627 = Violation of UNIQUE KEY constraint (error estándar SQL Server)
+      // 2601 = Cannot insert duplicate key (error estándar SQL Server)
+      // 50000 = Error personalizado del stored procedure (RAISERROR)
+      const errorMessage = sqlError.message || sqlError.originalError?.message || '';
+      const isDuplicateError = 
+        sqlError.number === 2627 || 
+        sqlError.number === 2601 || 
+        sqlError.number === 50000 ||
+        errorMessage.includes('UNIQUE KEY constraint') ||
+        errorMessage.includes('duplicate key') ||
+        errorMessage.includes('ya fue procesada');
+      
+      if (isDuplicateError) {
+        // Extraer información del error si es posible
+        const duplicateMatch = errorMessage.match(/duplicate key value is \(([^,]+), (\d+)\)/);
+        if (duplicateMatch) {
+          const [, filename, lotID] = duplicateMatch;
+          throw new Error(`Esta imagen ya fue procesada anteriormente. Archivo: "${filename}" para el lote ID ${lotID}. Si necesitas reprocesarla, elimina el registro anterior o usa un nombre de archivo diferente.`);
+        } else {
+          throw new Error(`Esta imagen ya fue procesada anteriormente para el lote "${result.lote}". Archivo: ${result.fileName}. Si necesitas reprocesarla, elimina el registro anterior o usa un nombre de archivo diferente.`);
+        }
+      }
+      
+      // Si el error menciona que no se encontró empresa/fundo/sector/lote
+      if (sqlError.message && (
+        sqlError.message.includes('no encontrada') || 
+        sqlError.message.includes('not found') ||
+        sqlError.message.includes('Empresa no encontrada') ||
+        sqlError.message.includes('Fundo no encontrado') ||
+        sqlError.message.includes('Sector no encontrado') ||
+        sqlError.message.includes('Lote no encontrado')
+      )) {
+        throw new Error(`Error de validación: ${sqlError.message}. Verifica que empresa, fundo, sector y lote existan en la base de datos.`);
       }
       
       throw error;
@@ -471,7 +538,13 @@ class SqlServerService {
           lp.fundo,
           lp.sector,
           lp.lote,
-          v.name AS variedad,
+          (SELECT TOP 1 v.name 
+           FROM GROWER.PLANTATION p WITH (NOLOCK)
+           INNER JOIN GROWER.VARIETY v WITH (NOLOCK) ON p.varietyID = v.varietyID
+           WHERE p.lotID = lp.lotID 
+             AND p.statusID = 1 
+             AND v.statusID = 1
+           ORDER BY p.plantationID) AS variedad,
           cf.estadoFenologico,
           cf.diasCianamida,
           CASE 
@@ -486,12 +559,6 @@ class SqlServerService {
           le.porcentajeSombraMax,
           CAST(le.porcentajeSombraPromedio AS DECIMAL(5,2)) AS porcentajeSombraProm
         FROM LotesPaginados lp
-        LEFT JOIN GROWER.PLANTATION p WITH (NOLOCK) 
-          ON lp.lotID = p.lotID 
-          AND p.statusID = 1
-        LEFT JOIN GROWER.VARIETY v WITH (NOLOCK) 
-          ON p.varietyID = v.varietyID 
-          AND v.statusID = 1
         LEFT JOIN dbo.vwc_Cianamida_fenologia cf WITH (NOLOCK) 
           ON lp.lotID = cf.lotID
         LEFT JOIN evalImagen.loteEvaluacion le WITH (NOLOCK) 
@@ -511,8 +578,10 @@ class SqlServerService {
       params.offset = offset;
       params.pageSize = pageSize;
 
-      const countResult = await query<{ total: number }>(countQuery, params);
-      const rows = await query<{
+      // Ejecutar count y rows en paralelo para mejor rendimiento
+      const [countResult, rows] = await Promise.all([
+        query<{ total: number }>(countQuery, params),
+        query<{
         fundo: string;
         sector: string;
         lote: string;
@@ -526,7 +595,8 @@ class SqlServerService {
         porcentajeSombraMin: number | null;
         porcentajeSombraMax: number | null;
         porcentajeSombraProm: number | null;
-      }>(consolidatedQuery, params);
+      }>(consolidatedQuery, params)
+      ]);
 
       const total = countResult[0]?.total || 0;
       const totalPages = Math.ceil(total / pageSize);
@@ -539,8 +609,17 @@ class SqlServerService {
         pageSize,
         totalPages
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [getConsolidatedTable] Error obteniendo tabla consolidada:', error);
+      
+      // Manejar errores de timeout específicamente
+      if (error.code === 'ETIMEOUT' || error.message?.includes('Timeout')) {
+        const timeoutError = new Error('La consulta está tardando demasiado. Por favor, intenta con filtros más específicos (fundo, sector o lote) para reducir el tiempo de respuesta.');
+        (timeoutError as any).code = 'ETIMEOUT';
+        (timeoutError as any).isTimeout = true;
+        throw timeoutError;
+      }
+      
       throw error;
     }
   }

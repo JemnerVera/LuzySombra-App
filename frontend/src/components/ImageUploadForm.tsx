@@ -133,6 +133,12 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
         formDataToSend.append('lote', formData.lote);
         formDataToSend.append('hilera', imageFile.hilera || '');
         formDataToSend.append('numero_planta', imageFile.numero_planta || '');
+        
+        // Enviar fecha EXIF si está disponible
+        if (imageFile.dateTime) {
+          formDataToSend.append('exifDate', imageFile.dateTime.date);
+          formDataToSend.append('exifTime', imageFile.dateTime.time);
+        }
 
         return apiService.processImage(formDataToSend);
       });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { RefreshCw, CheckCircle, XCircle, AlertTriangle, Filter, Calendar, MapPin } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, AlertTriangle, Filter, Calendar, MapPin, Package } from 'lucide-react';
+import { AlertasNavigation } from '../types';
 
 interface Alerta {
   alertaID: number;
@@ -34,9 +35,10 @@ interface Estadisticas {
 
 interface AlertasDashboardProps {
   onNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  onNavigateToConsolidados?: () => void;
 }
 
-const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification }) => {
+const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification, onNavigateToConsolidados }) => {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification }) =
     pageSize: 50
   });
   const [totalPages, setTotalPages] = useState(1);
+  const [consolidando, setConsolidando] = useState(false);
 
   const loadAlertas = async () => {
     try {
@@ -116,6 +119,31 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification }) =
     }
   };
 
+  const handleConsolidar = async () => {
+    if (!window.confirm('¿Deseas consolidar las alertas pendientes en mensajes por fundo? Esto agrupará las alertas para enviarlas por correo.')) {
+      return;
+    }
+
+    try {
+      setConsolidando(true);
+      const response = await apiService.consolidarAlertas(24);
+      if (response.success) {
+        onNotification(
+          `Se consolidaron ${response.mensajesCreados || 0} mensaje(s) exitosamente`,
+          'success'
+        );
+        loadAlertas();
+        loadEstadisticas();
+      }
+    } catch (error) {
+      console.error('Error consolidando alertas:', error);
+      onNotification('Error consolidando alertas', 'error');
+    } finally {
+      setConsolidando(false);
+    }
+  };
+
+
   const getEstadoColor = (estado: string) => {
     const colors: Record<string, string> = {
       'Pendiente': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
@@ -163,16 +191,37 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification }) =
             Visualiza y gestiona las alertas del sistema
           </p>
         </div>
-        <button
-          onClick={() => {
-            loadAlertas();
-            loadEstadisticas();
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-dark-800 text-gray-700 dark:text-dark-300 rounded-lg hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Actualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleConsolidar}
+            disabled={consolidando}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Consolidar alertas pendientes en mensajes por fundo"
+          >
+            <Package className={`h-4 w-4 ${consolidando ? 'animate-spin' : ''}`} />
+            {consolidando ? 'Consolidando...' : 'Consolidar Alertas'}
+          </button>
+          {onNavigateToConsolidados && (
+            <button
+              onClick={onNavigateToConsolidados}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              title="Ver mensajes consolidados por fundo"
+            >
+              <Package className="h-4 w-4" />
+              Ver Consolidados
+            </button>
+          )}
+          <button
+            onClick={() => {
+              loadAlertas();
+              loadEstadisticas();
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-dark-800 text-gray-700 dark:text-dark-300 rounded-lg hover:bg-gray-300 dark:hover:bg-dark-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Estadísticas */}

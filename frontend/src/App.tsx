@@ -12,12 +12,14 @@ import EvaluacionDetallePlanta from './components/EvaluacionDetallePlanta';
 import UmbralesManagement from './components/UmbralesManagement';
 import ContactosManagement from './components/ContactosManagement';
 import AlertasDashboard from './components/AlertasDashboard';
+import MensajesConsolidados from './components/MensajesConsolidados';
+import MensajesEnviados from './components/MensajesEnviados';
 import StatisticsDashboard from './components/StatisticsDashboard';
 import DispositivosManagement from './components/DispositivosManagement';
 import Notification from './components/Notification';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
-import { DetalleNavigation } from './types';
+import { DetalleNavigation, AlertasNavigation } from './types';
 
 // Componente interno que maneja las tabs (requiere autenticación)
 function AppContent() {
@@ -25,6 +27,7 @@ function AppContent() {
   const [hasUnsavedData, setHasUnsavedData] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
   const [detalleNavigation, setDetalleNavigation] = useState<DetalleNavigation | null>(null);
+  const [alertasNavigation, setAlertasNavigation] = useState<AlertasNavigation | null>(null);
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
@@ -128,10 +131,48 @@ function AppContent() {
             onNotification={showNotification}
           />
         );
+      case 'sistema-alertas':
+        // Por defecto, mostrar Alertas cuando se selecciona el padre
+        return (
+          <AlertasDashboard 
+            onNotification={showNotification}
+            onNavigateToConsolidados={() => {
+              setCurrentTab('alertas-consolidados');
+            }}
+          />
+        );
       case 'alertas':
         return (
           <AlertasDashboard 
             onNotification={showNotification}
+            onNavigateToConsolidados={() => {
+              setCurrentTab('alertas-consolidados');
+            }}
+          />
+        );
+      case 'alertas-consolidados':
+        return (
+          <MensajesConsolidados
+            onNotification={showNotification}
+            onNavigateBack={() => {
+              setCurrentTab('alertas');
+              setAlertasNavigation(null);
+            }}
+            onNavigateToMensajes={(nav: AlertasNavigation) => {
+              setAlertasNavigation(nav);
+              setCurrentTab('alertas-mensajes');
+            }}
+          />
+        );
+      case 'alertas-mensajes':
+        return (
+          <MensajesEnviados
+            onNotification={showNotification}
+            onNavigateBack={() => {
+              setCurrentTab('alertas-consolidados');
+              setAlertasNavigation(null);
+            }}
+            navigation={alertasNavigation || undefined}
           />
         );
       case 'consolidada':

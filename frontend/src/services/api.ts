@@ -292,6 +292,84 @@ export const apiService = {
     return response.data;
   },
 
+  consolidarAlertas: async (horasAtras?: number): Promise<ApiResponse<{
+    mensajesCreados: number;
+    horasAtras: number;
+    alertasSinMensaje: number;
+  }>> => {
+    const params = horasAtras ? { horasAtras } : {};
+    const response = await api.post('/api/alertas/consolidar', null, { params });
+    return response.data;
+  },
+
+  enviarMensajes: async (): Promise<ApiResponse<{
+    exitosos: number;
+    errores: number;
+  }>> => {
+    const response = await api.post('/api/alertas/enviar');
+    return response.data;
+  },
+
+  getMensajes: async (filters?: {
+    estado?: string;
+    fundoID?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<{
+    mensajes: Array<{
+      mensajeID: number;
+      fundoID: string | null;
+      fundoNombre: string | null;
+      tipoMensaje: string;
+      asunto: string;
+      estado: string;
+      fechaCreacion: string;
+      fechaEnvio: string | null;
+      intentosEnvio: number;
+      resendMessageID: string | null;
+      errorMessage: string | null;
+      totalAlertas: number;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>> => {
+    const response = await api.get('/api/alertas/mensajes', { params: filters });
+    return response.data;
+  },
+
+  getMensajeById: async (id: number): Promise<ApiResponse<{
+    mensaje: {
+      mensajeID: number;
+      fundoID: string | null;
+      fundoNombre: string | null;
+      tipoMensaje: string;
+      asunto: string;
+      cuerpoHTML: string;
+      cuerpoTexto: string | null;
+      destinatarios: string;
+      estado: string;
+      fechaCreacion: string;
+      fechaEnvio: string | null;
+      intentosEnvio: number;
+      resendMessageID: string | null;
+      errorMessage: string | null;
+    };
+    alertas: Array<{
+      alertaID: number;
+      lotID: number;
+      loteNombre: string;
+      sectorNombre: string;
+      tipoUmbral: string;
+      porcentajeLuzEvaluado: number;
+      fechaCreacion: string;
+    }>;
+  }>> => {
+    const response = await api.get(`/api/alertas/mensajes/${id}`);
+    return response.data;
+  },
+
   // AUTENTICACIÓN WEB
   loginWeb: async (username: string, password: string): Promise<ApiResponse<{
     token: string;

@@ -27,6 +27,7 @@ import authRoutes from './routes/auth';
 import photoUploadRoutes from './routes/photoUpload';
 import consolidarAlertasRoutes from './routes/alertas/consolidar';
 import enviarAlertasRoutes from './routes/alertas/enviar';
+import mensajesAlertasRoutes from './routes/alertas/mensajes';
 import listarAlertasRoutes from './routes/alertas/listar';
 import umbralesRoutes from './routes/umbrales';
 import contactosRoutes from './routes/contactos';
@@ -68,6 +69,7 @@ app.use('/api/photos', photoUploadRoutes);
 // RUTAS PARA ALERTAS
 app.use('/api/alertas/consolidar', consolidarAlertasRoutes);
 app.use('/api/alertas/enviar', enviarAlertasRoutes);
+app.use('/api/alertas/mensajes', mensajesAlertasRoutes);
 app.use('/api/alertas', listarAlertasRoutes);
 
 // RUTAS PARA UMBRALES
@@ -121,6 +123,10 @@ app.listen(PORT, () => {
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📡 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 });
+
+// Iniciar scheduler de alertas (si está habilitado)
+import { alertScheduler } from './scheduler/alertScheduler';
+// El scheduler se inicia automáticamente en su constructor
 
 // Manejo de cierre graceful
 process.on('SIGTERM', async () => {

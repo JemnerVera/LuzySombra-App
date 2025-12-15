@@ -96,7 +96,7 @@ export interface TestFormData {
   imagen: File;
 }
 
-export type TabType = 'analizar' | 'probar' | 'dashboard' | 'historial' | 'alertas' | 'contactos' | 'dispositivos' | 'umbrales' | 'consolidada' | 'evaluacion-por-lote' | 'evaluacion-por-fecha' | 'evaluacion-detalle-planta' | 'detalle-por-evaluacion';
+export type TabType = 'analizar' | 'probar' | 'dashboard' | 'historial' | 'sistema-alertas' | 'alertas' | 'alertas-consolidados' | 'alertas-mensajes' | 'contactos' | 'dispositivos' | 'umbrales' | 'consolidada' | 'evaluacion-por-lote' | 'evaluacion-por-fecha' | 'evaluacion-detalle-planta' | 'detalle-por-evaluacion';
 
 export interface NotificationState {
   show: boolean;
@@ -110,5 +110,11 @@ export interface DetalleNavigation {
   sector: string;
   lote: string;
   fecha?: string; // Para navegación a detalle de plantas
+}
+
+// Navegación de alertas
+export interface AlertasNavigation {
+  fundoID?: string; // Para navegación a mensajes consolidados por fundo
+  mensajeID?: number; // Para navegación a detalle de mensaje
 }
 

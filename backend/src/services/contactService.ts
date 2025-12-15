@@ -62,7 +62,7 @@ class ContactService {
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
         FROM evalImagen.contacto c
-        LEFT JOIN GROWER.FARMS f ON c.fundoID = f.farmID
+        LEFT JOIN GROWER.FARMS f ON RTRIM(c.fundoID) = RTRIM(f.farmID) AND c.fundoID IS NOT NULL
         LEFT JOIN GROWER.STAGE s ON c.sectorID = s.stageID
         ${whereClause}
         ORDER BY c.prioridad DESC, c.nombre ASC
@@ -103,7 +103,7 @@ class ContactService {
           f.Description AS fundoNombre,
           s.stage AS sectorNombre
         FROM evalImagen.contacto c
-        LEFT JOIN GROWER.FARMS f ON c.fundoID = f.farmID
+        LEFT JOIN GROWER.FARMS f ON RTRIM(c.fundoID) = RTRIM(f.farmID) AND c.fundoID IS NOT NULL
         LEFT JOIN GROWER.STAGE s ON c.sectorID = s.stageID
         WHERE c.contactoID = @contactoID
           AND c.statusID = 1
@@ -145,6 +145,36 @@ class ContactService {
 
       if (existing.length > 0) {
         throw new Error(`El email ${data.email} ya está registrado`);
+      }
+
+      // Normalizar fundoID (CHAR(4))
+      let fundoIDValue: string | null = null;
+      if (data.fundoID && data.fundoID !== null && data.fundoID !== '') {
+        // Convertir a string (fundoID es string | null según la interfaz)
+        const fundoIDStr = String(data.fundoID).trim().substring(0, 4);
+        
+        if (fundoIDStr.length > 0) {
+          // Rellenar con espacios hasta 4 caracteres (CHAR(4))
+          let fundoIDPadded = fundoIDStr;
+          while (fundoIDPadded.length < 4) {
+            fundoIDPadded += ' ';
+          }
+          fundoIDPadded = fundoIDPadded.substring(0, 4);
+          
+          // Validar que el fundoID exista en GROWER.FARMS
+          const fundoExists = await query<{ farmID: string }>(`
+            SELECT TOP 1 farmID
+            FROM GROWER.FARMS
+            WHERE RTRIM(farmID) = @fundoIDTrimmed
+              AND statusID = 1
+          `, { fundoIDTrimmed: fundoIDStr });
+          
+          if (fundoExists.length === 0) {
+            throw new Error(`El fundoID "${fundoIDStr}" no existe en GROWER.FARMS o está inactivo`);
+          }
+          
+          fundoIDValue = fundoIDPadded;
+        }
       }
 
       const result = await query<{ contactoID: number }>(`
@@ -192,7 +222,7 @@ class ContactService {
         recibirAlertasCriticas: data.recibirAlertasCriticas ? 1 : 0,
         recibirAlertasAdvertencias: data.recibirAlertasAdvertencias ? 1 : 0,
         recibirAlertasNormales: data.recibirAlertasNormales ? 1 : 0,
-        fundoID: data.fundoID || null,
+        fundoID: fundoIDValue,
         sectorID: data.sectorID || null,
         prioridad: data.prioridad,
         activo: data.activo ? 1 : 0,
@@ -282,8 +312,43 @@ class ContactService {
         params.recibirAlertasNormales = data.recibirAlertasNormales ? 1 : 0;
       }
       if (data.fundoID !== undefined) {
+        // fundoID es CHAR(4), validar y truncar si es necesario
+        let fundoIDValue: string | null = null;
+        
+        // Si viene como string vacío, null, o solo espacios, establecer como NULL
+        if (data.fundoID && data.fundoID !== null && String(data.fundoID).trim() !== '' && String(data.fundoID).trim() !== '-') {
+          // Convertir a string (fundoID es string | null según la interfaz)
+          const fundoIDStr = String(data.fundoID).trim().substring(0, 4);
+          
+          // Validar que no esté vacío después de trim y no sea solo "-"
+          if (fundoIDStr.length > 0 && fundoIDStr !== '-') {
+            // Rellenar con espacios hasta 4 caracteres si es necesario (CHAR(4))
+            let fundoIDPadded = fundoIDStr;
+            while (fundoIDPadded.length < 4) {
+              fundoIDPadded += ' ';
+            }
+            // Asegurar que no exceda 4 caracteres
+            fundoIDPadded = fundoIDPadded.substring(0, 4);
+            
+            // Validar que el fundoID exista en GROWER.FARMS
+            const fundoExists = await query<{ farmID: string }>(`
+              SELECT TOP 1 farmID
+              FROM GROWER.FARMS
+              WHERE RTRIM(farmID) = @fundoIDTrimmed
+                AND statusID = 1
+            `, { fundoIDTrimmed: fundoIDStr });
+            
+            if (fundoExists.length === 0) {
+              throw new Error(`El fundoID "${fundoIDStr}" no existe en GROWER.FARMS o está inactivo`);
+            }
+            
+            fundoIDValue = fundoIDPadded;
+          }
+        }
+        // Si fundoID es null, vacío, "-" o no válido, se establece como NULL
+        
         updates.push('fundoID = @fundoID');
-        params.fundoID = data.fundoID || null;
+        params.fundoID = fundoIDValue;
       }
       if (data.sectorID !== undefined) {
         updates.push('sectorID = @sectorID');

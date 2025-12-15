@@ -108,8 +108,14 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
         return;
       }
 
+      // Normalizar fundoID antes de enviar: convertir "-", vacío o null a null
+      const fundoIDToSend = formData.fundoID && formData.fundoID.trim() !== '' && formData.fundoID.trim() !== '-'
+        ? formData.fundoID.trim()
+        : null;
+      
       const response = await apiService.updateContacto(id, {
         ...formData,
+        fundoID: fundoIDToSend,
         usuarioModificaID: 1 // TODO: Obtener del contexto de usuario
       });
 
@@ -144,6 +150,10 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
 
   const handleEdit = (contacto: Contacto) => {
     setEditingId(contacto.contactoID);
+    // Normalizar fundoID: convertir "-", espacios o valores inválidos a null
+    const fundoIDNormalized = contacto.fundoID && contacto.fundoID.trim() !== '' && contacto.fundoID.trim() !== '-'
+      ? contacto.fundoID.trim()
+      : null;
     setFormData({
       nombre: contacto.nombre,
       email: contacto.email,
@@ -153,7 +163,7 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
       recibirAlertasCriticas: contacto.recibirAlertasCriticas,
       recibirAlertasAdvertencias: contacto.recibirAlertasAdvertencias,
       recibirAlertasNormales: contacto.recibirAlertasNormales,
-      fundoID: contacto.fundoID,
+      fundoID: fundoIDNormalized,
       sectorID: contacto.sectorID,
       prioridad: contacto.prioridad,
       activo: contacto.activo
@@ -208,9 +218,11 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
       const matchesTipo = !filterTipo || contacto.tipo === filterTipo;
       
       // Filtro por fundo
+      const contactoFundoIDTrimmed = contacto.fundoID?.trim();
+      const hasValidFundo = contactoFundoIDTrimmed && contactoFundoIDTrimmed !== '' && contactoFundoIDTrimmed !== '-';
       const matchesFundo = !filterFundo || 
-        (filterFundo === 'todos' && !contacto.fundoID) ||
-        (filterFundo !== 'todos' && contacto.fundoID === filterFundo);
+        (filterFundo === 'todos' && !hasValidFundo) ||
+        (filterFundo !== 'todos' && hasValidFundo && contactoFundoIDTrimmed === filterFundo.trim());
       
       // Filtro por activo
       const matchesActivo = !filterActivo || 
@@ -238,8 +250,10 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
   const fundosUnicos = useMemo(() => {
     const fundosMap = new Map<string, string>();
     contactos.forEach(contacto => {
-      if (contacto.fundoID && contacto.fundoNombre) {
-        fundosMap.set(contacto.fundoID, contacto.fundoNombre);
+      // Solo incluir si tiene fundoID válido (no NULL, no vacío, no solo "-" o espacios) y fundoNombre
+      const fundoIDTrimmed = contacto.fundoID?.trim();
+      if (fundoIDTrimmed && fundoIDTrimmed !== '' && fundoIDTrimmed !== '-' && contacto.fundoNombre) {
+        fundosMap.set(fundoIDTrimmed, contacto.fundoNombre);
       }
     });
     return Array.from(fundosMap.entries()).map(([id, nombre]) => ({ id, nombre }));
@@ -668,11 +682,11 @@ const ContactosManagement: React.FC<ContactosManagementProps> = ({ onNotificatio
                       <div className="space-y-1">
                         <div>
                           <span className="text-xs text-gray-500 dark:text-dark-400">Fundo: </span>
-                          <span>{contacto.fundoNombre || 'Todos'}</span>
+                          <span>{contacto.fundoID && contacto.fundoID.trim() !== '' && contacto.fundoID.trim() !== '-' ? (contacto.fundoNombre || 'Todos') : 'Todos'}</span>
                         </div>
                         <div>
                           <span className="text-xs text-gray-500 dark:text-dark-400">Sector: </span>
-                          <span>{contacto.sectorNombre || 'Todos'}</span>
+                          <span>{contacto.sectorID ? (contacto.sectorNombre || 'Todos') : 'Todos'}</span>
                         </div>
                       </div>
                     </td>

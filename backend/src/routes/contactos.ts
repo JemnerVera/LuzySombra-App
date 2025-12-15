@@ -1,7 +1,39 @@
 import express, { Request, Response } from 'express';
 import { contactService } from '../services/contactService';
+import { query } from '../lib/db';
 
 const router = express.Router();
+
+/**
+ * Normaliza fundoID: convierte nombres de fundos a IDs, o maneja valores inválidos
+ */
+async function normalizeFundoID(fundoID: any): Promise<string | null> {
+  if (!fundoID || fundoID === null || String(fundoID).trim() === '' || String(fundoID).trim() === '-') {
+    return null;
+  }
+  
+  const fundoIDStr = String(fundoID).trim();
+  
+  // Si es un nombre de fundo (más de 4 caracteres o contiene espacios), buscar el ID
+  if (fundoIDStr.length > 4 || fundoIDStr.includes(' ')) {
+    // Es un nombre, buscar el ID correspondiente
+    const fundoResult = await query<{ farmID: string }>(`
+      SELECT TOP 1 farmID
+      FROM GROWER.FARMS
+      WHERE Description = @fundoNombre
+        AND statusID = 1
+    `, { fundoNombre: fundoIDStr });
+    
+    if (fundoResult.length > 0) {
+      return fundoResult[0].farmID.trim();
+    } else {
+      throw new Error(`No se encontró un fundo con el nombre "${fundoIDStr}"`);
+    }
+  } else {
+    // Es un ID (4 caracteres o menos), usar directamente
+    return fundoIDStr;
+  }
+}
 
 /**
  * GET /api/contactos
@@ -110,6 +142,9 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    // Normalizar fundoID si se proporciona
+    const fundoIDNormalized = fundoID !== undefined ? await normalizeFundoID(fundoID) : null;
+    
     const contactoID = await contactService.createContacto({
       nombre,
       email,
@@ -119,7 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
       recibirAlertasCriticas: recibirAlertasCriticas !== false,
       recibirAlertasAdvertencias: recibirAlertasAdvertencias !== false,
       recibirAlertasNormales: recibirAlertasNormales === true,
-      fundoID: fundoID || null,
+      fundoID: fundoIDNormalized,
       sectorID: sectorID || null,
       prioridad: prioridad || 0,
       activo: activo !== false,
@@ -197,7 +232,12 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (recibirAlertasCriticas !== undefined) updateData.recibirAlertasCriticas = recibirAlertasCriticas;
     if (recibirAlertasAdvertencias !== undefined) updateData.recibirAlertasAdvertencias = recibirAlertasAdvertencias;
     if (recibirAlertasNormales !== undefined) updateData.recibirAlertasNormales = recibirAlertasNormales;
-    if (fundoID !== undefined) updateData.fundoID = fundoID || null;
+    if (fundoID !== undefined) {
+      // Normalizar fundoID: convertir "-", string vacío o solo espacios a null
+      // También convertir nombres de fundos a IDs si es necesario
+      const fundoIDNormalized = await normalizeFundoID(fundoID);
+      updateData.fundoID = fundoIDNormalized;
+    }
     if (sectorID !== undefined) updateData.sectorID = sectorID || null;
     if (prioridad !== undefined) updateData.prioridad = parseInt(prioridad);
     if (activo !== undefined) updateData.activo = activo;

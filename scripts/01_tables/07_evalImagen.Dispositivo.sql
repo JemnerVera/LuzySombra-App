@@ -1,7 +1,7 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Tabla evalImagen.dispositivo
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Servidor: 10.1.10.4
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
+-- Servidor: [CONFIGURAR - Reemplazar con IP o hostname de tu servidor SQL]
 -- Tipo: Tabla
 -- Propósito: Almacenar información de dispositivos Android (AgriQR) para autenticación
 -- =====================================================
@@ -38,7 +38,8 @@
 -- 
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================

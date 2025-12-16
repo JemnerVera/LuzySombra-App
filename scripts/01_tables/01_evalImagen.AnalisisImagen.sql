@@ -1,7 +1,7 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Tabla evalImagen.analisisImagen
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Servidor: 10.1.10.4
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
+-- Servidor: [CONFIGURAR - Reemplazar con IP o hostname de tu servidor SQL]
 -- Schema: evalImagen
 -- Propósito: Almacenar resultados de análisis de imágenes luz/sombra
 -- =====================================================
@@ -42,10 +42,11 @@
 --   - Query consolidada: getConsolidatedTable (indirectamente vía evalImagen.loteEvaluacion)
 -- 
 -- IMPORTANTE: Ejecutar con usuario con permisos de CREATE TABLE
--- Usuario: ucser_luzsombra_desa (DESA) / ucser_luzSombra (PROD)
+-- Usuario: [CONFIGURAR - Contactar al administrador para obtener credenciales]
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================

@@ -1,4 +1,4 @@
-# 📊 Schema evalImagen - Guía Completa
+﻿# 📊 Schema evalImagen - Guía Completa
 
 ## 🎯 ¿Qué es este sistema?
 
@@ -538,5 +538,5 @@ Si tienes preguntas o problemas:
 
 **Última actualización:** Noviembre 2025  
 **Schema:** `evalImagen`  
-**Base de datos:** `BD_PACKING_AGROMIGIVA_DESA`
+**Base de datos:** `[TU_BASE_DE_DATOS]`
 

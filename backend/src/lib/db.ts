@@ -1,5 +1,6 @@
 import sql from 'mssql';
 import dotenv from 'dotenv';
+import logger from './logger';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -15,10 +16,12 @@ if (missingVars.length > 0) {
   );
 }
 
-// Log de configuración solo en modo desarrollo
-if (process.env.NODE_ENV === 'development') {
-  console.log(`🔧 [DB] Conectando a SQL Server: ${process.env.SQL_SERVER}/${process.env.SQL_DATABASE}`);
-}
+// Log de configuración
+logger.debug('Configurando conexión a SQL Server', {
+  server: process.env.SQL_SERVER,
+  database: process.env.SQL_DATABASE,
+  port: process.env.SQL_PORT || '1433',
+});
 
 const config: sql.config = {
   user: process.env.SQL_USER!,
@@ -69,18 +72,26 @@ export async function getConnection(): Promise<sql.ConnectionPool> {
   try {
     pool = await sql.connect(config);
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ [DB] Conectado a SQL Server: ${config.server}/${config.database}`);
-    }
+    logger.info('Conexión a SQL Server establecida', {
+      server: config.server,
+      database: config.database,
+      port: config.port,
+      attempts: connectionAttempts,
+    });
     
     connectionAttempts = 0; // Reset counter on success
     return pool;
   } catch (error: any) {
-    console.error(`❌ [DB] Error conectando a SQL Server:`, error.message || error);
-    
-    if (error.code === 'ESOCKET') {
-      console.error(`   💡 Verificar: VPN conectada, firewall, servidor accesible`);
-    }
+    logger.error('Error conectando a SQL Server', {
+      error: error.message,
+      code: error.code,
+      server: config.server,
+      database: config.database,
+      attempts: connectionAttempts,
+      ...(error.code === 'ESOCKET' && {
+        suggestion: 'Verificar: VPN conectada, firewall, servidor accesible',
+      }),
+    });
     
     pool = null;
     throw error;
@@ -118,11 +129,18 @@ export async function query<T = any>(
     const result = await request.query(queryText);
     return result.recordset as T[];
   } catch (error: any) {
-    console.error(`❌ [DB] Error en query:`, error.message || error);
+    logger.error('Error ejecutando query SQL', {
+      error: error.message,
+      code: error.code,
+      query: queryText.substring(0, 100), // Primeros 100 caracteres para logging
+    });
     
     // Si es error de conexión, resetear pool
     if (error.code === 'ESOCKET' || error.code === 'ECONNRESET') {
       pool = null;
+      logger.warn('Pool de conexiones reseteado debido a error de conexión', {
+        code: error.code,
+      });
     }
     
     throw error;
@@ -190,16 +208,13 @@ export async function executeProcedure<T = any>(
       output: Object.keys(output).length > 0 ? output : undefined
     };
   } catch (error: any) {
-    console.error(`❌ Error ejecutando stored procedure ${procedureName}:`, error);
-    if (error.message) {
-      console.error(`   Mensaje: ${error.message}`);
-    }
-    if (error.number) {
-      console.error(`   Error SQL #${error.number}`);
-    }
-    if (params) {
-      console.error(`   Parámetros enviados:`, Object.keys(params).join(', '));
-    }
+    logger.error('Error ejecutando stored procedure', {
+      procedure: procedureName,
+      error: error.message,
+      sqlErrorNumber: error.number,
+      params: params ? Object.keys(params) : [],
+      ...(error.stack && { stack: error.stack }),
+    });
     throw error;
   }
 }
@@ -249,7 +264,7 @@ export async function closeConnection(): Promise<void> {
   if (pool) {
     await pool.close();
     pool = null;
-    console.log('🔌 Conexión a SQL Server cerrada');
+    logger.info('Conexión a SQL Server cerrada');
   }
 }
 

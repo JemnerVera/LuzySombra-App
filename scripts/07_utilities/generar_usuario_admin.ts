@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Script para generar hash de contraseña e insertar usuario admin
  * 
  * Uso:
@@ -42,7 +42,7 @@ async function generarUsuario() {
     const nombreEscaped = nombreCompleto.replace(/'/g, "''");
     const hashEscaped = passwordHash.replace(/'/g, "''");
     
-    console.log(`USE BD_PACKING_AGROMIGIVA_DESA;`);
+    console.log(`USE [TU_BASE_DE_DATOS];`);
     console.log(`GO`);
     console.log(``);
     console.log(`-- Insertar usuario admin`);

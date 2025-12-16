@@ -1,6 +1,6 @@
-# Estructura de Base de Datos de Producción
+﻿# Estructura de Base de Datos de Producción
 
-**Base de Datos:** `BD_PACKING_AGROMIGIVA_DESA` (Servidor: configurar en `.env.local`)  
+**Base de Datos:** Configurar en `.env.local` (contactar al administrador)  
 **Credenciales:** Configurar en `.env.local` (usuario solo lectura recomendado para consultas)
 
 ---
@@ -278,12 +278,12 @@ WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221"
 6. **Estado fenológico** ✅ (de `evalAgri.EstadoFenologico`)
 7. **Días desde cianamida** ✅ (de `phytosanitary.lotCyanamideDate`)
 8. Fecha de última evaluación
-9. Min (% Luz) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
-10. Max (% Luz) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
-11. Prom (% Luz) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
-12. Min (% Sombra) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
-13. Max (% Sombra) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
-14. Prom (% Sombra) - desde `evalImagen.AnalisisImagen` en BD_PACKING_AGROMIGIVA_DESA
+9. Min (% Luz) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
+10. Max (% Luz) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
+11. Prom (% Luz) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
+12. Min (% Sombra) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
+13. Max (% Sombra) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
+14. Prom (% Sombra) - desde `evalImagen.AnalisisImagen` en [TU_BASE_DE_DATOS]
 
 ---
 
@@ -291,7 +291,7 @@ WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221"
 
 1. **Acceso de Lectura y Escritura**: 
    - Lectura: Usuario `ucser_powerbi_desa` (solo `SELECT`)
-   - Escritura: Usuario `ucser_luzsombra_desa` (`INSERT`/`UPDATE` en `evalImagen.AnalisisImagen`)
+   - Escritura: Usuario configurado en `.env.local` (`INSERT`/`UPDATE` en `evalImagen.AnalisisImagen`)
 
 2. **Integración Directa**: 
    - Los análisis de imágenes se guardan directamente en `evalImagen.AnalisisImagen` en la misma base de datos
@@ -299,7 +299,7 @@ WHERE p.plantID = 805221  -- plantID como int (convertir desde string "00805221"
 
 3. **Estrategia Implementada**:
    - **Queries directos** en la aplicación Node.js
-   - Todas las tablas en la misma base de datos `BD_PACKING_AGROMIGIVA_DESA`
+   - Todas las tablas en la misma base de datos `[TU_BASE_DE_DATOS]`
    - Sin necesidad de mapeo o ETL
 
 4. **Campos Pendientes**:

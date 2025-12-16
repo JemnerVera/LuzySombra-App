@@ -291,6 +291,137 @@ class ResendService {
       return false;
     }
   }
+
+  /**
+   * Verifica si el servicio está inicializado
+   */
+  isInitialized(): boolean {
+    return this.resend !== null;
+  }
+
+  /**
+   * Envía email de recuperación de contraseña
+   */
+  async sendPasswordResetEmail(email: string, username: string, newPassword: string): Promise<{
+    exito: boolean;
+    messageId?: string;
+    error?: string;
+  }> {
+    if (!this.resend) {
+      return {
+        exito: false,
+        error: 'Resend no está configurado'
+      };
+    }
+
+    try {
+      const subject = 'Recuperación de Contraseña - LuzSombra';
+      const htmlBody = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .password-box { background-color: #ffffff; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+            .password { font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 2px; font-family: monospace; }
+            .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+            .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Recuperación de Contraseña</h1>
+            </div>
+            <div class="content">
+              <p>Hola <strong>${username}</strong>,</p>
+              
+              <p>Has solicitado recuperar tu contraseña para acceder a LuzSombra.</p>
+              
+              <div class="password-box">
+                <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Tu nueva contraseña es:</p>
+                <div class="password">${newPassword}</div>
+              </div>
+              
+              <div class="warning">
+                <strong>⚠️ Importante:</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  <li>Esta contraseña es temporal y se generó automáticamente</li>
+                  <li>Te recomendamos cambiarla después de iniciar sesión</li>
+                  <li>No compartas esta contraseña con nadie</li>
+                </ul>
+              </div>
+              
+              <p>Puedes iniciar sesión con tu username: <strong>${username}</strong> y la contraseña mostrada arriba.</p>
+              
+              <p style="margin-top: 30px;">
+                Si no solicitaste este cambio, por favor contacta al administrador del sistema.
+              </p>
+            </div>
+            <div class="footer">
+              <p>Este es un email automático, por favor no respondas.</p>
+              <p>Sistema de Análisis de Imágenes Agrícolas - LuzSombra</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const textBody = `
+Recuperación de Contraseña - LuzSombra
+
+Hola ${username},
+
+Has solicitado recuperar tu contraseña para acceder a LuzSombra.
+
+Tu nueva contraseña es: ${newPassword}
+
+⚠️ IMPORTANTE:
+- Esta contraseña es temporal y se generó automáticamente
+- Te recomendamos cambiarla después de iniciar sesión
+- No compartas esta contraseña con nadie
+
+Puedes iniciar sesión con tu username: ${username} y la contraseña mostrada arriba.
+
+Si no solicitaste este cambio, por favor contacta al administrador del sistema.
+
+---
+Este es un email automático, por favor no respondas.
+Sistema de Análisis de Imágenes Agrícolas - LuzSombra
+      `;
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html: htmlBody,
+        text: textBody,
+      });
+
+      if (result.error) {
+        console.error('❌ Error enviando email de recuperación:', result.error);
+        return {
+          exito: false,
+          error: result.error.message || 'Error desconocido'
+        };
+      }
+
+      return {
+        exito: true,
+        messageId: result.data?.id
+      };
+    } catch (error) {
+      console.error('❌ Error enviando email de recuperación:', error);
+      return {
+        exito: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      };
+    }
+  }
 }
 
 export const resendService = new ResendService();

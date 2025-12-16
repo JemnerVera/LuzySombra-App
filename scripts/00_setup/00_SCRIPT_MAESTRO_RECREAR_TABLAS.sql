@@ -1,7 +1,7 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT MAESTRO: Recrear Todas las Tablas del Schema evalImagen
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
--- Servidor: 10.1.10.4
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
+-- Servidor: [CONFIGURAR - Reemplazar con IP o hostname de tu servidor SQL]
 -- Tipo: Setup / Script Maestro
 -- Propósito: Recrear todas las tablas después de borrado
 -- =====================================================
@@ -38,7 +38,8 @@
 -- 
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '═══════════════════════════════════════════════════════════════════';
@@ -92,7 +93,7 @@ PRINT '';
 PRINT 'Todos los scripts tienen "IF NOT EXISTS", así que son seguros';
 PRINT 'de ejecutar múltiples veces.';
 PRINT '';
-PRINT 'Usuario SQL: ucser_luzsombra_desa (DESA) / ucser_luzSombra (PROD)';
+PRINT 'Usuario SQL: [CONFIGURAR - Contactar al administrador]';
 PRINT '';
 
 GO

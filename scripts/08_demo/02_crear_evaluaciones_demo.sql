@@ -1,11 +1,12 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Evaluaciones Demo - Generar alertas automáticamente
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Crear evaluaciones que generen alertas vía trigger
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';
@@ -20,12 +21,12 @@ PRINT '';
 DECLARE @fundoFiltro CHAR(4);
 SELECT TOP 1 @fundoFiltro = fundoID
 FROM evalImagen.contacto
-WHERE email = 'jemner.vera@agricolaandrea.com'
+WHERE email = '[TU_EMAIL_DEMO]'
   AND statusID = 1;
 
 IF @fundoFiltro IS NULL
 BEGIN
-    PRINT '❌ ERROR: No se encontró el contacto jemner.vera@agricolaandrea.com con fundoID configurado.';
+    PRINT '❌ ERROR: No se encontró el contacto [TU_EMAIL_DEMO] con fundoID configurado.';
     PRINT '   Por favor, ejecuta primero: scripts/08_demo/01_setup_demo.sql';
     RETURN;
 END

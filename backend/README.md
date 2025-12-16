@@ -31,11 +31,11 @@ npm start
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=10.1.10.4
-SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+SQL_SERVER=your_server_ip_or_hostname
+SQL_DATABASE=your_database_name
 SQL_PORT=1433
-SQL_USER=ucser_luzsombra_desa
-SQL_PASSWORD=D3s4S3r12
+SQL_USER=your_sql_username
+SQL_PASSWORD=your_sql_password
 SQL_ENCRYPT=true
 
 # Server Configuration
@@ -47,7 +47,7 @@ DATA_SOURCE=sql
 
 # Resend API (para alertas)
 RESEND_API_KEY=tu_api_key
-RESEND_FROM_EMAIL=no-reply@updates.agricolaandrea.com
+RESEND_FROM_EMAIL=no-reply@your-domain.com
 RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 
 # Development
@@ -57,7 +57,7 @@ NODE_ENV=development
 **⚠️ IMPORTANTE**: 
 - El archivo `.env` contiene credenciales sensibles y NO debe commitrearse.
 - El schema de la base de datos es `evalImagen` (no `image`).
-- Usuario SQL: `ucser_luzsombra_desa` (DESA) / `ucser_luzSombra` (PROD).
+- Contactar al administrador para obtener credenciales SQL.
 
 ## Diagnóstico de Conectividad
 
@@ -82,12 +82,12 @@ Este script verificará:
 ### Error ESOCKET / ETIMEDOUT
 
 **Síntomas:**
-- `Failed to connect to 10.1.10.4:1433 - Could not connect (sequence)`
+- `Failed to connect to [server]:1433 - Could not connect (sequence)`
 - `ETIMEDOUT` después de ~21 segundos
 
 **Soluciones:**
 1. **Conectar a la VPN de la empresa** (más común)
-   - La IP `10.1.10.4` es privada y requiere VPN
+   - Si el servidor SQL es privado, requiere VPN
    - Verificar que la VPN esté conectada y activa
 
 2. **Verificar firewall**
@@ -101,7 +101,7 @@ Este script verificará:
 
 4. **Verificar ping**
    ```bash
-   ping 10.1.10.4
+   ping [tu_servidor_sql]
    ```
    - Si el ping funciona pero SQL no, puede ser firewall
    - Si el ping no funciona, es problema de VPN/red

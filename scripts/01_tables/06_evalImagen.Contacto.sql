@@ -1,6 +1,6 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear tabla evalImagen.contacto
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Almacenar contactos/destinatarios para alertas por email
 -- =====================================================
@@ -41,7 +41,8 @@
 -- 
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================

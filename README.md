@@ -46,10 +46,7 @@ npm run install:all
 
 **⚠️ IMPORTANTE:** Debes estar conectado a la VPN antes de ejecutar el backend.
 
-1. Conectar a FortiClient VPN:
-   - Nombre: VPN-AGRO
-   - Usuario: jverac
-   - Contraseña: bz7371Xa
+1. Conectar a FortiClient VPN (contactar al administrador para credenciales)
 2. Verificar que la VPN esté conectada
 3. Ver `backend/CONFIGURACION_VPN.md` para más detalles
 
@@ -65,11 +62,11 @@ cp env.example .env.local
 
 ```bash
 # SQL Server Configuration
-SQL_SERVER=10.1.10.4
-SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+SQL_SERVER=your_server_ip_or_hostname
+SQL_DATABASE=your_database_name
 SQL_PORT=1433
-SQL_USER=ucser_luzsombra_desa
-SQL_PASSWORD=D3s4S3r12
+SQL_USER=your_sql_username
+SQL_PASSWORD=your_sql_password
 SQL_ENCRYPT=true
 
 # Server Configuration
@@ -219,8 +216,7 @@ npm run preview          # Preview del build
 - `evalImagen.MensajeAlerta` - Relación mensajes consolidados
 
 **Usuario SQL:**
-- DESA: `ucser_luzsombra_desa`
-- PROD: `ucser_luzSombra`
+- Contactar al administrador para obtener credenciales de desarrollo y producción
 
 Ver `scripts/00_setup/INSTRUCCIONES_RECREAR_TABLAS.md` para crear las tablas.
 

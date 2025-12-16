@@ -1,11 +1,12 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Setup Demo - Configurar datos iniciales para demo
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Configurar umbrales y contactos de prueba para demo
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';
@@ -45,7 +46,7 @@ END
 GO
 
 -- =====================================================
--- 2. Configurar Contacto para Demo (jemner.vera@agricolaandrea.com)
+-- 2. Configurar Contacto para Demo ([TU_EMAIL_DEMO])
 -- =====================================================
 PRINT '';
 PRINT '2. Configurando contacto para demo...';
@@ -97,7 +98,7 @@ IF @usuarioCreaID IS NULL
 
 -- Contacto Principal: Agrónomo Real (recibe todas las alertas del fundo)
 -- IMPORTANTE: fundoID es CHAR(4), asegurar que tenga el valor correcto
-IF NOT EXISTS (SELECT 1 FROM evalImagen.contacto WHERE email = 'jemner.vera@agricolaandrea.com' AND statusID = 1)
+IF NOT EXISTS (SELECT 1 FROM evalImagen.contacto WHERE email = '[TU_EMAIL_DEMO]' AND statusID = 1)
 BEGIN
     INSERT INTO evalImagen.contacto (
         nombre,
@@ -117,7 +118,7 @@ BEGIN
         fechaCreacion
     ) VALUES (
         'Jemner Vera',
-        'jemner.vera@agricolaandrea.com',
+        '[TU_EMAIL_DEMO]',
         NULL, -- Telefono opcional
         'Agronomo',
         'Agrónomo',
@@ -132,7 +133,7 @@ BEGIN
         @usuarioCreaID,
         GETDATE()
     );
-    PRINT CONCAT('   ✅ Contacto Agrónomo creado: jemner.vera@agricolaandrea.com (fundoID: ', @fundoDemoID, ')');
+    PRINT CONCAT('   ✅ Contacto Agrónomo creado: [TU_EMAIL_DEMO] (fundoID: ', @fundoDemoID, ')');
 END
 ELSE
 BEGIN
@@ -148,8 +149,8 @@ BEGIN
         activo = 1,
         statusID = 1,
         prioridad = 10
-    WHERE email = 'jemner.vera@agricolaandrea.com';
-    PRINT CONCAT('   ✅ Contacto Agrónomo actualizado: jemner.vera@agricolaandrea.com (fundoID: ', @fundoDemoID, ')');
+    WHERE email = '[TU_EMAIL_DEMO]';
+    PRINT CONCAT('   ✅ Contacto Agrónomo actualizado: [TU_EMAIL_DEMO] (fundoID: ', @fundoDemoID, ')');
 END
 
 PRINT '';
@@ -172,7 +173,7 @@ SELECT
     activo,
     prioridad
 FROM evalImagen.contacto
-WHERE email = 'jemner.vera@agricolaandrea.com'
+WHERE email = '[TU_EMAIL_DEMO]'
   AND statusID = 1;
 PRINT '';
 PRINT '⚠️ IMPORTANTE: Asegúrate de tener configurado RESEND_API_KEY en .env';

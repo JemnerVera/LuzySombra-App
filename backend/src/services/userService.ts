@@ -401,6 +401,99 @@ class UserService {
   }
 
   /**
+   * Busca un usuario por email
+   */
+  async findByEmail(email: string): Promise<UsuarioConPassword | null> {
+    try {
+      const rows = await query<UsuarioConPassword>(`
+        SELECT 
+          usuarioID,
+          username,
+          passwordHash,
+          email,
+          nombreCompleto,
+          rol,
+          activo,
+          ultimoAcceso
+        FROM evalImagen.usuarioWeb
+        WHERE email = @email
+          AND statusID = 1
+      `, { email });
+
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      console.error('❌ Error buscando usuario por email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Resetea la contraseña de un usuario (genera nueva contraseña aleatoria)
+   */
+  async resetPassword(email: string): Promise<{ success: boolean; newPassword?: string; error?: string }> {
+    try {
+      const usuario = await this.findByEmail(email);
+      
+      if (!usuario) {
+        // Por seguridad, no revelar si el email existe o no
+        return { success: true }; // Retornar éxito aunque no exista
+      }
+
+      // Generar contraseña aleatoria segura (12 caracteres)
+      const newPassword = this.generateRandomPassword(12);
+      const passwordHash = await this.hashPassword(newPassword);
+
+      await query(`
+        UPDATE evalImagen.usuarioWeb
+        SET passwordHash = @passwordHash,
+            intentosLogin = 0,
+            bloqueadoHasta = NULL,
+            usuarioModificaID = NULL,
+            fechaModificacion = GETDATE()
+        WHERE usuarioID = @usuarioID
+          AND statusID = 1
+      `, {
+        usuarioID: usuario.usuarioID,
+        passwordHash
+      });
+
+      return { success: true, newPassword };
+    } catch (error) {
+      console.error('❌ Error reseteando contraseña:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Error desconocido' 
+      };
+    }
+  }
+
+  /**
+   * Genera una contraseña aleatoria segura
+   */
+  private generateRandomPassword(length: number = 12): string {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const special = '!@#$%&*';
+    const allChars = uppercase + lowercase + numbers + special;
+
+    let password = '';
+    // Asegurar al menos un carácter de cada tipo
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+
+    // Completar el resto
+    for (let i = password.length; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    // Mezclar los caracteres
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  /**
    * Elimina un usuario (soft delete)
    */
   async deleteUser(usuarioID: number, usuarioModificaID: number): Promise<boolean> {

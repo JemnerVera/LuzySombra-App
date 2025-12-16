@@ -1,6 +1,6 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Vista vwc_Cianamida_fenologia
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: dbo
 -- Propósito: Vista compuesta que consolida información de días desde cianamida
 -- y estado fenológico por lote. Prioriza estado fenológico desde cianamida,

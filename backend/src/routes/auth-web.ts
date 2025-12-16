@@ -3,6 +3,8 @@ import { userService } from '../services/userService';
 import { authenticateWebUser } from '../middleware/auth-web';
 import { signToken } from '../lib/jwt';
 import { rateLimitService } from '../services/rateLimitService';
+import { resendService } from '../services/resendService';
+import logger from '../lib/logger';
 
 const router = express.Router();
 
@@ -188,6 +190,95 @@ router.get('/me', authenticateWebUser, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('❌ Error obteniendo usuario:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/web/forgot-password
+ * Recuperación de contraseña - Envía nueva contraseña por email
+ * 
+ * Body:
+ * - email: Email del usuario
+ */
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'El email es requerido'
+      });
+    }
+
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de email inválido'
+      });
+    }
+
+    // Resetear contraseña
+    const resetResult = await userService.resetPassword(email);
+
+    if (!resetResult.success) {
+      logger.error('Error reseteando contraseña', {
+        email,
+        error: resetResult.error,
+      });
+      // Por seguridad, no revelar si el email existe o no
+      return res.json({
+        success: true,
+        message: 'Si el email existe en el sistema, recibirás una nueva contraseña por correo electrónico.'
+      });
+    }
+
+    // Si el usuario existe y se reseteó la contraseña, enviar email
+    if (resetResult.newPassword) {
+      // Buscar usuario para obtener username
+      const usuario = await userService.findByEmail(email);
+      
+      if (usuario) {
+        // Enviar email con nueva contraseña
+        const emailResult = await resendService.sendPasswordResetEmail(
+          email,
+          usuario.username,
+          resetResult.newPassword
+        );
+
+        if (emailResult.exito) {
+          logger.info('Email de recuperación de contraseña enviado', {
+            email,
+            username: usuario.username,
+            messageId: emailResult.messageId,
+          });
+        } else {
+          logger.error('Error enviando email de recuperación', {
+            email,
+            username: usuario.username,
+            error: emailResult.error,
+          });
+          // Aún así retornar éxito para no revelar información
+        }
+      }
+    }
+
+    // Siempre retornar éxito (por seguridad, no revelar si el email existe)
+    res.json({
+      success: true,
+      message: 'Si el email existe en el sistema, recibirás una nueva contraseña por correo electrónico.'
+    });
+  } catch (error) {
+    logger.error('Error en forgot-password', {
+      error: error instanceof Error ? error.message : 'Error desconocido',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'

@@ -1,6 +1,6 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_calcularLoteEvaluacion
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Calcular estadísticas agregadas por lote y actualizar/insertar en LoteEvaluacion
 -- =====================================================
@@ -39,7 +39,8 @@
 -- 
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================

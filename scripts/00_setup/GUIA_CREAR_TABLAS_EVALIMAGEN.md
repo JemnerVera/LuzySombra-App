@@ -1,8 +1,8 @@
-# Guía: Crear Tablas del Schema evalImagen
+﻿# Guía: Crear Tablas del Schema evalImagen
 
 ## 📋 Resumen
 
-Esta guía explica cómo crear todas las tablas del schema `evalImagen` en la base de datos `BD_PACKING_AGROMIGIVA_DESA`.
+Esta guía explica cómo crear todas las tablas del schema `evalImagen` en la base de datos `[TU_BASE_DE_DATOS]`.
 
 ---
 
@@ -10,9 +10,9 @@ Esta guía explica cómo crear todas las tablas del schema `evalImagen` en la ba
 
 1. **Acceso a SQL Server Management Studio (SSMS)** o herramienta similar
 2. **Credenciales de base de datos:**
-   - **Desarrollo:** `ucser_luzsombra_desa` / `D3s4S3r12`
-   - **Producción:** `ucser_luzSombra` / (password de producción)
-3. **Base de datos:** `BD_PACKING_AGROMIGIVA_DESA` (o la base de datos correspondiente)
+   - **Desarrollo:** Contactar al administrador para obtener credenciales
+   - **Producción:** Contactar al administrador para obtener credenciales
+3. **Base de datos:** `[TU_BASE_DE_DATOS]` (o la base de datos correspondiente)
 4. **Permisos:** Usuario debe tener permisos de `CREATE TABLE`, `CREATE SCHEMA`, `CREATE INDEX`
 
 ---
@@ -95,12 +95,12 @@ scripts/01_tables/
 ### **Opción 1: Script Maestro (Recomendado)**
 
 1. Abrir SQL Server Management Studio
-2. Conectarse al servidor: `10.1.10.4` (o el servidor correspondiente)
+2. Conectarse al servidor: `[TU_SERVIDOR_SQL]` (o el servidor correspondiente)
 3. Abrir el archivo:
    ```
    scripts/00_setup/00_SCRIPT_MAESTRO_RECREAR_TABLAS.sql
    ```
-4. Verificar que la base de datos sea `BD_PACKING_AGROMIGIVA_DESA` (o la correcta)
+4. Verificar que la base de datos sea `[TU_BASE_DE_DATOS]` (o la correcta)
 5. Ejecutar el script completo (F5)
 
 El script maestro ejecuta todos los scripts en el orden correcto automáticamente.
@@ -112,7 +112,7 @@ El script maestro ejecuta todos los scripts en el orden correcto automáticament
 Si prefieres ejecutar cada script individualmente:
 
 1. **Abrir SSMS** y conectarse al servidor
-2. **Seleccionar la base de datos:** `BD_PACKING_AGROMIGIVA_DESA`
+2. **Seleccionar la base de datos:** `[TU_BASE_DE_DATOS]`
 3. **Ejecutar cada script en orden:**
    - Abrir `scripts/01_tables/01_evalImagen.AnalisisImagen.sql`
    - Ejecutar (F5)
@@ -248,7 +248,7 @@ Después de crear las tablas, puedes ejecutar:
 ## ✅ Checklist de Ejecución
 
 - [ ] Conectado al servidor correcto
-- [ ] Base de datos seleccionada: `BD_PACKING_AGROMIGIVA_DESA`
+- [ ] Base de datos seleccionada: `[TU_BASE_DE_DATOS]`
 - [ ] Usuario con permisos adecuados
 - [ ] Script maestro ejecutado o scripts individuales en orden
 - [ ] Sin errores en la ejecución

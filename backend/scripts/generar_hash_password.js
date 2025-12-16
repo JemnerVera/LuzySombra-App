@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Script simple para generar hash de contraseña usando bcrypt
  * 
  * Uso:
@@ -35,7 +35,7 @@ async function generarHash() {
     console.log('  SCRIPT SQL PARA INSERTAR USUARIO');
     console.log('═══════════════════════════════════════════════════════════════════');
     console.log('');
-    console.log(`USE BD_PACKING_AGROMIGIVA_DESA;`);
+    console.log(`USE [TU_BASE_DE_DATOS];`);
     console.log(`GO`);
     console.log(``);
     console.log(`IF NOT EXISTS (SELECT 1 FROM evalImagen.UsuarioWeb WHERE username = 'admin')`);

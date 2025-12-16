@@ -1,12 +1,13 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Limpiar Demo - Eliminar datos de prueba
--- Base de datos: BD_PACKING_AGROMIGIVA_DESA
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Limpiar datos de demo (alertas, mensajes, contactos, evaluaciones)
 -- ⚠️ ADVERTENCIA: Este script elimina datos. Úsalo con precaución.
 -- =====================================================
 
-USE BD_PACKING_AGROMIGIVA_DESA;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';
@@ -70,7 +71,7 @@ SET @alertasEliminadas = @@ROWCOUNT;
 PRINT CONCAT('   ✅ ', @alertasEliminadas, ' alerta(s) marcada(s) como inactivas');
 
 -- =====================================================
--- 3. Eliminar Contactos de Demo (excepto jemner.vera@agricolaandrea.com)
+-- 3. Eliminar Contactos de Demo (excepto [TU_EMAIL_DEMO])
 -- =====================================================
 PRINT '';
 PRINT '3. Eliminando contactos de demo...';
@@ -81,11 +82,11 @@ UPDATE evalImagen.contacto
 SET statusID = 0
 WHERE statusID = 1
   AND email LIKE '%@example.com'
-  AND email != 'jemner.vera@agricolaandrea.com'; -- NO eliminar contacto real
+  AND email != '[TU_EMAIL_DEMO]'; -- NO eliminar contacto real
 
 SET @contactosEliminados = @@ROWCOUNT;
 PRINT CONCAT('   ✅ ', @contactosEliminados, ' contacto(s) de demo marcado(s) como inactivos');
-PRINT '   ℹ️ Contacto jemner.vera@agricolaandrea.com se mantiene activo';
+PRINT '   ℹ️ Contacto [TU_EMAIL_DEMO] se mantiene activo';
 
 -- =====================================================
 -- 4. Eliminar Evaluaciones de Demo (OPCIONAL)

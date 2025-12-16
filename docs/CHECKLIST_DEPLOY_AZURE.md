@@ -38,11 +38,11 @@
 
 ```env
 # SQL Server
-SQL_SERVER=10.1.10.4
-SQL_DATABASE=BD_PACKING_AGROMIGIVA_DESA
+SQL_SERVER=your_server_ip_or_hostname
+SQL_DATABASE=your_database_name
 SQL_PORT=1433
-SQL_USER=ucser_luzsombra_desa
-SQL_PASSWORD=D3s4S3r12
+SQL_USER=your_sql_username
+SQL_PASSWORD=your_sql_password
 SQL_ENCRYPT=true
 
 # Server
@@ -51,7 +51,7 @@ NODE_ENV=production
 
 # Resend API
 RESEND_API_KEY=[SECRETO - usar Key Vault]
-RESEND_FROM_EMAIL=no-reply@updates.agricolaandrea.com
+RESEND_FROM_EMAIL=no-reply@your-domain.com
 RESEND_FROM_NAME=Sistema de Alertas LuzSombra
 
 # Frontend URL (OBLIGATORIO para CORS - ver docs/EXPLICACION_FRONTEND_URL.md)
@@ -69,7 +69,7 @@ DATA_SOURCE=sql
 ### **3. Conectividad SQL Server** ✅ COMPLETADO
 
 **Estado:** Azure está en la misma nube que SQL Server
-- ✅ **Acceso directo** a SQL Server (`10.1.10.4:1433`)
+- ✅ **Acceso directo** a SQL Server (configurar en variables de entorno)
 - ✅ **Sin VPN necesaria** desde Azure
 - ✅ **Stored Procedures** para operaciones seguras
 
@@ -248,7 +248,7 @@ app.use(cors({
 
 ### **Paso 5: Configurar VNet Integration** ⚠️ **URGENTE - REQUERIDO**
 
-**Problema actual:** Azure no puede conectarse a SQL Server `10.1.10.4:1433`
+**Problema actual:** Azure no puede conectarse a SQL Server (verificar configuración de red)
 
 **Opciones:**
 
@@ -258,7 +258,7 @@ app.use(cors({
 - [ ] Seleccionar VNet existente conectada a red privada
 - [ ] Seleccionar subnet
 - [ ] Guardar y reiniciar App Service
-- [ ] Probar conexión: `ping 10.1.10.4` desde Console
+- [ ] Probar conexión: `ping [tu_servidor_sql]` desde Console
 - [ ] Verificar que SQL Server funciona
 
 **B) Si NO está en la misma red:**

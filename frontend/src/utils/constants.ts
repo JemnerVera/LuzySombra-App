@@ -52,10 +52,10 @@ export const UI_CONFIG = {
     },
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: 'Estadisticas',
       icon: 'bar-chart-3',
       tabs: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'bar-chart-3', category: 'dashboard' },
+        { id: 'dashboard', label: 'Estadisticas', icon: 'bar-chart-3', category: 'dashboard' },
       ],
     },
     {
@@ -84,7 +84,7 @@ export const UI_CONFIG = {
     { id: 'usuarios', label: 'Usuarios', icon: 'user', hasSubMenu: false, category: 'gestion-parametros' },
     { id: 'dispositivos', label: 'Dispositivos', icon: 'smartphone', hasSubMenu: false, category: 'gestion-parametros' },
     { id: 'umbrales', label: 'Umbrales', icon: 'gauge', hasSubMenu: false, category: 'gestion-parametros' },
-    { id: 'dashboard', label: 'Dashboard', icon: 'bar-chart-3', hasSubMenu: false, category: 'dashboard' },
+    { id: 'dashboard', label: 'Estadisticas', icon: 'bar-chart-3', hasSubMenu: false, category: 'dashboard' },
     { id: 'sistema-alertas', label: 'Sistema de Alertas', icon: '', hasSubMenu: true, category: 'sistema-alerta' },
     { id: 'alertas', label: 'Alertas', icon: 'shield-alert', hasSubMenu: false, parent: 'sistema-alertas', category: 'sistema-alerta' },
     { id: 'alertas-consolidados', label: 'Consolidado por fundo', icon: 'package', hasSubMenu: false, parent: 'sistema-alertas', category: 'sistema-alerta' },

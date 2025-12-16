@@ -61,12 +61,19 @@ BEGIN
     SET @FechaInicio = DATEADD(DAY, -@PeriodoDias, GETDATE());
     
     -- CTE con estadísticas calculadas (incluye fundoID y sectorID para optimizar match con Contacto)
+    -- IMPORTANTE: Agrupar solo por lotID, sectorID y fundoID (un lote = una entrada)
+    -- Para varietyID, tomar la más común o la primera encontrada
     WITH EstadisticasLote AS (
         SELECT 
             ai.lotID,
-            p.varietyID,
             s.stageID AS sectorID,
             RTRIM(f.farmID) AS fundoID,  -- RTRIM para quitar espacios en CHAR(4)
+            -- Obtener varietyID más común para el lote (si hay múltiples, tomar la primera)
+            (SELECT TOP 1 p2.varietyID 
+             FROM GROWER.PLANTATION p2 WITH (NOLOCK)
+             WHERE p2.lotID = ai.lotID 
+               AND p2.statusID = 1
+             ORDER BY p2.plantationID) AS varietyID,
             COUNT(*) AS totalEvaluaciones,
             AVG(CAST(ai.porcentajeLuz AS FLOAT)) AS porcentajeLuzPromedio,
             MIN(ai.porcentajeLuz) AS porcentajeLuzMin,
@@ -80,13 +87,15 @@ BEGIN
         INNER JOIN GROWER.LOT l WITH (NOLOCK) ON ai.lotID = l.lotID
         INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
-        LEFT JOIN GROWER.PLANTATION p WITH (NOLOCK) 
-            ON ai.lotID = p.lotID 
-            AND p.statusID = 1
         WHERE ai.statusID = 1
             AND (@LotID IS NULL OR ai.lotID = @LotID)
-            AND COALESCE(ai.fechaCaptura, ai.fechaCreacion) >= @FechaInicio
-        GROUP BY ai.lotID, p.varietyID, s.stageID, f.farmID
+            -- Aplicar filtro de fecha solo si NO se fuerza recálculo
+            -- Si @ForzarRecalculo = 1, incluir TODOS los análisis (sin filtro de fecha)
+            AND (
+                @ForzarRecalculo = 1 
+                OR COALESCE(ai.fechaCaptura, ai.fechaCreacion) >= @FechaInicio
+            )
+        GROUP BY ai.lotID, s.stageID, f.farmID
     ),
     UmbralesLote AS (
         SELECT 
@@ -141,10 +150,16 @@ BEGIN
         FROM EstadisticasLote el
     )
     -- MERGE para actualizar o insertar
+    -- IMPORTANTE: Siempre actualizar si hay nuevos datos o si se fuerza recálculo
     MERGE evalImagen.loteEvaluacion AS target
     USING UmbralesLote AS source
     ON target.lotID = source.lotID
-    WHEN MATCHED AND (@ForzarRecalculo = 1 OR target.fechaUltimaActualizacion < source.fechaUltimaEvaluacion)
+    WHEN MATCHED AND (
+        @ForzarRecalculo = 1 
+        OR target.fechaUltimaActualizacion < source.fechaUltimaEvaluacion
+        OR target.totalEvaluaciones < source.totalEvaluaciones  -- Si hay más evaluaciones, actualizar
+        OR target.fechaUltimaEvaluacion < source.fechaUltimaEvaluacion  -- Si hay evaluación más reciente
+    )
     THEN
         UPDATE SET
             variedadID = source.varietyID,

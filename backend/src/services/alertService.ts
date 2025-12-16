@@ -147,13 +147,54 @@ class AlertService {
   }
 
   /**
+   * Genera un token JWT temporal para acceso seguro a la evaluación del lote
+   * Válido por 7 días
+   */
+  private generateLoteAccessToken(lotID: number, fundo: string, sector: string, lote: string): string {
+    const { signToken } = require('../lib/jwt');
+    return signToken(
+      { 
+        type: 'lote-access',
+        lotID,
+        fundo,
+        sector,
+        lote
+      },
+      { expiresIn: '7d' }
+    );
+  }
+
+  /**
    * Genera el HTML del mensaje de alerta
    */
-  private generateAlertHTML(alerta: Alerta, loteInfo: LoteInfo, umbralInfo: { descripcion: string; colorHex: string | null } | null): string {
+  private async generateAlertHTML(
+    alerta: Alerta, 
+    loteInfo: LoteInfo, 
+    umbralInfo: { descripcion: string; colorHex: string | null } | null,
+    loteEvaluacion?: { porcentajeLuzMin: number; porcentajeLuzMax: number; porcentajeLuzPromedio: number } | null
+  ): Promise<string> {
     const emoji = alerta.tipoUmbral === 'CriticoRojo' ? '🚨' : '⚠️';
     const titulo = alerta.tipoUmbral === 'CriticoRojo' ? 'Alerta Crítica' : 'Advertencia';
     const colorFondo = alerta.tipoUmbral === 'CriticoRojo' ? '#fee2e2' : '#fef3c7';
     const colorBorde = alerta.tipoUmbral === 'CriticoRojo' ? '#dc2626' : '#f59e0b';
+    const colorHex = umbralInfo?.colorHex || (alerta.tipoUmbral === 'CriticoRojo' ? '#dc2626' : '#f59e0b');
+
+    // Obtener datos de min/max/prom desde loteEvaluacion si están disponibles
+    const luzMin = loteEvaluacion?.porcentajeLuzMin ?? alerta.porcentajeLuzEvaluado;
+    const luzMax = loteEvaluacion?.porcentajeLuzMax ?? alerta.porcentajeLuzEvaluado;
+    const luzProm = loteEvaluacion?.porcentajeLuzPromedio ?? alerta.porcentajeLuzEvaluado;
+
+    // Generar token de acceso seguro
+    const accessToken = this.generateLoteAccessToken(
+      alerta.lotID,
+      loteInfo.fundo,
+      loteInfo.sector,
+      loteInfo.lote
+    );
+
+    // Generar URL del frontend con token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loteUrl = `${frontendUrl}/detalle/evaluacion-por-fecha?lotID=${alerta.lotID}&token=${accessToken}`;
 
     return `
 <!DOCTYPE html>
@@ -204,11 +245,31 @@ class AlertService {
     ` : ''}
     <div class="info-row">
       <span class="label">Porcentaje de Luz:</span>
-      <span class="value"><strong>${alerta.porcentajeLuzEvaluado.toFixed(2)}%</strong></span>
+      <span class="value">
+        <table style="border-collapse: collapse; margin: 10px 0;">
+          <thead>
+            <tr style="background-color: #f3f4f6;">
+              <th style="padding: 8px 12px; border: 1px solid #ddd; text-align: center;">Min</th>
+              <th style="padding: 8px 12px; border: 1px solid #ddd; text-align: center;">Max</th>
+              <th style="padding: 8px 12px; border: 1px solid #ddd; text-align: center;">Prom</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 8px 12px; border: 1px solid #ddd; text-align: center; background-color: ${colorFondo};">${luzMin.toFixed(2)}%</td>
+              <td style="padding: 8px 12px; border: 1px solid #ddd; text-align: center; background-color: ${colorFondo};">${luzMax.toFixed(2)}%</td>
+              <td style="padding: 8px 12px; border: 1px solid #ddd; text-align: center; background-color: ${colorFondo}; font-weight: bold;">${luzProm.toFixed(2)}%</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top: 5px; padding: 5px 10px; background-color: ${colorHex}; color: white; border-radius: 4px; display: inline-block; font-size: 12px;">
+          ${alerta.tipoUmbral}
+        </div>
+      </span>
     </div>
     <div class="info-row">
       <span class="label">Tipo de Umbral:</span>
-      <span class="value">${alerta.tipoUmbral}</span>
+      <span class="value" style="color: ${colorHex}; font-weight: bold;">${alerta.tipoUmbral}</span>
     </div>
     <div class="info-row">
       <span class="label">Severidad:</span>
@@ -217,6 +278,24 @@ class AlertService {
     <div class="info-row">
       <span class="label">Fecha de Evaluación:</span>
       <span class="value">${new Date(alerta.fechaCreacion).toLocaleString('es-ES')}</span>
+    </div>
+
+    <div style="margin: 30px 0; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 2px solid ${colorBorde};">
+      <h3 style="margin-top: 0; color: ${colorBorde};">
+        📊 Ver Detalle Completo del Lote
+      </h3>
+      <p style="margin: 10px 0;">
+        Haz clic en el siguiente enlace para ver todas las evaluaciones de este lote, incluyendo el detalle por fecha y por planta:
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${loteUrl}" 
+           style="display: inline-block; padding: 12px 24px; background-color: ${colorBorde}; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+          🔗 Ver Evaluación del Lote ${loteInfo.lote}
+        </a>
+      </div>
+      <p style="margin: 10px 0; font-size: 12px; color: #666;">
+        ⚠️ Este enlace es seguro y expira en 7 días. Si no estás autenticado, se te pedirá iniciar sesión.
+      </p>
     </div>
 
     <div class="footer">
@@ -232,9 +311,30 @@ class AlertService {
   /**
    * Genera el texto plano del mensaje de alerta
    */
-  private generateAlertText(alerta: Alerta, loteInfo: LoteInfo, umbralInfo: { descripcion: string; colorHex: string | null } | null): string {
+  private generateAlertText(
+    alerta: Alerta, 
+    loteInfo: LoteInfo, 
+    umbralInfo: { descripcion: string; colorHex: string | null } | null,
+    loteEvaluacion?: { porcentajeLuzMin: number; porcentajeLuzMax: number; porcentajeLuzPromedio: number } | null
+  ): string {
     const emoji = alerta.tipoUmbral === 'CriticoRojo' ? '🚨' : '⚠️';
     const titulo = alerta.tipoUmbral === 'CriticoRojo' ? 'Alerta Crítica' : 'Advertencia';
+
+    // Obtener datos de min/max/prom
+    const luzMin = loteEvaluacion?.porcentajeLuzMin ?? alerta.porcentajeLuzEvaluado;
+    const luzMax = loteEvaluacion?.porcentajeLuzMax ?? alerta.porcentajeLuzEvaluado;
+    const luzProm = loteEvaluacion?.porcentajeLuzPromedio ?? alerta.porcentajeLuzEvaluado;
+
+    // Generar token de acceso
+    const accessToken = this.generateLoteAccessToken(
+      alerta.lotID,
+      loteInfo.fundo,
+      loteInfo.sector,
+      loteInfo.lote
+    );
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loteUrl = `${frontendUrl}/detalle/evaluacion-por-fecha?lotID=${alerta.lotID}&token=${accessToken}`;
 
     return `
 ${emoji} ${titulo} - Evaluación de Luz
@@ -245,10 +345,20 @@ Lote: ${loteInfo.lote}
 Sector: ${loteInfo.sector}
 Fundo: ${loteInfo.fundo}
 ${loteInfo.variedad ? `Variedad: ${loteInfo.variedad}\n` : ''}
-Porcentaje de Luz: ${alerta.porcentajeLuzEvaluado.toFixed(2)}%
+Porcentaje de Luz:
+  Min: ${luzMin.toFixed(2)}%
+  Max: ${luzMax.toFixed(2)}%
+  Prom: ${luzProm.toFixed(2)}%
+
 Tipo de Umbral: ${alerta.tipoUmbral}
 Severidad: ${alerta.severidad}
 Fecha de Evaluación: ${new Date(alerta.fechaCreacion).toLocaleString('es-ES')}
+
+---
+Ver Detalle Completo:
+${loteUrl}
+
+(Enlace válido por 7 días. Requiere autenticación)
 
 ---
 Este es un mensaje automático del sistema de alertas de evaluación de luz.
@@ -286,9 +396,26 @@ Por favor, revisa el lote y toma las acciones necesarias.
       // Obtener información del umbral
       const umbralInfo = await this.getUmbralInfo(alerta.umbralID);
 
+      // Obtener datos de loteEvaluacion para min/max/prom
+      const loteEvaluacion = await query<{
+        porcentajeLuzMin: number;
+        porcentajeLuzMax: number;
+        porcentajeLuzPromedio: number;
+      }>(`
+        SELECT 
+          porcentajeLuzMin,
+          porcentajeLuzMax,
+          porcentajeLuzPromedio
+        FROM evalImagen.loteEvaluacion
+        WHERE lotID = @lotID
+          AND statusID = 1
+      `, { lotID: alerta.lotID });
+
+      const loteEvalData = loteEvaluacion.length > 0 ? loteEvaluacion[0] : null;
+
       // Generar contenido del mensaje
-      const cuerpoHTML = this.generateAlertHTML(alerta, loteInfo, umbralInfo);
-      const cuerpoTexto = this.generateAlertText(alerta, loteInfo, umbralInfo);
+      const cuerpoHTML = await this.generateAlertHTML(alerta, loteInfo, umbralInfo, loteEvalData);
+      const cuerpoTexto = this.generateAlertText(alerta, loteInfo, umbralInfo, loteEvalData);
 
       // Obtener destinatarios desde la tabla evalImagen.contacto o variables de entorno (fallback)
       // Se hace match por fundoID del lote (y opcionalmente sectorID)
@@ -671,7 +798,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
       }
 
       // 3. Generar contenido consolidado
-      const cuerpoHTML = this.generateConsolidatedHTML(alertasDetalladas);
+      const cuerpoHTML = await this.generateConsolidatedHTML(alertasDetalladas);
       const cuerpoTexto = this.generateConsolidatedText(alertasDetalladas);
       const asunto = this.generateConsolidatedSubject(alertasDetalladas);
 
@@ -739,14 +866,14 @@ Por favor, revisa el lote y toma las acciones necesarias.
   /**
    * Genera HTML consolidado para múltiples alertas de un fundo
    */
-  private generateConsolidatedHTML(
+  private async generateConsolidatedHTML(
     alertasDetalladas: Array<Alerta & { 
       fundoID: string; 
       fundo: string; 
       loteInfo: LoteInfo | null;
       umbralInfo: { descripcion: string; colorHex: string | null } | null;
     }>
-  ): string {
+  ): Promise<string> {
     const fundo = alertasDetalladas[0]?.fundo || 'Desconocido';
     const totalAlertas = alertasDetalladas.length;
     const criticas = alertasDetalladas.filter(a => a.tipoUmbral === 'CriticoRojo').length;
@@ -790,24 +917,74 @@ Por favor, revisa el lote y toma las acciones necesarias.
           <th>Lote</th>
           <th>Sector</th>
           <th>Tipo</th>
-          <th>% Luz</th>
+          <th>% Luz<br/>Min | Max | Prom</th>
           <th>Severidad</th>
           <th>Fecha</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody>
-        ${alertasDetalladas.map(alerta => `
+        ${(await Promise.all(alertasDetalladas.map(async (alerta) => {
+          // Obtener datos de loteEvaluacion para min/max/prom
+          const loteEval = await query<{
+            porcentajeLuzMin: number;
+            porcentajeLuzMax: number;
+            porcentajeLuzPromedio: number;
+          }>(`
+            SELECT 
+              porcentajeLuzMin,
+              porcentajeLuzMax,
+              porcentajeLuzPromedio
+            FROM evalImagen.loteEvaluacion
+            WHERE lotID = @lotID
+              AND statusID = 1
+          `, { lotID: alerta.lotID });
+
+          const loteEvalData = loteEval.length > 0 ? loteEval[0] : null;
+          const luzMin = loteEvalData?.porcentajeLuzMin ?? alerta.porcentajeLuzEvaluado;
+          const luzMax = loteEvalData?.porcentajeLuzMax ?? alerta.porcentajeLuzEvaluado;
+          const luzProm = loteEvalData?.porcentajeLuzPromedio ?? alerta.porcentajeLuzEvaluado;
+          const colorHex = alerta.umbralInfo?.colorHex || (alerta.tipoUmbral === 'CriticoRojo' ? '#dc2626' : '#f59e0b');
+          const colorFondo = alerta.tipoUmbral === 'CriticoRojo' ? '#fee2e2' : '#fef3c7';
+
+          // Generar token de acceso
+          const accessToken = this.generateLoteAccessToken(
+            alerta.lotID,
+            alerta.loteInfo?.fundo || '',
+            alerta.loteInfo?.sector || '',
+            alerta.loteInfo?.lote || ''
+          );
+
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+          const loteUrl = `${frontendUrl}/detalle/evaluacion-por-fecha?lotID=${alerta.lotID}&token=${accessToken}`;
+
+          return `
           <tr>
             <td>${alerta.loteInfo?.lote || 'N/A'}</td>
             <td>${alerta.loteInfo?.sector || 'N/A'}</td>
             <td class="${alerta.tipoUmbral === 'CriticoRojo' ? 'critica' : 'advertencia'}">
               ${alerta.tipoUmbral === 'CriticoRojo' ? '🚨 Crítica' : '⚠️ Advertencia'}
             </td>
-            <td><strong>${alerta.porcentajeLuzEvaluado.toFixed(2)}%</strong></td>
+            <td style="background-color: ${colorFondo};">
+              <table style="border-collapse: collapse; width: 100%; margin: 0;">
+                <tr>
+                  <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #ddd;">${luzMin.toFixed(2)}%</td>
+                  <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #ddd;">${luzMax.toFixed(2)}%</td>
+                  <td style="padding: 4px 6px; text-align: center; font-weight: bold; color: ${colorHex};">${luzProm.toFixed(2)}%</td>
+                </tr>
+              </table>
+            </td>
             <td>${alerta.severidad}</td>
             <td>${new Date(alerta.fechaCreacion).toLocaleString('es-ES')}</td>
+            <td>
+              <a href="${loteUrl}" 
+                 style="display: inline-block; padding: 6px 12px; background-color: ${colorHex}; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">
+                🔗 Ver Detalle
+              </a>
+            </td>
           </tr>
-        `).join('')}
+        `;
+        }))).join('')}
       </tbody>
     </table>
 

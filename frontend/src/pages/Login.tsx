@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, Lock, User, AlertCircle } from 'lucide-react';
+import { apiService } from '../services/api';
 
 const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -21,6 +23,35 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Detectar y guardar token de lote desde URL (antes del login)
+  useEffect(() => {
+    const lotID = searchParams.get('lotID');
+    const token = searchParams.get('token');
+
+    if (lotID && token) {
+      // Verificar token y guardar información de navegación
+      apiService.verifyLoteToken(token)
+        .then(result => {
+          if (result.success && result.data) {
+            const { lote, sector, fundo } = result.data;
+            // Guardar en sessionStorage para usar después del login
+            sessionStorage.setItem('loteTokenNavigation', JSON.stringify({
+              fundo,
+              sector,
+              lote,
+              lotID: parseInt(lotID, 10)
+            }));
+            console.log('✅ Token válido guardado. Se navegará después del login.');
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error verificando token:', error);
+          // No mostrar error aquí, solo limpiar si hay problema
+          sessionStorage.removeItem('loteTokenNavigation');
+        });
+    }
+  }, [searchParams]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -28,7 +59,17 @@ const Login: React.FC = () => {
 
     try {
       await login(formData.username, formData.password);
-      navigate('/');
+      
+      // Verificar si hay navegación guardada desde token de lote
+      const savedNavigation = sessionStorage.getItem('loteTokenNavigation');
+      if (savedNavigation) {
+        // Limpiar sessionStorage
+        sessionStorage.removeItem('loteTokenNavigation');
+        // Navegar a la app (el App.tsx detectará la navegación guardada)
+        navigate('/');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 
                           err.message || 

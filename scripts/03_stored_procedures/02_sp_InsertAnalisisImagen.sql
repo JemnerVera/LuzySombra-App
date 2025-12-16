@@ -219,12 +219,18 @@ BEGIN
         SET @analisisID = SCOPE_IDENTITY();
         
         -- 8. Ejecutar usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas
+        -- IMPORTANTE: Siempre recalcular para asegurar que se actualice con los nuevos datos
         BEGIN TRY
-            EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion @LotID = @lotID;
+            EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion 
+                @LotID = @lotID,
+                @PeriodoDias = 30,
+                @ForzarRecalculo = 1;  -- Forzar recálculo para asegurar actualización
+            PRINT '✅ Evaluación de lote calculada exitosamente para lotID=' + CAST(@lotID AS VARCHAR(10));
         END TRY
         BEGIN CATCH
             -- Si falla el cálculo, solo loguear pero no fallar la inserción
             PRINT '⚠️ Advertencia: Error al calcular evaluación de lote: ' + ERROR_MESSAGE();
+            PRINT '   lotID=' + CAST(@lotID AS VARCHAR(10));
         END CATCH;
         
         COMMIT TRANSACTION;

@@ -34,6 +34,7 @@ import contactosRoutes from './routes/contactos';
 import authWebRoutes from './routes/auth-web';
 import notificacionesRoutes from './routes/notificaciones';
 import dispositivosRoutes from './routes/dispositivos';
+import usuariosRoutes from './routes/usuarios';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -77,6 +78,9 @@ app.use('/api/umbrales', umbralesRoutes);
 
 // RUTAS PARA CONTACTOS
 app.use('/api/contactos', contactosRoutes);
+
+// RUTAS PARA USUARIOS
+app.use('/api/usuarios', usuariosRoutes);
 
 // RUTAS PARA NOTIFICACIONES
 app.use('/api/notificaciones', notificacionesRoutes);

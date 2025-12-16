@@ -49,6 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <Bell className="h-5 w-5" />;
       case 'users':
         return <Users className="h-5 w-5" />;
+      case 'user':
+        return <User className="h-5 w-5" />;
       case 'history':
         return <History className="h-5 w-5" />;
       case 'smartphone':

@@ -84,14 +84,6 @@ const ModelTestForm: React.FC<ModelTestFormProps> = ({ onNotification }) => {
     <div className="space-y-6 animate-fade-in">
       {/* Form Fields */}
       <div className="bg-white dark:bg-dark-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-dark-700 animate-slide-up">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 font-display">
-          🧪 Probar Modelo TensorFlow.js
-        </h2>
-        
-        <p className="text-sm text-gray-600 dark:text-dark-400 mb-6">
-          Selecciona una imagen agrícola para probar el modelo de clasificación de píxeles (luz/sombra).
-        </p>
-
         {/* File Upload */}
         <div className="border-2 border-dashed border-gray-300 dark:border-dark-600 rounded-lg p-6 text-center">
           <input
@@ -141,7 +133,7 @@ const ModelTestForm: React.FC<ModelTestFormProps> = ({ onNotification }) => {
           className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
         >
           {processing || tfProcessing ? 'Probando Modelo...' : 
-           !isModelReady ? 'Inicializando TensorFlow...' : 'Probar Modelo con TensorFlow.js'}
+           !isModelReady ? 'Inicializando TensorFlow...' : 'Probar Modelo'}
         </button>
         <button
           onClick={handleClear}

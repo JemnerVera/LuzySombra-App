@@ -388,33 +388,32 @@ const UsuariosManagement: React.FC<UsuariosManagementProps> = ({ onNotification 
                 <option value="Lector">Lector</option>
               </select>
             </div>
-            {(!editingId || formData.password) && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-1">
-                    {editingId ? 'Nueva Contraseña' : 'Contraseña *'}
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.password || ''}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
-                    required={!editingId}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-1">
-                    Confirmar Contraseña {!editingId && '*'}
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.confirmPassword || ''}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
-                    required={!editingId}
-                  />
-                </div>
-              </>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-1">
+                {editingId ? 'Nueva Contraseña (dejar vacío para mantener la actual)' : 'Contraseña *'}
+              </label>
+              <input
+                type="password"
+                value={formData.password || ''}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                required={!editingId}
+                placeholder={editingId ? 'Dejar vacío para mantener contraseña actual' : ''}
+              />
+            </div>
+            {formData.password && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-1">
+                  Confirmar Contraseña {!editingId && '*'}
+                </label>
+                <input
+                  type="password"
+                  value={formData.confirmPassword || ''}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                  required={!editingId || !!formData.password}
+                />
+              </div>
             )}
             <div className="flex items-center gap-2">
               <input

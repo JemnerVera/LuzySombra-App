@@ -1,11 +1,12 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Resolver Alertas - Cambiar umbral a Normal
--- Base de datos: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Resolver alertas cambiando el umbral a Normal
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';

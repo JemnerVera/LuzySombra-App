@@ -1,11 +1,12 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Diagnosticar por qué no se generan alertas
--- Base de datos: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Verificar estado de umbrales, loteEvaluacion y alertas
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';

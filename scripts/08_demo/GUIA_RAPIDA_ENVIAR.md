@@ -113,7 +113,7 @@ ORDER BY a.fechaCreacion DESC;
 
 ### 3. Verificar en el Correo
 
-- Revisa la bandeja de entrada de `jemner.vera@agricolaandrea.com`
+- Revisa la bandeja de entrada del contacto configurado en los scripts de demo
 - El correo debe tener:
   - Asunto: "⚠️ X Advertencia(s) en Fundo X - Y lote(s) afectado(s)"
   - Contenido HTML con tabla de alertas

@@ -1,8 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import logger from './lib/logger';
 
 // Cargar variables de entorno
 // Buscar .env.local en la raíz del proyecto (un nivel arriba de backend/)
@@ -39,6 +42,43 @@ import usuariosRoutes from './routes/usuarios';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ===== SEGURIDAD =====
+// Helmet.js - Headers de seguridad HTTP
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Para permitir imágenes
+}));
+
+// Rate Limiting Global
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo 100 requests por IP por ventana
+  message: {
+    error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
+  },
+  standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
+  legacyHeaders: false, // No incluir headers legacy (Retry-After)
+});
+
+app.use('/api/', globalLimiter);
+
+// Rate Limiting más estricto para endpoints de autenticación
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 intentos de login por IP
+  message: {
+    error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
+  },
+  skipSuccessfulRequests: true, // No contar requests exitosos
+});
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -62,9 +102,9 @@ app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/test-model', testModelRouter);
 app.use('/api/check-gps-info', checkGpsInfoRouter);
 
-// AUTENTICACIÓN
-app.use('/api/auth', authRoutes); // Dispositivos móviles (AgriQR)
-app.use('/api/auth/web', authWebRoutes); // Usuarios web
+// AUTENTICACIÓN (con rate limiting estricto)
+app.use('/api/auth', authLimiter, authRoutes); // Dispositivos móviles (AgriQR)
+app.use('/api/auth/web', authLimiter, authWebRoutes); // Usuarios web
 app.use('/api/photos', photoUploadRoutes);
 
 // RUTAS PARA ALERTAS
@@ -115,17 +155,28 @@ if (fs.existsSync(frontendPath)) {
 
 // Manejo de errores
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('❌ Error:', err);
+  logger.error('Error no manejado', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+  });
+  
   res.status(500).json({
     error: 'Internal server error',
-    message: err.message
+    message: process.env.NODE_ENV === 'production' ? 'Error interno del servidor' : err.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Backend server running on port ${PORT}`);
-  console.log(`📡 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  logger.info('Backend server iniciado', {
+    port: PORT,
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    nodeEnv: process.env.NODE_ENV || 'development',
+  });
 });
 
 // Iniciar scheduler de alertas (si está habilitado)
@@ -134,12 +185,12 @@ import { alertScheduler } from './scheduler/alertScheduler';
 
 // Manejo de cierre graceful
 process.on('SIGTERM', async () => {
-  console.log('🛑 SIGTERM received, closing server...');
+  logger.info('SIGTERM recibido, cerrando servidor...');
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('🛑 SIGINT received, closing server...');
+  logger.info('SIGINT recibido, cerrando servidor...');
   process.exit(0);
 });
 

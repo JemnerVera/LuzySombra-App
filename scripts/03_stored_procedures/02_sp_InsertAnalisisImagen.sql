@@ -1,6 +1,6 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen
--- Base de datos: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Insertar análisis de imagen y obtener IDs necesarios desde nombres
 -- =====================================================
@@ -50,7 +50,8 @@
 -- 
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================

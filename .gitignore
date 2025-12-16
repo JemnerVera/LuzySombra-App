@@ -41,7 +41,7 @@ credenciales_sql_server_agromigiva.txt
 Thumbs.db
 
 # Logs
-logs
+logs/
 *.log
 
 # Runtime data
@@ -102,7 +102,9 @@ coverage/
 # TernJS port file
 .tern-port
 
-# Scripts SQL generados automáticamente
+# Scripts y Documentación
+# NOTA: Las carpetas scripts/ y docs/ SÍ deben incluirse en el repo
+# Solo se ignoran los scripts generados automáticamente
 scripts/generated/
 
 # Python cache
@@ -123,7 +125,7 @@ HABILITAR_*.md
 INSTALACION_*.md
 
 # Scripts SQL generados automáticamente (ya está arriba, pero lo mantenemos)
-scripts/generated/
+# scripts/generated/ (duplicado removido)
 
 # Azure Publish Settings (contiene credenciales)
 *.PublishSettings.txt

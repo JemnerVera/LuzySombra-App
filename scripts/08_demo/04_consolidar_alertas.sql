@@ -1,12 +1,13 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Consolidar Alertas - Simular consolidación (normalmente vía API)
--- Base de datos: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Mostrar cómo se consolidan alertas en mensajes
 -- NOTA: Normalmente esto se hace vía API POST /api/alertas/consolidar
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';

@@ -1,7 +1,7 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Verificar Schemas de Tablas Existentes
--- Base de datos: ***REMOVED***
--- Servidor: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
+-- Servidor: [CONFIGURAR - Reemplazar con IP o hostname de tu servidor SQL]
 -- Tipo: Utilidad / Verificación
 -- Propósito: Catalogar estructuras de todas las tablas existentes que usaremos
 -- =====================================================
@@ -34,7 +34,8 @@
 -- 
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 PRINT '========================================';

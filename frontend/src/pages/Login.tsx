@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { LogIn, Lock, User, AlertCircle } from 'lucide-react';
+import { LogIn, Lock, User, AlertCircle, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { apiService } from '../services/api';
 
 const Login: React.FC = () => {
@@ -15,6 +15,10 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
 
   // Si ya está autenticado, redirigir
   useEffect(() => {
@@ -77,6 +81,31 @@ const Login: React.FC = () => {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setForgotPasswordLoading(true);
+    setForgotPasswordSuccess(false);
+
+    try {
+      const response = await apiService.forgotPassword(forgotPasswordEmail);
+      
+      if (response.success) {
+        setForgotPasswordSuccess(true);
+        setForgotPasswordEmail('');
+      } else {
+        setError(response.error || 'Error al solicitar recuperación de contraseña');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 
+                          err.message || 
+                          'Error al solicitar recuperación de contraseña';
+      setError(errorMessage);
+    } finally {
+      setForgotPasswordLoading(false);
     }
   };
 
@@ -177,10 +206,114 @@ const Login: React.FC = () => {
           </button>
         </form>
 
+        {/* Forgot Password Link */}
+        {!showForgotPassword && (
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(true);
+                setError(null);
+                setForgotPasswordSuccess(false);
+              }}
+              className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+        )}
+
+        {/* Forgot Password Form */}
+        {showForgotPassword && (
+          <div className="mt-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700">
+            {forgotPasswordSuccess ? (
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Solicitud enviada
+                </p>
+                <p className="text-sm text-gray-600 dark:text-dark-400 mb-4">
+                  Si el email existe en el sistema, recibirás una nueva contraseña por correo electrónico.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotPasswordSuccess(false);
+                  }}
+                  className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                >
+                  Volver al login
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Recuperar Contraseña
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setForgotPasswordEmail('');
+                      setError(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                </div>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
+                      Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ingresa tu email"
+                        required
+                        autoComplete="email"
+                        disabled={forgotPasswordLoading}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading || !forgotPasswordEmail}
+                    className="w-full bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  >
+                    {forgotPasswordLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        Enviar Nueva Contraseña
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="mt-6 text-center text-sm text-gray-600 dark:text-dark-400">
-          <p>¿Problemas para acceder? Contacta al administrador</p>
-        </div>
+        {!showForgotPassword && (
+          <div className="mt-6 text-center text-sm text-gray-600 dark:text-dark-400">
+            <p>¿Problemas para acceder? Contacta al administrador</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -478,6 +478,13 @@ export const apiService = {
     return response.data;
   },
 
+  forgotPassword: async (email: string): Promise<ApiResponse<{
+    message: string;
+  }>> => {
+    const response = await api.post('/api/auth/web/forgot-password', { email });
+    return response.data;
+  },
+
   // NOTIFICACIONES
   getNotificacionesContador: async (ultimaConsulta?: number): Promise<ApiResponse<{
     nuevasAlertas: number;

@@ -24,7 +24,7 @@ Ejecuta los scripts en este orden:
 ## 📝 Notas Importantes
 
 - Los scripts usan datos de prueba. Ajusta los `lotID`, `fundoID`, etc. según tu base de datos
-- **Contacto de demo**: `jemner.vera@agricolaandrea.com` (Agrónomo) - Este es el único contacto activo para las pruebas
+- **Contacto de demo**: Configurar un contacto de prueba en la tabla `evalImagen.contacto` - Este será el único contacto activo para las pruebas
 - Los contactos de ejemplo (`@example.com`) se desactivan automáticamente
 - **IMPORTANTE**: Asegúrate de tener `RESEND_API_KEY` configurado en `.env` para que los emails se envíen correctamente
 - La consolidación y envío normalmente se hacen vía API, pero los scripts muestran el proceso

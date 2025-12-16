@@ -1,11 +1,12 @@
--- =====================================================
+﻿-- =====================================================
 -- SCRIPT: Forzar Recalculo de Evaluación para un Lote
--- Base de datos: ***REMOVED***
+-- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
 -- Propósito: Forzar el recálculo de evaluación para un lote específico
 -- =====================================================
 
-USE ***REMOVED***;
+-- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+USE [TU_BASE_DE_DATOS];
 GO
 
 -- Cambiar este valor al lotID que necesites recalcular

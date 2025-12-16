@@ -240,7 +240,7 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-dark-700">
+        <div className={`p-4 ${isMainSidebarCollapsed ? '' : 'border-t border-gray-200 dark:border-dark-700'}`}>
           <div className={`text-xs text-gray-500 dark:text-dark-400 text-center font-medium transition-opacity duration-300 ${
             isMainSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'
           }`}>

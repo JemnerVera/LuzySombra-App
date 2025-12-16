@@ -231,11 +231,14 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Dispositivos</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Smartphone className="h-6 w-6" />
+            Gestión de Dispositivos
+          </h2>
           <p className="text-gray-600 dark:text-dark-400 mt-1">
             Gestiona los dispositivos Android (AgriQR) autorizados
           </p>
@@ -484,10 +487,10 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
           <p className="text-gray-600 dark:text-dark-400">No hay dispositivos registrados</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-dark-900 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
+        <div className="bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-dark-800">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700 text-xs">
+              <thead className="bg-gray-50 dark:bg-dark-700">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wider">
                     Nombre

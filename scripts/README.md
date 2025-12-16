@@ -9,7 +9,6 @@ scripts/
 ├── 02_views/              # Creación de vistas
 ├── 03_stored_procedures/  # Stored Procedures
 ├── 05_triggers/           # Triggers SQL
-├── 06_tests/              # Scripts de prueba
 └── 07_utilities/          # Scripts de utilidad (verificación, ejemplos, etc)
 ```
 
@@ -57,10 +56,6 @@ scripts/
 - `07_utilities/02_ejemplo_uso_umbrales_luz.sql` - Ejemplos de uso de umbrales
 - `07_utilities/03_verificar_schemas_tablas.sql` - Verifica estructura de tablas existentes
 
-## 🧪 Scripts de Test
-
-- `06_tests/01_test_vwc_CianamidaFenologia.sql` - Test de la vista antes de crearla
-
 ## 📝 Convenciones de Nomenclatura
 
 - **Tablas**: `<numero>_<schema>.<tabla>.sql` (ej: `01_evalImagen.AnalisisImagen.sql`)
@@ -69,7 +64,6 @@ scripts/
 - **Triggers**: `<numero>_trg_<nombre>.sql` (ej: `01_trg_loteEvaluacion_Alerta.sql`) - Nombres internos: `trg_[nombreLowerCamelCase]_[Tipo]_[DML]` (ej: `trg_loteEvaluacionAlerta_AF_IU`)
 - **Modificaciones**: (Ya no se requieren - las tablas están completas)
 - **Utilidades**: `<numero>_<descripcion>.sql` (ej: `01_delete_analisis_imagen.sql`)
-- **Tests**: `<numero>_test_<objeto>.sql` (ej: `01_test_vwc_CianamidaFenologia.sql`)
 
 ## 📊 Headers de Archivos
 

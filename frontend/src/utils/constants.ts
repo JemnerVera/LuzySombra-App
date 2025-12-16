@@ -7,6 +7,7 @@ export const UI_CONFIG = {
     { id: 'dashboard', label: 'Dashboard', icon: 'bar-chart-3', hasSubMenu: false },
     { id: 'umbrales', label: 'Umbrales', icon: 'gauge', hasSubMenu: false },
     { id: 'contactos', label: 'Contactos', icon: 'users', hasSubMenu: false },
+    { id: 'usuarios', label: 'Usuarios', icon: 'user', hasSubMenu: false },
     { id: 'dispositivos', label: 'Dispositivos', icon: 'smartphone', hasSubMenu: false },
     { id: 'historial', label: 'Historial', icon: 'history', hasSubMenu: false },
     { id: 'sistema-alertas', label: 'Sistema de Alertas', icon: 'bell', hasSubMenu: true },

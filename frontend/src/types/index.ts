@@ -96,7 +96,7 @@ export interface TestFormData {
   imagen: File;
 }
 
-export type TabType = 'analizar' | 'probar' | 'dashboard' | 'historial' | 'sistema-alertas' | 'alertas' | 'alertas-consolidados' | 'alertas-mensajes' | 'contactos' | 'dispositivos' | 'umbrales' | 'consolidada' | 'evaluacion-por-lote' | 'evaluacion-por-fecha' | 'evaluacion-detalle-planta' | 'detalle-por-evaluacion';
+export type TabType = 'analizar' | 'probar' | 'dashboard' | 'historial' | 'sistema-alertas' | 'alertas' | 'alertas-consolidados' | 'alertas-mensajes' | 'contactos' | 'usuarios' | 'dispositivos' | 'umbrales' | 'consolidada' | 'evaluacion-por-lote' | 'evaluacion-por-fecha' | 'evaluacion-detalle-planta' | 'detalle-por-evaluacion';
 
 export interface NotificationState {
   show: boolean;

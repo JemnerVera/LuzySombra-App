@@ -263,6 +263,70 @@ export const apiService = {
     return response.data;
   },
 
+  // USUARIOS
+  getUsuarios: async (): Promise<ApiResponse<Array<{
+    usuarioID: number;
+    username: string;
+    email: string;
+    nombreCompleto: string | null;
+    rol: 'Admin' | 'Agronomo' | 'Supervisor' | 'Lector';
+    activo: boolean;
+    ultimoAcceso: Date | null;
+    intentosLogin: number;
+    bloqueadoHasta: Date | null;
+    fechaCreacion: Date;
+    fechaModificacion: Date | null;
+  }>>> => {
+    const response = await api.get('/api/usuarios');
+    return response.data;
+  },
+
+  getUsuarioById: async (id: number): Promise<ApiResponse<{
+    usuarioID: number;
+    username: string;
+    email: string;
+    nombreCompleto: string | null;
+    rol: 'Admin' | 'Agronomo' | 'Supervisor' | 'Lector';
+    activo: boolean;
+    ultimoAcceso: Date | null;
+    intentosLogin: number;
+    bloqueadoHasta: Date | null;
+    fechaCreacion: Date;
+    fechaModificacion: Date | null;
+  }>> => {
+    const response = await api.get(`/api/usuarios/${id}`);
+    return response.data;
+  },
+
+  createUsuario: async (data: {
+    username: string;
+    password: string;
+    email: string;
+    nombreCompleto?: string | null;
+    rol: 'Admin' | 'Agronomo' | 'Supervisor' | 'Lector';
+    activo?: boolean;
+  }): Promise<ApiResponse<{ usuarioID: number }>> => {
+    const response = await api.post('/api/usuarios', data);
+    return response.data;
+  },
+
+  updateUsuario: async (id: number, data: {
+    username?: string;
+    password?: string;
+    email?: string;
+    nombreCompleto?: string | null;
+    rol?: 'Admin' | 'Agronomo' | 'Supervisor' | 'Lector';
+    activo?: boolean;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/api/usuarios/${id}`, data);
+    return response.data;
+  },
+
+  deleteUsuario: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.delete(`/api/usuarios/${id}`);
+    return response.data;
+  },
+
   // ALERTAS
   getAlertas: async (filters?: {
     estado?: string;
@@ -504,6 +568,20 @@ export const apiService = {
 
   getDispositivoStats: async (id: number): Promise<ApiResponse<any>> => {
     const response = await api.get(`/api/dispositivos/${id}/stats`);
+    return response.data;
+  },
+
+  // Verificar token de acceso a lote (para links en emails)
+  verifyLoteToken: async (token: string): Promise<ApiResponse<{
+    lotID: number;
+    lote: string;
+    sector: string;
+    fundo: string;
+    expiresAt: number;
+  }>> => {
+    const response = await api.get('/api/auth/verify-lote-token', {
+      params: { token }
+    });
     return response.data;
   },
 };

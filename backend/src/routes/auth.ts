@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { deviceService } from '../services/deviceService';
 import { rateLimitService } from '../services/rateLimitService';
 import { query } from '../lib/db';
-import { signToken } from '../lib/jwt';
+import { signToken, verifyToken } from '../lib/jwt';
 
 const router = express.Router();
 
@@ -108,21 +108,23 @@ router.post('/login', async (req: Request, res: Response) => {
     // Si es error de JWT_SECRET, retornar 500
     if (error instanceof Error && error.message.includes('JWT_SECRET')) {
       return res.status(500).json({
-        error: 'Server configuration error',
-        message: 'JWT_SECRET is not configured'
+        error: 'Server configuration error'
       });
     }
 
     res.status(500).json({
-      error: 'Login error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     });
   }
 });
 
 /**
  * POST /api/auth/activate
- * Activa un dispositivo usando código de activación del QR
+ * Activación de dispositivo usando código de activación (desde QR)
+ * 
+ * Body:
+ * - deviceId: ID único del dispositivo
+ * - activationCode: Código de activación del QR
  */
 router.post('/activate', async (req: Request, res: Response) => {
   const ipAddress = rateLimitService.getClientIp(req);
@@ -147,19 +149,19 @@ router.post('/activate', async (req: Request, res: Response) => {
       motivoFallo = 'Rate limit exceeded';
       await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
       return res.status(429).json({
-        error: 'Too many failed attempts. Please try again in 15 minutes.',
+        error: 'Too many failed login attempts. Please try again in 15 minutes.',
         retryAfter: 900
       });
     }
 
-    // Validar código de activación
+    // Obtener dispositivo por código de activación
     const device = await deviceService.getDeviceByActivationCode(activationCode);
     
     if (!device) {
       motivoFallo = 'Invalid activation code';
       await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
       return res.status(401).json({
-        error: 'Invalid activation code or device ID'
+        error: 'Invalid activation code'
       });
     }
 
@@ -168,61 +170,59 @@ router.post('/activate', async (req: Request, res: Response) => {
       motivoFallo = 'Device ID mismatch';
       await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
       return res.status(401).json({
-        error: 'Invalid activation code or device ID'
+        error: 'Device ID does not match activation code'
       });
     }
 
     // Verificar que el código no haya expirado
     if (device.activationCodeExpires) {
-      const now = new Date();
       const expiresAt = new Date(device.activationCodeExpires);
-      
-      if (now > expiresAt) {
+      if (expiresAt < new Date()) {
         motivoFallo = 'Activation code expired';
         await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
         return res.status(401).json({
-          error: 'Activation code expired'
+          error: 'Activation code has expired'
         });
       }
     }
 
-    // Verificar que el dispositivo esté activo
-    if (!device.activo) {
-      motivoFallo = 'Device disabled';
-      await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
-      return res.status(403).json({
-        error: 'Device is disabled'
-      });
-    }
+    // Generar nueva API key
+    const newApiKey = await deviceService.generateApiKey();
+    const apiKeyHash = await deviceService.hashApiKey(newApiKey);
 
-    // Regenerar API key para este dispositivo (seguridad: nueva key al activar con QR)
-    // Esto asegura que solo quien escanea el QR obtiene la API key
-    const usuarioModificaID = 1; // Sistema (no hay usuario web en este contexto)
-    const newApiKey = await deviceService.regenerateApiKey(device.dispositivoID, usuarioModificaID);
+    // Actualizar dispositivo con nueva API key y limpiar código de activación
+    await query(`
+      UPDATE evalImagen.dispositivo
+      SET apiKeyHash = @apiKeyHash,
+          activationCode = NULL,
+          activationCodeExpires = NULL,
+          fechaModificacion = GETDATE()
+      WHERE dispositivoID = @dispositivoID
+        AND statusID = 1
+    `, { 
+      dispositivoID: device.dispositivoID,
+      apiKeyHash 
+    });
 
-    // Generar JWT token directamente
+    // Registrar intento exitoso
+    await rateLimitService.registrarIntento(true, ipAddress, deviceId);
+
+    // Generar JWT token
     const token = signToken(
       { deviceId },
       { expiresIn: '24h' }
     );
 
-    // Invalidar código de activación (solo se usa una vez)
-    await deviceService.clearActivationCode(device.dispositivoID);
-
-    // Registrar intento exitoso
-    await rateLimitService.registrarIntento(true, ipAddress, deviceId);
-
     res.json({
       success: true,
-      token: token,
+      token,
       apiKey: newApiKey, // ⚠️ IMPORTANTE: Retornar API key solo esta vez
-      expiresIn: 86400, // 24 horas en segundos
+      expiresIn: 86400,
       deviceId: deviceId,
-      message: 'Device activated successfully. Save the API key for future logins.'
+      message: 'Device activated successfully. Save the API key, it will not be shown again.'
     });
-
   } catch (error) {
-    console.error('❌ Error in activation:', error);
+    console.error('❌ Error in activate:', error);
     
     // Registrar intento fallido si hay deviceId
     if (deviceId) {
@@ -230,20 +230,142 @@ router.post('/activate', async (req: Request, res: Response) => {
       await rateLimitService.registrarIntento(false, ipAddress, deviceId, undefined, motivoFallo);
     }
 
-    // Si es error de JWT_SECRET, retornar 500
-    if (error instanceof Error && error.message.includes('JWT_SECRET')) {
-      return res.status(500).json({
-        error: 'Server configuration error',
-        message: 'JWT_SECRET is not configured'
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/auth/verify-lote-token
+ * Verifica un token JWT para acceso a evaluación de lote
+ * Usado para links seguros en emails de alertas
+ * 
+ * Query params:
+ * - token: JWT token con información del lote
+ */
+router.get('/verify-lote-token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    console.log('🔍 [verify-lote-token] Verificando token...', { 
+      hasToken: !!token, 
+      tokenType: typeof token,
+      tokenLength: token ? (typeof token === 'string' ? token.length : 'N/A') : 0
+    });
+
+    if (!token || typeof token !== 'string') {
+      console.error('❌ [verify-lote-token] Token no válido o faltante');
+      return res.status(400).json({
+        success: false,
+        error: 'Token is required'
+      });
+    }
+
+    // Verificar token
+    let decoded: any;
+    try {
+      decoded = verifyToken(token) as any;
+      console.log('✅ [verify-lote-token] Token decodificado:', { 
+        type: decoded.type, 
+        lotID: decoded.lotID,
+        hasLote: !!decoded.lote,
+        hasSector: !!decoded.sector,
+        hasFundo: !!decoded.fundo
+      });
+    } catch (verifyError: any) {
+      console.error('❌ [verify-lote-token] Error verificando token:', verifyError.message);
+      throw verifyError;
+    }
+
+    // Validar que sea un token de tipo lote-access
+    if (decoded.type !== 'lote-access' || !decoded.lotID) {
+      console.error('❌ [verify-lote-token] Token no es de tipo lote-access o falta lotID:', {
+        type: decoded.type,
+        hasLotID: !!decoded.lotID
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token type'
+      });
+    }
+
+    // Obtener información del lote para validar
+    const loteInfo = await query<{
+      lotID: number;
+      lote: string;
+      sector: string;
+      fundo: string;
+    }>(`
+      SELECT 
+        l.lotID,
+        l.name AS lote,
+        s.stage AS sector,
+        f.Description AS fundo
+      FROM GROWER.LOT l
+      INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
+      INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
+      WHERE l.lotID = @lotID
+        AND l.statusID = 1
+        AND s.statusID = 1
+        AND f.statusID = 1
+    `, { lotID: decoded.lotID });
+
+    if (loteInfo.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Lote not found'
+      });
+    }
+
+    const lote = loteInfo[0];
+
+    // Validar que los datos del token coincidan con la BD
+    if (lote.lote !== decoded.lote || lote.sector !== decoded.sector || lote.fundo !== decoded.fundo) {
+      console.error('❌ [verify-lote-token] Datos del token no coinciden con BD:', {
+        token: { lote: decoded.lote, sector: decoded.sector, fundo: decoded.fundo },
+        bd: { lote: lote.lote, sector: lote.sector, fundo: lote.fundo }
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Token data mismatch'
+      });
+    }
+
+    console.log('✅ [verify-lote-token] Token válido, retornando información del lote');
+    // Token válido - retornar información del lote
+    res.json({
+      success: true,
+      data: {
+        lotID: decoded.lotID,
+        lote: decoded.lote,
+        sector: decoded.sector,
+        fundo: decoded.fundo,
+        expiresAt: decoded.exp
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error verifying lote token:', error);
+    
+    if (error instanceof Error && error.message.includes('expired')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token has expired'
+      });
+    }
+
+    if (error instanceof Error && error.message.includes('invalid')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token'
       });
     }
 
     res.status(500).json({
-      error: 'Activation error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      success: false,
+      error: 'Internal server error'
     });
   }
 });
 
 export default router;
-

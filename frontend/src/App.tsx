@@ -11,6 +11,7 @@ import EvaluacionPorFecha from './components/EvaluacionPorFecha';
 import EvaluacionDetallePlanta from './components/EvaluacionDetallePlanta';
 import UmbralesManagement from './components/UmbralesManagement';
 import ContactosManagement from './components/ContactosManagement';
+import UsuariosManagement from './components/UsuariosManagement';
 import AlertasDashboard from './components/AlertasDashboard';
 import MensajesConsolidados from './components/MensajesConsolidados';
 import MensajesEnviados from './components/MensajesEnviados';
@@ -20,9 +21,12 @@ import Notification from './components/Notification';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import { DetalleNavigation, AlertasNavigation } from './types';
+import { apiService } from './services/api';
 
 // Componente interno que maneja las tabs (requiere autenticación)
 function AppContent() {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const [currentTab, setCurrentTab] = useState<TabType>('analizar');
   const [hasUnsavedData, setHasUnsavedData] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
@@ -59,6 +63,70 @@ function AppContent() {
       setNotification(prev => ({ ...prev, show: false }));
     }, 5000);
   };
+
+  // Manejar links con token desde emails de alertas
+  useEffect(() => {
+    const handleLoteTokenLink = async () => {
+      // Primero verificar si hay navegación guardada en sessionStorage (desde Login)
+      const savedNavigation = sessionStorage.getItem('loteTokenNavigation');
+      if (savedNavigation) {
+        try {
+          const nav = JSON.parse(savedNavigation);
+          console.log('✅ Restaurando navegación desde token guardado:', nav);
+          setDetalleNavigation({ fundo: nav.fundo, sector: nav.sector, lote: nav.lote });
+          setCurrentTab('evaluacion-por-fecha');
+          sessionStorage.removeItem('loteTokenNavigation');
+          showNotification('Acceso autorizado. Mostrando evaluación del lote.', 'success');
+          return;
+        } catch (error) {
+          console.error('❌ Error restaurando navegación:', error);
+          sessionStorage.removeItem('loteTokenNavigation');
+        }
+      }
+
+      // Si no hay navegación guardada, verificar URL directamente
+      const searchParams = new URLSearchParams(location.search);
+      const lotID = searchParams.get('lotID');
+      const token = searchParams.get('token');
+
+      if (lotID && token) {
+        try {
+          console.log('🔍 Verificando token de acceso a lote desde URL...', { lotID, tokenLength: token.length });
+          const result = await apiService.verifyLoteToken(token);
+          
+          console.log('📋 Resultado de verificación:', result);
+          
+          if (result.success && result.data) {
+            const { lote, sector, fundo } = result.data;
+            console.log('✅ Token válido. Navegando a evaluación del lote:', { fundo, sector, lote });
+            setDetalleNavigation({ fundo, sector, lote });
+            setCurrentTab('evaluacion-por-fecha');
+            window.history.replaceState({}, '', window.location.pathname);
+            showNotification('Acceso autorizado. Mostrando evaluación del lote.', 'success');
+          } else {
+            console.error('❌ Token inválido:', result);
+            const errorMsg = 'error' in result ? (result as { error?: string }).error : 'Token inválido o expirado';
+            showNotification(`${errorMsg}. Por favor, inicia sesión.`, 'error');
+          }
+        } catch (error: unknown) {
+          console.error('❌ Error verificando token:', error);
+          let errorMsg = 'Error al verificar el enlace';
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as { response?: { data?: { error?: string } } };
+            errorMsg = axiosError.response?.data?.error || errorMsg;
+          } else if (error instanceof Error) {
+            errorMsg = error.message;
+          }
+          showNotification(`${errorMsg}. Por favor, inicia sesión.`, 'error');
+        }
+      }
+    };
+
+    // Solo ejecutar si está autenticado
+    if (isAuthenticated) {
+      handleLoteTokenLink();
+    }
+  }, [location.search, isAuthenticated]);
 
   const [showModal, setShowModal] = useState(false);
 
@@ -122,6 +190,12 @@ function AppContent() {
       case 'contactos':
         return (
           <ContactosManagement 
+            onNotification={showNotification}
+          />
+        );
+      case 'usuarios':
+        return (
+          <UsuariosManagement 
             onNotification={showNotification}
           />
         );
@@ -277,7 +351,6 @@ function AppContent() {
 // Componente principal con routing
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
 
   // Mostrar loading mientras verifica autenticación
   if (isLoading) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone, Package, Mail, Settings, SunMoon, List, Layers, ShieldAlert } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone, Package, Mail, Settings, SunMoon, List, Layers, ShieldAlert, LayoutDashboard } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
@@ -103,6 +103,8 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onTabChange, children }) =>
         return <Mail className="h-5 w-5" />;
       case 'settings':
         return <Settings className="h-5 w-5" />;
+      case 'layout-dashboard':
+        return <LayoutDashboard className="h-5 w-5" />;
       default:
         return null;
     }

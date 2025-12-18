@@ -52,8 +52,8 @@ export const UI_CONFIG = {
     },
     {
       id: 'dashboard',
-      label: 'Estadisticas',
-      icon: 'bar-chart-3',
+      label: 'Dashboard',
+      icon: 'layout-dashboard',
       tabs: [
         { id: 'dashboard', label: 'Estadisticas', icon: 'bar-chart-3', category: 'dashboard' },
       ],

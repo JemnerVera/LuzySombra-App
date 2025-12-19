@@ -60,13 +60,17 @@ jobs:
         run: |
           # Asegurar que el script de startup tenga permisos de ejecución
           chmod +x startup.sh
-          # Verificar que los archivos necesarios existen
+          # Excluir node_modules del deployment (Azure instalará dependencias de producción)
+          # Esto reduce significativamente el tamaño del package
+          echo "🗑️ Eliminando node_modules del package de deployment..."
+          rm -rf node_modules
           echo "📦 Verificando archivos de deployment..."
           ls -la
           echo "📁 Contenido de dist/:"
           ls -la dist/ || echo "dist/ no existe"
           echo "📄 package.json:"
           cat package.json | head -15
+          echo "✅ Package listo para deployment (sin node_modules)"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

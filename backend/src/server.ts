@@ -100,7 +100,11 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Necesario para algunos scripts inline
+        "https://cdn.jsdelivr.net", // Permitir jsdelivr para EXIF.js y otras librerías
+      ],
       imgSrc: ["'self'", "data:", "https:"],
     },
   },

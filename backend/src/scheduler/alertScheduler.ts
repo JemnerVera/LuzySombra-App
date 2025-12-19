@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 import { alertService } from '../services/alertService';
 import { resendService } from '../services/resendService';
 
@@ -56,7 +56,6 @@ class AlertScheduler {
         console.error('❌ [Scheduler] Error en consolidación diaria:', error);
       }
     }, {
-      scheduled: true,
       timezone: 'America/Santiago' // Ajustar según tu zona horaria
     });
 
@@ -73,7 +72,6 @@ class AlertScheduler {
         console.error('❌ [Scheduler] Error procesando mensajes pendientes:', error);
       }
     }, {
-      scheduled: true,
       timezone: 'America/Santiago'
     });
 

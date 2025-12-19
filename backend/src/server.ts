@@ -82,6 +82,10 @@ import usuariosRoutes from './routes/usuarios';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Configurar trust proxy para Azure App Service (detrás de proxy reverso)
+// Esto permite que rate limiting y otras funciones funcionen correctamente
+app.set('trust proxy', 1);
+
 // ===== SEGURIDAD =====
 // Helmet.js - Headers de seguridad HTTP
 app.use(helmet({

@@ -34,18 +34,28 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          npm ci
+          # Instalar todas las dependencias incluyendo devDependencies (necesarias para build)
+          npm ci --include=dev
+          # Ejecutar build (vite está en devDependencies)
           npm run build
         env:
           # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)
           # El frontend se sirve desde el mismo App Service que el backend
           # En desarrollo: usar VITE_API_URL=http://localhost:3001 en .env.local
-          NODE_ENV: production
+          # NODE_ENV no se establece aquí para que npm ci instale devDependencies
 
       - name: Copy frontend to backend public folder
         run: |
+          # Verificar que el build del frontend se completó correctamente
+          if [ ! -d "frontend/dist" ]; then
+            echo "❌ Error: frontend/dist no existe. El build del frontend falló."
+            exit 1
+          fi
+          # Crear directorio public si no existe
           mkdir -p backend/public
+          # Copiar archivos del frontend build al backend public
           cp -r frontend/dist/* backend/public/
+          echo "✅ Frontend copiado a backend/public"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

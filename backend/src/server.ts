@@ -7,6 +7,26 @@ import path from 'path';
 import fs from 'fs';
 import logger from './lib/logger';
 
+// Manejo global de errores no capturados ANTES de que cualquier otro código se ejecute
+process.on('uncaughtException', (error: Error) => {
+  console.error('❌ UNCAUGHT EXCEPTION:', error);
+  console.error('Stack:', error.stack);
+  logger.error('Uncaught Exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  // NO hacer process.exit() aquí, dejar que el proceso termine naturalmente
+  // para que Azure pueda reiniciarlo automáticamente
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('❌ UNHANDLED REJECTION:', reason);
+  logger.error('Unhandled Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
 // Cargar variables de entorno
 // Buscar .env.local en la raíz del proyecto (un nivel arriba de backend/)
 const rootPath = path.resolve(process.cwd(), '..');
@@ -170,16 +190,36 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  const startMessage = `✅ Backend server iniciado en puerto ${PORT}`;
-  console.log(startMessage); // Log directo a consola para Azure Log Stream
-  logger.info('Backend server iniciado', {
-    port: PORT,
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-    nodeEnv: process.env.NODE_ENV || 'development',
+// Iniciar servidor con manejo de errores
+try {
+  console.log(`🚀 Iniciando servidor en puerto ${PORT}...`);
+  
+  app.listen(PORT, () => {
+    const startMessage = `✅ Backend server iniciado en puerto ${PORT}`;
+    console.log(startMessage); // Log directo a consola para Azure Log Stream
+    logger.info('Backend server iniciado', {
+      port: PORT,
+      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+      nodeEnv: process.env.NODE_ENV || 'development',
+    });
   });
-});
+
+  app.on('error', (error: Error) => {
+    console.error('❌ Error en el servidor Express:', error);
+    logger.error('Error en servidor Express', {
+      error: error.message,
+      stack: error.stack,
+    });
+  });
+} catch (error: any) {
+  console.error('❌ Error al iniciar el servidor:', error);
+  console.error('Stack:', error.stack);
+  logger.error('Error al iniciar servidor', {
+    error: error.message,
+    stack: error.stack,
+  });
+  process.exit(1);
+}
 
 // Iniciar scheduler de alertas (si está habilitado)
 import { alertScheduler } from './scheduler/alertScheduler';

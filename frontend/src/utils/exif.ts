@@ -124,39 +124,58 @@ export const extractDateTimeFromImage = (file: File): Promise<DateTimeInfo | nul
       clearTimeout(timeoutId);
       
       try {
-        const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
-        const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
-        const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
+        // Usar 'this' como segundo parámetro para getTag (EXIF.js espera el objeto que tiene los datos EXIF)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dateTimeOriginal = (window.EXIF.getTag as any)(this, 'DateTimeOriginal') as string | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dateTimeDigitized = (window.EXIF.getTag as any)(this, 'DateTimeDigitized') as string | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dateTime = (window.EXIF.getTag as any)(this, 'DateTime') as string | undefined;
+        
+        // Debug: Log todos los valores obtenidos
+        console.log(`🔍 EXIF date tags for ${file.name}:`, {
+          DateTimeOriginal: dateTimeOriginal,
+          DateTimeDigitized: dateTimeDigitized,
+          DateTime: dateTime
+        });
         
         // Try different EXIF date fields (prioridad: Original > Digitized > DateTime)
         const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
         
         if (dateTimeValue && typeof dateTimeValue === 'string') {
-          // EXIF date format: "YYYY:MM:DD HH:MM:SS"
-          const [datePart, timePart] = dateTimeValue.split(' ');
-          if (datePart && timePart) {
-            // Convert to more readable format
-            const [year, month, day] = datePart.split(':');
-            const [hour, minute, second] = timePart.split(':');
-            
-            const date = `${day}/${month}/${year}`;
-            const time = `${hour}:${minute}:${second}`;
-            
-            const result: DateTimeInfo = { date, time };
-            
-            // Cache the result
-            dateTimeCache.set(cacheKey, result);
-            (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
-            
-            console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
-            resolve(result);
-          } else {
-            console.log(`❌ Invalid date format for ${file.name}: ${dateTimeValue}`);
-            dateTimeCache.set(cacheKey, null);
-            resolve(null);
+          // Validar que el formato sea correcto (no debe ser el nombre del archivo)
+          // EXIF date format: "YYYY:MM:DD HH:MM:SS" (con dos puntos como separador de fecha)
+          if (dateTimeValue.includes(':')) {
+            const [datePart, timePart] = dateTimeValue.split(' ');
+            if (datePart && timePart && datePart.split(':').length === 3) {
+              // Convert to more readable format
+              const [year, month, day] = datePart.split(':');
+              const [hour, minute, second] = timePart.split(':');
+              
+              // Validar que sean números válidos
+              if (year && month && day && hour && minute && second) {
+                const date = `${day}/${month}/${year}`;
+                const time = `${hour}:${minute}:${second}`;
+                
+                const result: DateTimeInfo = { date, time };
+                
+                // Cache the result
+                dateTimeCache.set(cacheKey, result);
+                (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
+                
+                console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
+                resolve(result);
+                return;
+              }
+            }
           }
+          
+          // Si llegamos aquí, el formato no es válido
+          console.log(`❌ Invalid date format for ${file.name}: ${dateTimeValue} (expected format: YYYY:MM:DD HH:MM:SS)`);
+          dateTimeCache.set(cacheKey, null);
+          resolve(null);
         } else {
-          console.log(`📅 Date extraction for ${file.name}: Not found`);
+          console.log(`📅 Date extraction for ${file.name}: Not found (all tags returned null/undefined)`);
           dateTimeCache.set(cacheKey, null);
           resolve(null);
         }

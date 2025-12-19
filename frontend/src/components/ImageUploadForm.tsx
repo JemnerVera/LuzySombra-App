@@ -139,6 +139,13 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
           formDataToSend.append('exifDate', imageFile.dateTime.date);
           formDataToSend.append('exifTime', imageFile.dateTime.time);
         }
+        
+        // Enviar GPS si está disponible
+        if (imageFile.coordinates) {
+          formDataToSend.append('latitud', imageFile.coordinates.lat.toString());
+          formDataToSend.append('longitud', imageFile.coordinates.lng.toString());
+          console.log(`📍 Enviando GPS al backend para ${imageFile.file.name}: lat=${imageFile.coordinates.lat}, lng=${imageFile.coordinates.lng}`);
+        }
 
         return apiService.processImage(formDataToSend);
       });

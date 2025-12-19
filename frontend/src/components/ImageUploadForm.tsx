@@ -119,9 +119,9 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
             fileToProcess = await compressImage(fileToProcess);
             console.log(`✅ Image compressed successfully: ${formatFileSize(fileToProcess.size)}`);
           } catch (compressionError) {
-            console.error('❌ Failed to compress image:', compressionError);
-            onNotification(`Error comprimiendo imagen ${fileToProcess.name}`, 'warning');
-            // Continue with original file
+            console.warn('⚠️ Failed to compress image, using original file:', compressionError);
+            // Continue with original file - backend can handle it
+            // No notification needed as backend will process the original file
           }
         }
 

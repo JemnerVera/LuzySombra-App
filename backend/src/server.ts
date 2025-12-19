@@ -6,7 +6,7 @@ console.log('✅ express importado');
 
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -87,8 +87,10 @@ const app = express();
 app.set('trust proxy', true);
 
 // Leer PORT de las variables de entorno (Azure lo configura automáticamente)
+// Azure expone puertos 80 y 8080, pero permite configurar PORT personalizado
+// El proxy de Azure redirige el tráfico al puerto que configuremos
 const PORT = parseInt(process.env.PORT || '8080', 10);
-console.log(`🔧 PORT desde env: ${process.env.PORT}, usando: ${PORT}`);
+console.log(`🔧 PORT desde env: ${process.env.PORT || 'no configurado'}, usando: ${PORT}`);
 
 // ===== SEGURIDAD =====
 // Helmet.js - Headers de seguridad HTTP
@@ -105,6 +107,8 @@ app.use(helmet({
 }));
 
 // Rate Limiting Global
+// NOTA: Con trust proxy configurado, express-rate-limit maneja IPs automáticamente
+// No necesitamos keyGenerator personalizado - express-rate-limit usa req.ip correctamente
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100, // máximo 100 requests por IP por ventana
@@ -113,36 +117,21 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
   legacyHeaders: false, // No incluir headers legacy (Retry-After)
-  // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
-  // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
-  keyGenerator: (req) => {
-    // Usar ipKeyGenerator helper que maneja IPv6 y otros casos especiales
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // ipKeyGenerator espera una IP string, no el request completo
-    // Extraer la IP correctamente y usar el helper
-    return ipKeyGenerator(ip);
-  },
 });
 
 app.use('/api/', globalLimiter);
 
 // Rate Limiting más estricto para endpoints de autenticación
+// NOTA: Con trust proxy configurado, express-rate-limit maneja IPs automáticamente
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login por IP
-  // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
-  // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
-  keyGenerator: (req) => {
-    // Usar ipKeyGenerator helper que maneja IPv6 y otros casos especiales
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // ipKeyGenerator espera una IP string, no el request completo
-    // Extraer la IP correctamente y usar el helper
-    return ipKeyGenerator(ip);
-  },
   message: {
     error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
   },
   skipSuccessfulRequests: true, // No contar requests exitosos
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Middleware

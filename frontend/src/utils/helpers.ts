@@ -108,19 +108,22 @@ export const compressImage = async (
     
     img.onerror = (error) => {
       cleanup();
-      console.error('❌ Image load error:', error);
-      reject(new Error(`Failed to load image: ${file.name}`));
+      // No es un error crítico - el backend puede procesar el archivo original
+      console.warn('⚠️ Could not load image for compression preview, using original file:', file.name);
+      resolve(file); // Resolver con el archivo original en lugar de rechazar
     };
     
-    // Set crossOrigin to avoid CORS issues
-    img.crossOrigin = 'anonymous';
+    // No usar crossOrigin para blob URLs - solo es necesario para imágenes desde otros dominios
+    // img.crossOrigin = 'anonymous'; // Removido - causa problemas con blob URLs
     
     try {
       objectUrl = URL.createObjectURL(file);
       img.src = objectUrl;
     } catch (error) {
       cleanup();
-      reject(error instanceof Error ? error : new Error('Failed to create object URL'));
+      // Si no se puede crear el blob URL, usar el archivo original
+      console.warn('⚠️ Could not create object URL for compression, using original file:', file.name);
+      resolve(file);
     }
   });
 };

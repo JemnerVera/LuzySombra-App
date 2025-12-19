@@ -182,23 +182,105 @@ export const extractDateTimeFromImage = (file: File): Promise<DateTimeInfo | nul
     };
     
     img.onerror = (error) => {
-      console.error(`❌ Error loading image for date extraction: ${file.name}`, error);
+      // Intentar extraer fecha directamente desde el archivo sin cargar la imagen
+      console.log(`⚠️ Could not load image preview for date extraction, trying direct EXIF read: ${file.name}`);
       cleanup();
-      dateTimeCache.set(cacheKey, null);
-      resolve(null);
+      
+      // Intentar leer EXIF directamente desde el archivo sin cargar la imagen completa
+      try {
+        if (typeof window.EXIF !== 'undefined') {
+          window.EXIF.getData(file, function(this: File) {
+            try {
+              const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
+              const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
+              const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
+              
+              const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
+              
+              if (dateTimeValue && typeof dateTimeValue === 'string') {
+                const [datePart, timePart] = dateTimeValue.split(' ');
+                if (datePart && timePart) {
+                  const [year, month, day] = datePart.split(':');
+                  const [hour, minute, second] = timePart.split(':');
+                  
+                  const date = `${day}/${month}/${year}`;
+                  const time = `${hour}:${minute}:${second}`;
+                  
+                  const result: DateTimeInfo = { date, time };
+                  dateTimeCache.set(cacheKey, result);
+                  (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
+                  
+                  console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
+                  resolve(result);
+                  return;
+                }
+              }
+            } catch (exifError) {
+              console.log(`📅 No date/time data found for ${file.name}`);
+            }
+            
+            dateTimeCache.set(cacheKey, null);
+            resolve(null);
+          });
+        } else {
+          dateTimeCache.set(cacheKey, null);
+          resolve(null);
+        }
+      } catch (exifError) {
+        dateTimeCache.set(cacheKey, null);
+        resolve(null);
+      }
     };
     
-    // Set crossOrigin to avoid CORS issues
-    img.crossOrigin = 'anonymous';
+    // No usar crossOrigin para blob URLs - solo causa problemas
+    // img.crossOrigin = 'anonymous'; // Removido
     
     try {
       objectUrl = URL.createObjectURL(file);
       img.src = objectUrl;
     } catch (error) {
-      console.error(`❌ Error creating object URL for ${file.name}:`, error);
+      // Si falla, intentar leer EXIF directamente desde el archivo
+      console.log(`⚠️ Could not create object URL, trying direct EXIF read: ${file.name}`);
       cleanup();
-      dateTimeCache.set(cacheKey, null);
-      resolve(null);
+      
+      if (typeof window.EXIF !== 'undefined') {
+        window.EXIF.getData(file, function(this: File) {
+          try {
+            const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
+            const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
+            const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
+            
+            const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
+            
+            if (dateTimeValue && typeof dateTimeValue === 'string') {
+              const [datePart, timePart] = dateTimeValue.split(' ');
+              if (datePart && timePart) {
+                const [year, month, day] = datePart.split(':');
+                const [hour, minute, second] = timePart.split(':');
+                
+                const date = `${day}/${month}/${year}`;
+                const time = `${hour}:${minute}:${second}`;
+                
+                const result: DateTimeInfo = { date, time };
+                dateTimeCache.set(cacheKey, result);
+                (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
+                
+                console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
+                resolve(result);
+                return;
+              }
+            }
+          } catch (exifError) {
+            // Ignore
+          }
+          
+          dateTimeCache.set(cacheKey, null);
+          resolve(null);
+        });
+      } else {
+        dateTimeCache.set(cacheKey, null);
+        resolve(null);
+      }
     }
   });
 };

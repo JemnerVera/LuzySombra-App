@@ -194,8 +194,9 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
           onNotification('API Key regenerada exitosamente', 'success');
           setNewApiKey(data.apiKey);
           setQrCodeUrl(data.qrCodeUrl || null);
-        setApiKeyCopied(false);
-        loadDispositivos();
+          setApiKeyCopied(false);
+          loadDispositivos();
+        }
       }
     } catch (error: any) {
       console.error('Error regenerando API key:', error);

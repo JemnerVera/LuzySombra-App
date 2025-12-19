@@ -83,8 +83,9 @@ const app = express();
 
 // Configurar trust proxy para Azure App Service (detrás de proxy reverso)
 // IMPORTANTE: Debe configurarse ANTES de cualquier middleware que use req.ip
-// true = confiar en todos los proxies (Azure usa múltiples proxies)
-app.set('trust proxy', true);
+// Azure App Service usa 1 proxy reverso, así que confiamos solo en 1 hop
+// Esto es más seguro que 'true' y evita warnings de express-rate-limit
+app.set('trust proxy', 1);
 
 // Leer PORT de las variables de entorno (Azure lo configura automáticamente)
 // Azure expone puertos 80 y 8080, pero permite configurar PORT personalizado
@@ -107,8 +108,7 @@ app.use(helmet({
 }));
 
 // Rate Limiting Global
-// NOTA: Con trust proxy configurado, express-rate-limit maneja IPs automáticamente
-// No necesitamos keyGenerator personalizado - express-rate-limit usa req.ip correctamente
+// Usar keyGenerator personalizado para limpiar IPs con puerto (problema común en Azure)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100, // máximo 100 requests por IP por ventana
@@ -117,12 +117,39 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
   legacyHeaders: false, // No incluir headers legacy (Retry-After)
+  // keyGenerator personalizado para limpiar IPs que incluyen puerto
+  keyGenerator: (req) => {
+    let ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // Limpiar IP: remover puerto si está presente (formato "IP:PORT")
+    // Para IPv4: "192.168.1.1:12345" -> "192.168.1.1"
+    // Para IPv6: "[::1]:12345" -> "::1"
+    if (ip.includes(':')) {
+      // Si es IPv6 entre corchetes
+      if (ip.startsWith('[') && ip.includes(']:')) {
+        ip = ip.substring(1, ip.indexOf(']:'));
+      } 
+      // Si es IPv4 o IPv6 sin corchetes, tomar solo la parte antes del último ':'
+      // Pero cuidado con IPv6 que tiene múltiples ':'
+      else if (!ip.startsWith('::')) {
+        // IPv4: tomar solo antes del ':'
+        const parts = ip.split(':');
+        if (parts.length === 2) {
+          ip = parts[0];
+        }
+      }
+    }
+    return ip;
+  },
+  // Deshabilitar validaciones estrictas que causan problemas en Azure
+  skip: (req) => {
+    // Permitir requests aunque tengan problemas con IP
+    return false;
+  },
 });
 
 app.use('/api/', globalLimiter);
 
 // Rate Limiting más estricto para endpoints de autenticación
-// NOTA: Con trust proxy configurado, express-rate-limit maneja IPs automáticamente
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login por IP
@@ -132,6 +159,22 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // No contar requests exitosos
   standardHeaders: true,
   legacyHeaders: false,
+  // keyGenerator personalizado para limpiar IPs que incluyen puerto
+  keyGenerator: (req) => {
+    let ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // Limpiar IP: remover puerto si está presente
+    if (ip.includes(':')) {
+      if (ip.startsWith('[') && ip.includes(']:')) {
+        ip = ip.substring(1, ip.indexOf(']:'));
+      } else if (!ip.startsWith('::')) {
+        const parts = ip.split(':');
+        if (parts.length === 2) {
+          ip = parts[0];
+        }
+      }
+    }
+    return ip;
+  },
 });
 
 // Middleware

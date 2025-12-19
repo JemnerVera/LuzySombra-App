@@ -53,8 +53,8 @@ const logger = winston.createLogger({
   transports: [
     fileRotateTransport, // Todos los logs
     errorFileRotateTransport, // Solo errores
-    // Solo mostrar en consola en desarrollo
-    ...(process.env.NODE_ENV !== 'production' ? [consoleTransport] : []),
+    // Siempre mostrar en consola para que Azure Log Stream pueda capturarlos
+    consoleTransport,
   ],
   // Manejar excepciones no capturadas
   exceptionHandlers: [

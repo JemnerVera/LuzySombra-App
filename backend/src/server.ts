@@ -172,6 +172,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Iniciar servidor
 app.listen(PORT, () => {
+  const startMessage = `✅ Backend server iniciado en puerto ${PORT}`;
+  console.log(startMessage); // Log directo a consola para Azure Log Stream
   logger.info('Backend server iniciado', {
     port: PORT,
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',

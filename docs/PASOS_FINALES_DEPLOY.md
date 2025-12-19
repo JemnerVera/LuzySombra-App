@@ -15,23 +15,34 @@
 
 **Azure Portal → App Service → Configuration → General settings**
 
-- **Startup Command**: Configurar como `/home/site/wwwroot/startup.sh`
-  
-  **⚠️ IMPORTANTE**: Si el Startup Command está vacío o configurado como `npm start`, puede causar el error:
-  ```
-  npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'
-  ```
-  
-  **Solución**: El script `startup.sh` personalizado asegura que:
-  1. Se cambie al directorio correcto (`/home/site/wwwroot`)
-  2. Se verifique que `package.json` y `dist/server.js` existen
-  3. Se instalen dependencias de producción si es necesario
-  4. Se ejecute `npm start` desde el directorio correcto
-  
-  **Alternativa**: Si prefieres no usar el script, configurar directamente:
-  ```
-  cd /home/site/wwwroot && npm install --production && npm start
-  ```
+**⚠️ IMPORTANTE**: El Startup Command **debe estar configurado** (no vacío), de lo contrario puede causar el error:
+```
+npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'
+```
+
+**Opción 1 - Comando Inline (Recomendado - Optimizado):**
+```
+cd /home/site/wwwroot && if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then npm install --omit=dev --no-audit --no-fund; fi && npm start
+```
+
+**Opción 1b - Comando Inline Simple (Funciona, pero menos eficiente):**
+```
+cd /home/site/wwwroot && npm install --production && npm start
+```
+
+Nota: Azure Oryx puede extraer `node_modules` automáticamente. El comando optimizado verifica primero si existen antes de instalar.
+
+**Opción 2 - Script Personalizado (Más robusto):**
+```
+/home/site/wwwroot/startup.sh
+```
+
+El script `startup.sh` incluye verificaciones adicionales:
+- Verifica que `package.json` y `dist/server.js` existen
+- Mejor logging para debugging
+- Manejo de errores más detallado
+
+**✅ Cualquiera de las dos opciones funciona correctamente.**
 
 ### 2. Verificar URLs de Producción
 
@@ -149,6 +160,23 @@ https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net
 3. **Verificar que el script existe** después del deploy:
    - Usar SSH o Kudu Console (`https://<app-name>.scm.azurewebsites.net`)
    - Verificar que `/home/site/wwwroot/startup.sh` existe y tiene permisos de ejecución
+
+### Mensajes "npm http cache" y muchos logs durante el startup
+
+**⚠️ NO ES UN ERROR**: Si ves muchos mensajes como:
+```
+npm http cache locate-path@https://registry.npmjs.org/locate-path/-/locate-path-5.0.0.tgz 1ms (cache hit)
+npm http cache yargs@https://registry.npmjs.org/yargs/-/yargs-15.4.1.tgz 0ms (cache hit)
+```
+
+**Esto es NORMAL**: Son logs informativos de npm instalando/verificando paquetes desde el caché de npm. La aplicación está funcionando correctamente si:
+- Al final ves mensajes como "Backend server iniciado" o similar
+- No hay mensajes que terminen en "Error:" o "FATAL"
+- El health check (`/api/health`) responde correctamente
+
+**Warnings comunes (no críticos):**
+- `npm warn config production Use '--omit=dev' instead.` - Solo sugiere usar sintaxis moderna
+- `npm warn reify Removing non-directory /home/site/wwwroot/node_modules` - Normal, limpiando antes de instalar
 
 ### Error: "Cannot find module"
 

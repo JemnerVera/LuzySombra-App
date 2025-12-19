@@ -141,10 +141,8 @@ const globalLimiter = rateLimit({
     return ip;
   },
   // Deshabilitar validaciones estrictas que causan problemas en Azure
-  skip: (req) => {
-    // Permitir requests aunque tengan problemas con IP
-    return false;
-  },
+  // En producción detrás de proxy (Azure), estas validaciones pueden ser demasiado estrictas
+  // skipKeyGenerator: false significa que usamos nuestro keyGenerator personalizado
 });
 
 app.use('/api/', globalLimiter);

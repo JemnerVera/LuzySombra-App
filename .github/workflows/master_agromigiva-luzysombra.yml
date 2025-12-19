@@ -34,7 +34,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          npm ci
+          npm ci --include=dev
           npm run build
         env:
           # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)

@@ -6,7 +6,7 @@ console.log('✅ express importado');
 
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -80,11 +80,15 @@ import dispositivosRoutes from './routes/dispositivos';
 import usuariosRoutes from './routes/usuarios';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Configurar trust proxy para Azure App Service (detrás de proxy reverso)
-// Esto permite que rate limiting y otras funciones funcionen correctamente
-app.set('trust proxy', 1);
+// IMPORTANTE: Debe configurarse ANTES de cualquier middleware que use req.ip
+// true = confiar en todos los proxies (Azure usa múltiples proxies)
+app.set('trust proxy', true);
+
+// Leer PORT de las variables de entorno (Azure lo configura automáticamente)
+const PORT = parseInt(process.env.PORT || '8080', 10);
+console.log(`🔧 PORT desde env: ${process.env.PORT}, usando: ${PORT}`);
 
 // ===== SEGURIDAD =====
 // Helmet.js - Headers de seguridad HTTP
@@ -109,13 +113,9 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
   legacyHeaders: false, // No incluir headers legacy (Retry-After)
-  // keyGenerator personalizado para manejar IPs con puertos (Azure App Service)
-  keyGenerator: (req) => {
-    // Extraer solo la IP sin el puerto si está presente
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // Si la IP incluye un puerto (ej: "192.168.1.1:12345"), extraer solo la IP
-    return ip.includes(':') && !ip.startsWith('::') ? ip.split(':')[0] : ip;
-  },
+  // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
+  // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
+  keyGenerator: ipKeyGenerator,
 });
 
 app.use('/api/', globalLimiter);
@@ -124,13 +124,9 @@ app.use('/api/', globalLimiter);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login por IP
-  // keyGenerator personalizado para manejar IPs con puertos (Azure App Service)
-  keyGenerator: (req) => {
-    // Extraer solo la IP sin el puerto si está presente
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // Si la IP incluye un puerto (ej: "192.168.1.1:12345"), extraer solo la IP
-    return ip.includes(':') && !ip.startsWith('::') ? ip.split(':')[0] : ip;
-  },
+  // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
+  // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
+  keyGenerator: ipKeyGenerator,
   message: {
     error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
   },

@@ -107,75 +107,37 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false, // Para permitir imágenes
 }));
 
-// Rate Limiting Global
-// Usar keyGenerator personalizado para limpiar IPs con puerto (problema común en Azure)
+// Rate Limiting Global - TEMPORALMENTE DESHABILITADO
+// TODO: Re-habilitar después de resolver problemas con express-rate-limit v8+
+// El problema es que express-rate-limit v8+ tiene validaciones muy estrictas que
+// requieren usar ipKeyGenerator helper, pero este helper no funciona bien con IPs que incluyen puerto
+/*
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100, // máximo 100 requests por IP por ventana
   message: {
     error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
   },
-  standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
-  legacyHeaders: false, // No incluir headers legacy (Retry-After)
-  // keyGenerator personalizado para limpiar IPs que incluyen puerto
-  keyGenerator: (req) => {
-    let ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // Limpiar IP: remover puerto si está presente (formato "IP:PORT")
-    // Para IPv4: "192.168.1.1:12345" -> "192.168.1.1"
-    // Para IPv6: "[::1]:12345" -> "::1"
-    if (ip.includes(':')) {
-      // Si es IPv6 entre corchetes
-      if (ip.startsWith('[') && ip.includes(']:')) {
-        ip = ip.substring(1, ip.indexOf(']:'));
-      } 
-      // Si es IPv4 o IPv6 sin corchetes, tomar solo la parte antes del último ':'
-      // Pero cuidado con IPv6 que tiene múltiples ':'
-      else if (!ip.startsWith('::')) {
-        // IPv4: tomar solo antes del ':'
-        const parts = ip.split(':');
-        if (parts.length === 2) {
-          ip = parts[0];
-        }
-      }
-    }
-    return ip;
-  },
-  // Deshabilitar validaciones estrictas que causan problemas en Azure
-  // En producción detrás de proxy (Azure), estas validaciones pueden ser demasiado estrictas
-  // skipKeyGenerator: false significa que usamos nuestro keyGenerator personalizado
+  standardHeaders: true,
+  legacyHeaders: false,
 });
+app.use('/api/', globalLimiter);
+*/
 
-// TEMPORALMENTE DESHABILITADO: Rate limiting comentado para resolver errores de validación
-// TODO: Re-habilitar después de resolver problemas con express-rate-limit
-// app.use('/api/', globalLimiter);
-
-// Rate Limiting más estricto para endpoints de autenticación
+// Rate Limiting más estricto para endpoints de autenticación - TEMPORALMENTE DESHABILITADO
+// TODO: Re-habilitar después de resolver problemas con express-rate-limit v8+
+/*
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login por IP
   message: {
     error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
   },
-  skipSuccessfulRequests: true, // No contar requests exitosos
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  // keyGenerator personalizado para limpiar IPs que incluyen puerto
-  keyGenerator: (req) => {
-    let ip = req.ip || req.socket.remoteAddress || 'unknown';
-    // Limpiar IP: remover puerto si está presente
-    if (ip.includes(':')) {
-      if (ip.startsWith('[') && ip.includes(']:')) {
-        ip = ip.substring(1, ip.indexOf(']:'));
-      } else if (!ip.startsWith('::')) {
-        const parts = ip.split(':');
-        if (parts.length === 2) {
-          ip = parts[0];
-        }
-      }
-    }
-    return ip;
-  },
 });
+*/
 
 // Middleware
 app.use(cors({

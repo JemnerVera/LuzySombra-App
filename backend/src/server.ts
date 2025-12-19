@@ -226,6 +226,15 @@ try {
       frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
       nodeEnv: process.env.NODE_ENV || 'development',
     });
+    
+    // Iniciar scheduler de alertas después de que el servidor esté escuchando
+    console.log('✅ Iniciando scheduler de alertas...');
+    import('./scheduler/alertScheduler').then(() => {
+      console.log('✅ Scheduler iniciado correctamente');
+    }).catch((schedulerError: any) => {
+      console.error('⚠️ Error al inicializar scheduler (continuando sin scheduler):', schedulerError.message);
+      // NO hacer process.exit() aquí - el servidor puede funcionar sin scheduler
+    });
   });
 
   // Manejar errores del servidor HTTP
@@ -253,11 +262,7 @@ try {
   process.exit(1);
 }
 
-// Iniciar scheduler de alertas (si está habilitado)
-console.log('✅ Configuración del servidor completa, importando scheduler...');
-import { alertScheduler } from './scheduler/alertScheduler';
-// El scheduler se inicia automáticamente en su constructor
-console.log('✅ Scheduler importado, iniciando servidor...');
+// El scheduler se iniciará dentro del callback de app.listen() para evitar problemas
 
 // Manejo de cierre graceful
 process.on('SIGTERM', async () => {

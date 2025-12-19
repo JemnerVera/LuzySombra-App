@@ -139,7 +139,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      exportToCSV(history as Record<string, unknown>[], 'historial_luz_sombra.csv');
+      exportToCSV(history as unknown as Record<string, unknown>[], 'historial_luz_sombra.csv');
       onNotification('✅ Historial exportado exitosamente', 'success');
     } catch (error) {
       console.error('Error exporting CSV:', error);
@@ -285,7 +285,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
             <button
               onClick={() => {
                 try {
-                  exportHistoryToPDF(history);
+                  exportHistoryToPDF(history as unknown as Array<Record<string, unknown>>);
                   onNotification('PDF exportado exitosamente', 'success');
                 } catch (error) {
                   onNotification('Error exportando PDF', 'error');

@@ -34,8 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const response = await apiService.getCurrentUser();
-          if (response.success && response.user) {
-            setUser(response.user);
+          if (response.success) {
+            const data = (response.data as any) || response;
+            if (data.user) {
+              setUser(data.user);
+            }
           } else {
             // Token inválido, limpiar
             localStorage.removeItem('authToken');
@@ -56,15 +59,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await apiService.loginWeb(username, password);
       
-      if (response.success && response.token && response.user) {
-        // Guardar token
-        localStorage.setItem('authToken', response.token);
-        
-        // Guardar usuario
-        setUser(response.user);
-        
-        // Programar refresh automático
-        scheduleTokenRefresh(response.expiresIn);
+      if (response.success) {
+        const data = (response.data as any) || response;
+        if (data.token && data.user) {
+          // Guardar token
+          localStorage.setItem('authToken', data.token);
+          
+          // Guardar usuario
+          setUser(data.user);
+          
+          // Programar refresh automático
+          scheduleTokenRefresh(data.expiresIn || 86400);
+        } else {
+          throw new Error(response.error || 'Error en login');
+        }
       } else {
         throw new Error(response.error || 'Error en login');
       }
@@ -104,6 +112,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshToken = useCallback(async () => {
     try {
       const response = await apiService.refreshToken();
+      if (response.success) {
+        const data = (response.data as any) || response;
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          scheduleTokenRefresh(data.expiresIn || 86400);
+        }
+      }
       if (response.success && response.token) {
         localStorage.setItem('authToken', response.token);
         scheduleTokenRefresh(response.expiresIn);

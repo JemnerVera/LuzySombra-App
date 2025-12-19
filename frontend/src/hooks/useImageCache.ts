@@ -16,7 +16,9 @@ export const useImageCache = () => {
       // Limitar el tamaño del caché a 50 imágenes
       if (newCache.size >= 50) {
         const firstKey = newCache.keys().next().value;
-        newCache.delete(firstKey);
+        if (firstKey) {
+          newCache.delete(firstKey);
+        }
       }
       newCache.set(url, dataUrl);
       return newCache;

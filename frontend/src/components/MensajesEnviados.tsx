@@ -58,8 +58,9 @@ const MensajesEnviados: React.FC<MensajesEnviadosProps> = ({
       setLoading(true);
       const response = await apiService.getMensajeById(navigation.mensajeID);
       if (response.success) {
-        setMensaje(response.mensaje);
-        setAlertas(response.alertas || []);
+        const data = (response.data as any) || response;
+        setMensaje(data.mensaje);
+        setAlertas(data.alertas || []);
       }
     } catch (error) {
       console.error('Error cargando mensaje:', error);

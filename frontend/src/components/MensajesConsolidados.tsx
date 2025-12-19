@@ -44,8 +44,9 @@ const MensajesConsolidados: React.FC<MensajesConsolidadosProps> = ({
       setLoading(true);
       const response = await apiService.getMensajes(filters);
       if (response.success) {
-        setMensajes(response.mensajes || []);
-        setTotalPages(response.totalPages || 1);
+        const data = (response.data as any) || response;
+        setMensajes(data.mensajes || []);
+        setTotalPages(data.totalPages || response.pagination?.totalPages || 1);
       }
     } catch (error) {
       console.error('Error cargando mensajes:', error);
@@ -68,9 +69,12 @@ const MensajesConsolidados: React.FC<MensajesConsolidadosProps> = ({
       setEnviando(true);
       const response = await apiService.enviarMensajes();
       if (response.success) {
+        const data = (response.data as any) || response;
+        const exitosos = data.exitosos || 0;
+        const errores = data.errores || 0;
         onNotification(
-          `Se enviaron ${response.exitosos || 0} mensaje(s) exitosamente${response.errores ? `, ${response.errores} error(es)` : ''}`,
-          response.errores ? 'warning' : 'success'
+          `Se enviaron ${exitosos} mensaje(s) exitosamente${errores ? `, ${errores} error(es)` : ''}`,
+          errores ? 'warning' : 'success'
         );
         loadMensajes();
       }

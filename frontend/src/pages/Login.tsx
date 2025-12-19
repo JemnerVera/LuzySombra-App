@@ -97,7 +97,8 @@ const Login: React.FC = () => {
         setForgotPasswordSuccess(true);
         setForgotPasswordEmail('');
       } else {
-        setError(response.error || 'Error al solicitar recuperación de contraseña');
+        const errorMsg = (response as any).error || response.detail || 'Error al solicitar recuperación de contraseña';
+        setError(errorMsg);
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 

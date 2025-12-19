@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { RefreshCw, CheckCircle, XCircle, AlertTriangle, Filter, Calendar, MapPin, Package } from 'lucide-react';
-import { AlertasNavigation } from '../types';
 
 interface Alerta {
   alertaID: number;
@@ -56,8 +55,9 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification, onN
       setLoading(true);
       const response = await apiService.getAlertas(filters);
       if (response.success) {
-        setAlertas(response.alertas || []);
-        setTotalPages(response.totalPages || 1);
+        const data = (response.data as any) || response;
+        setAlertas(data.alertas || []);
+        setTotalPages(data.totalPages || response.pagination?.totalPages || 1);
       }
     } catch (error) {
       console.error('Error cargando alertas:', error);
@@ -127,9 +127,10 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification, onN
     try {
       setConsolidando(true);
       const response = await apiService.consolidarAlertas(24);
-      if (response.success) {
+      if (response.success && response.data) {
+        const data = response.data as { mensajesCreados: number; horasAtras: number; alertasSinMensaje: number };
         onNotification(
-          `Se consolidaron ${response.mensajesCreados || 0} mensaje(s) exitosamente`,
+          `Se consolidaron ${data.mensajesCreados || 0} mensaje(s) exitosamente`,
           'success'
         );
         loadAlertas();

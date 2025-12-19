@@ -5,55 +5,62 @@ import logger from './logger';
 // Cargar variables de entorno
 dotenv.config();
 
-// Validar que todas las variables de entorno requeridas estén presentes
-const requiredEnvVars = ['SQL_USER', 'SQL_PASSWORD', 'SQL_SERVER', 'SQL_DATABASE'];
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+/**
+ * Valida que todas las variables de entorno requeridas estén presentes
+ * @throws Error si faltan variables requeridas
+ */
+function validateEnvVars(): void {
+  const requiredEnvVars = ['SQL_USER', 'SQL_PASSWORD', 'SQL_SERVER', 'SQL_DATABASE'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
-if (missingVars.length > 0) {
-  throw new Error(
-    `❌ Variables de entorno SQL Server faltantes: ${missingVars.join(', ')}\n` +
-    `Por favor, configura las variables en .env. Ver .env.example para referencia.`
-  );
+  if (missingVars.length > 0) {
+    throw new Error(
+      `❌ Variables de entorno SQL Server faltantes: ${missingVars.join(', ')}\n` +
+      `Por favor, configura las variables en Azure Portal Application Settings.`
+    );
+  }
 }
 
-// Log de configuración
-logger.debug('Configurando conexión a SQL Server', {
-  server: process.env.SQL_SERVER,
-  database: process.env.SQL_DATABASE,
-  port: process.env.SQL_PORT || '1433',
-});
-
-const config: sql.config = {
-  user: process.env.SQL_USER!,
-  password: process.env.SQL_PASSWORD!,
-  server: process.env.SQL_SERVER!,
-  database: process.env.SQL_DATABASE!,
-  port: parseInt(process.env.SQL_PORT || '1433'),
+/**
+ * Obtiene la configuración de SQL Server
+ * Valida variables de entorno antes de retornar la configuración
+ */
+function getConfig(): sql.config {
+  validateEnvVars();
   
-  options: {
-    trustServerCertificate: true,
-    enableArithAbort: true,
-    // Encriptar para servidor remoto (AgroMigiva), pero permitir desactivar para desarrollo local
-    encrypt: process.env.SQL_ENCRYPT !== 'false',
-    requestTimeout: 120000, // 120 segundos timeout para requests (para queries complejas como tabla consolidada)
-    connectTimeout: 30000, // 30 segundos timeout para establecer conexión
-    // Evitar warning de TLS ServerName con IP: usar hostname si es IP
-    // Para IPs privadas, trustServerCertificate ya está en true, así que esto es solo para evitar el warning
-  },
-  
-  // Pool de conexiones
-  pool: {
-    max: 10,
-    min: 0,
-    idleTimeoutMillis: 30000,
-  },
-};
+  // Log de configuración
+  logger.debug('Configurando conexión a SQL Server', {
+    server: process.env.SQL_SERVER,
+    database: process.env.SQL_DATABASE,
+    port: process.env.SQL_PORT || '1433',
+  });
 
-// Constantes para evitar problemas de TypeScript con config.options
-const CONNECT_TIMEOUT = config.options?.connectTimeout || 30000;
-const REQUEST_TIMEOUT = config.options?.requestTimeout || 60000;
-const ENCRYPT = config.options?.encrypt ?? (process.env.SQL_ENCRYPT !== 'false');
-const TRUST_SERVER_CERT = config.options?.trustServerCertificate ?? true;
+  return {
+    user: process.env.SQL_USER!,
+    password: process.env.SQL_PASSWORD!,
+    server: process.env.SQL_SERVER!,
+    database: process.env.SQL_DATABASE!,
+    port: parseInt(process.env.SQL_PORT || '1433'),
+    
+    options: {
+      trustServerCertificate: true,
+      enableArithAbort: true,
+      // Encriptar para servidor remoto (AgroMigiva), pero permitir desactivar para desarrollo local
+      encrypt: process.env.SQL_ENCRYPT !== 'false',
+      requestTimeout: 120000, // 120 segundos timeout para requests (para queries complejas como tabla consolidada)
+      connectTimeout: 30000, // 30 segundos timeout para establecer conexión
+      // Evitar warning de TLS ServerName con IP: usar hostname si es IP
+      // Para IPs privadas, trustServerCertificate ya está en true, así que esto es solo para evitar el warning
+    },
+    
+    // Pool de conexiones
+    pool: {
+      max: 10,
+      min: 0,
+      idleTimeoutMillis: 30000,
+    },
+  };
+}
 
 let pool: sql.ConnectionPool | null = null;
 let connectionAttempts = 0;
@@ -67,6 +74,10 @@ export async function getConnection(): Promise<sql.ConnectionPool> {
     return pool;
   }
 
+  // Validar y obtener configuración solo cuando se necesita (lazy validation)
+  // Esto permite que el servidor inicie incluso si las variables de entorno no están configuradas todavía
+  const config = getConfig();
+  
   connectionAttempts++;
   
   try {

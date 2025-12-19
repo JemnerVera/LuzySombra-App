@@ -20,14 +20,16 @@
 npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'
 ```
 
-**Opción 1 - Comando Inline (Recomendado - Optimizado):**
+**Opción 1 - Comando Inline (Recomendado - Sin reinstalar si Oryx ya lo hizo):**
 ```
-cd /home/site/wwwroot && if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then npm install --omit=dev --no-audit --no-fund; fi && npm start
+cd /home/site/wwwroot && npm start
 ```
 
-**Opción 1b - Comando Inline Simple (Funciona, pero menos eficiente):**
+**⚠️ IMPORTANTE**: Azure Oryx extrae automáticamente `node_modules` desde el build, así que NO es necesario ejecutar `npm install` en el startup command. Si ejecutas `npm install`, causará errores de permisos porque Oryx ya creó los archivos.
+
+**Opción 1b - Con verificación (Solo si Oryx no extrajo node_modules):**
 ```
-cd /home/site/wwwroot && npm install --production && npm start
+cd /home/site/wwwroot && if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then npm install --omit=dev --no-audit --no-fund; fi && npm start
 ```
 
 Nota: Azure Oryx puede extraer `node_modules` automáticamente. El comando optimizado verifica primero si existen antes de instalar.

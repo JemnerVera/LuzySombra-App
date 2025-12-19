@@ -35,14 +35,12 @@ jobs:
         working-directory: ./frontend
         run: |
           # Instalar todas las dependencias incluyendo devDependencies (necesarias para build)
+          # No configurar NODE_ENV=production para que npm ci instale devDependencies
           npm ci --include=dev
           # Ejecutar build (vite está en devDependencies)
-          npm run build
-        env:
           # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)
           # El frontend se sirve desde el mismo App Service que el backend
-          # En desarrollo: usar VITE_API_URL=http://localhost:3001 en .env.local
-          # NODE_ENV no se establece aquí para que npm ci instale devDependencies
+          npm run build
 
       - name: Copy frontend to backend public folder
         run: |

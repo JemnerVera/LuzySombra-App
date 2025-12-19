@@ -115,7 +115,13 @@ const globalLimiter = rateLimit({
   legacyHeaders: false, // No incluir headers legacy (Retry-After)
   // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
   // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: (req) => {
+    // Usar ipKeyGenerator helper que maneja IPv6 y otros casos especiales
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // ipKeyGenerator espera una IP string, no el request completo
+    // Extraer la IP correctamente y usar el helper
+    return ipKeyGenerator(ip);
+  },
 });
 
 app.use('/api/', globalLimiter);
@@ -126,7 +132,13 @@ const authLimiter = rateLimit({
   max: 5, // máximo 5 intentos de login por IP
   // Usar ipKeyGenerator helper de express-rate-limit para manejar IPv4 e IPv6 correctamente
   // Este helper maneja automáticamente IPs con puertos y diferentes formatos de IP
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: (req) => {
+    // Usar ipKeyGenerator helper que maneja IPv6 y otros casos especiales
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // ipKeyGenerator espera una IP string, no el request completo
+    // Extraer la IP correctamente y usar el helper
+    return ipKeyGenerator(ip);
+  },
   message: {
     error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
   },

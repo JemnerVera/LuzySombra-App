@@ -20,7 +20,12 @@
 npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'
 ```
 
-**Opción 1 - Comando Inline (Recomendado - Sin reinstalar si Oryx ya lo hizo):**
+**Opción 1 - Comando Inline (Recomendado - Con verificación de dependencias):**
+```
+cd /home/site/wwwroot && if [ ! -f "node_modules/js-md4/src/md4.js" ]; then rm -rf node_modules && npm install --production --no-audit --no-fund; fi && npm start
+```
+
+**Opción 1b - Comando Inline Simple (Solo si node_modules está completo):**
 ```
 cd /home/site/wwwroot && npm start
 ```

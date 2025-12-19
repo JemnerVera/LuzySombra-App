@@ -1,7 +1,12 @@
 import React, { useMemo } from 'react';
 // @ts-ignore - react-window types may not be fully compatible
 import { FixedSizeList } from 'react-window';
-import type { ListChildComponentProps } from 'react-window';
+
+// Define the props type for the row component
+interface RowProps {
+  index: number;
+  style: React.CSSProperties;
+}
 
 interface VirtualizedTableProps<T> {
   data: T[];
@@ -29,7 +34,7 @@ function VirtualizedTable<T extends { id: string | number }>({
     return columns.reduce((sum, col) => sum + (col.width || 150), 0);
   }, [columns]);
 
-  const Row = ({ index, style }: ListChildComponentProps) => {
+  const Row = ({ index, style }: RowProps) => {
     const row = data[index];
     if (!row) return null;
 

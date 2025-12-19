@@ -21,11 +21,10 @@ if [ ! -f "dist/server.js" ]; then
     exit 1
 fi
 
-# Instalar dependencias de producción si node_modules no existe o está vacío
-if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules)" ]; then
-    echo "📦 Instalando dependencias de producción..."
-    npm install --production --no-audit --no-fund
-fi
+# Azure Oryx ya extrae node_modules automáticamente desde el build
+# NO ejecutar npm install aquí porque causará errores de permisos
+# Oryx extrae node_modules.tar.gz y crea un symlink a /node_modules
+echo "✅ node_modules ya está disponible (extraído por Oryx durante el deploy)"
 
 # Ejecutar npm start (que ejecuta node dist/server.js según package.json)
 echo "✅ Iniciando aplicación desde /home/site/wwwroot"

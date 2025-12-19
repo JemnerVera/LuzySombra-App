@@ -262,9 +262,8 @@ const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({ onNotificatio
                 cy="50%"
                 labelLine={false}
                 label={(entry: any) => {
-                  const data = entry.payload || entry;
-                  const rango = data?.rango || data?.name || '';
-                  const porcentaje = data?.porcentaje || data?.value || 0;
+                  const rango = entry.rango || entry.name || '';
+                  const porcentaje = entry.porcentaje || entry.value || 0;
                   return `${rango}: ${porcentaje}%`;
                 }}
                 outerRadius={100}

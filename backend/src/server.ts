@@ -1,31 +1,49 @@
+// Logging inicial ANTES de cualquier import para capturar errores tempranos
+console.log('📦 Cargando módulos del servidor...');
+
 import express from 'express';
+console.log('✅ express importado');
+
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+
+console.log('✅ Librerías básicas importadas, importando logger...');
 import logger from './lib/logger';
+console.log('✅ logger importado');
 
 // Manejo global de errores no capturados ANTES de que cualquier otro código se ejecute
 process.on('uncaughtException', (error: Error) => {
   console.error('❌ UNCAUGHT EXCEPTION:', error);
   console.error('Stack:', error.stack);
-  logger.error('Uncaught Exception', {
-    error: error.message,
-    stack: error.stack,
-  });
+  try {
+    logger.error('Uncaught Exception', {
+      error: error.message,
+      stack: error.stack,
+    });
+  } catch (logError) {
+    console.error('❌ Error al loguear exception:', logError);
+  }
   // NO hacer process.exit() aquí, dejar que el proceso termine naturalmente
   // para que Azure pueda reiniciarlo automáticamente
 });
 
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('❌ UNHANDLED REJECTION:', reason);
-  logger.error('Unhandled Rejection', {
-    reason: reason instanceof Error ? reason.message : String(reason),
-    stack: reason instanceof Error ? reason.stack : undefined,
-  });
+  try {
+    logger.error('Unhandled Rejection', {
+      reason: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+    });
+  } catch (logError) {
+    console.error('❌ Error al loguear rejection:', logError);
+  }
 });
+
+console.log('✅ Handlers de errores configurados, cargando variables de entorno...');
 
 // Cargar variables de entorno
 // Buscar .env.local en la raíz del proyecto (un nivel arriba de backend/)
@@ -33,6 +51,8 @@ const rootPath = path.resolve(process.cwd(), '..');
 dotenv.config({ path: path.join(rootPath, '.env.local') });
 dotenv.config({ path: path.join(rootPath, '.env') }); // Fallback a .env si .env.local no existe
 dotenv.config(); // También buscar en backend/.env.local y backend/.env (fallback)
+
+console.log('✅ Variables de entorno cargadas, importando rutas...');
 
 // Importar rutas
 import fieldDataRoutes from './routes/field-data';
@@ -230,8 +250,10 @@ try {
 }
 
 // Iniciar scheduler de alertas (si está habilitado)
+console.log('✅ Configuración del servidor completa, importando scheduler...');
 import { alertScheduler } from './scheduler/alertScheduler';
 // El scheduler se inicia automáticamente en su constructor
+console.log('✅ Scheduler importado, iniciando servidor...');
 
 // Manejo de cierre graceful
 process.on('SIGTERM', async () => {

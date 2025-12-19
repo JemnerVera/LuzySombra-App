@@ -109,6 +109,13 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true, // Incluir headers estándar (X-RateLimit-*)
   legacyHeaders: false, // No incluir headers legacy (Retry-After)
+  // keyGenerator personalizado para manejar IPs con puertos (Azure App Service)
+  keyGenerator: (req) => {
+    // Extraer solo la IP sin el puerto si está presente
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // Si la IP incluye un puerto (ej: "192.168.1.1:12345"), extraer solo la IP
+    return ip.includes(':') && !ip.startsWith('::') ? ip.split(':')[0] : ip;
+  },
 });
 
 app.use('/api/', globalLimiter);
@@ -117,6 +124,13 @@ app.use('/api/', globalLimiter);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login por IP
+  // keyGenerator personalizado para manejar IPs con puertos (Azure App Service)
+  keyGenerator: (req) => {
+    // Extraer solo la IP sin el puerto si está presente
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // Si la IP incluye un puerto (ej: "192.168.1.1:12345"), extraer solo la IP
+    return ip.includes(':') && !ip.startsWith('::') ? ip.split(':')[0] : ip;
+  },
   message: {
     error: 'Demasiados intentos de autenticación, intenta de nuevo más tarde.',
   },

@@ -112,176 +112,60 @@ export const extractDateTimeFromImage = (file: File): Promise<DateTimeInfo | nul
       return;
     }
 
-    const img = new Image();
-    let objectUrl: string | null = null;
+    // Leer EXIF directamente desde el archivo (como se hace con GPS)
+    // Esto es más confiable que cargar la imagen primero
+    const timeoutId = setTimeout(() => {
+      console.log(`⏱️ Timeout extracting date/time for ${file.name}`);
+      dateTimeCache.set(cacheKey, null);
+      resolve(null);
+    }, 5000); // 5 second timeout
     
-    // Cleanup function
-    const cleanup = () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-      }
-    };
-    
-    img.onload = () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window.EXIF.getData as any)(img, () => {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dateTime = (window.EXIF.getTag as any)(img, 'DateTime') as string | undefined;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dateTimeOriginal = (window.EXIF.getTag as any)(img, 'DateTimeOriginal') as string | undefined;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dateTimeDigitized = (window.EXIF.getTag as any)(img, 'DateTimeDigitized') as string | undefined;
-            
-            // Try different EXIF date fields
-            const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
-            
-            if (dateTimeValue && typeof dateTimeValue === 'string') {
-              // EXIF date format: "YYYY:MM:DD HH:MM:SS"
-              const [datePart, timePart] = dateTimeValue.split(' ');
-              if (datePart && timePart) {
-                // Convert to more readable format
-                const [year, month, day] = datePart.split(':');
-                const [hour, minute, second] = timePart.split(':');
-                
-                const date = `${day}/${month}/${year}`;
-                const time = `${hour}:${minute}:${second}`;
-                
-                const result: DateTimeInfo = { date, time };
-                
-                // Cache the result
-                dateTimeCache.set(cacheKey, result);
-                (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
-                
-                console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
-                cleanup();
-                resolve(result);
-                return;
-              } else {
-                console.log(`❌ Invalid date format for ${file.name}: ${dateTimeValue}`);
-              }
-            } else {
-              console.log(`📅 Date extraction for ${file.name}: Not found`);
-            }
-          } catch (error) {
-            console.error(`❌ Error processing EXIF date for ${file.name}:`, error);
-          }
-          
-          cleanup();
-          dateTimeCache.set(cacheKey, null);
-          resolve(null);
-        });
-      } catch (error) {
-        console.error(`❌ Error processing EXIF date for ${file.name}:`, error);
-        cleanup();
-        dateTimeCache.set(cacheKey, null);
-        resolve(null);
-      }
-    };
-    
-    img.onerror = (error) => {
-      // Intentar extraer fecha directamente desde el archivo sin cargar la imagen
-      console.log(`⚠️ Could not load image preview for date extraction, trying direct EXIF read: ${file.name}`);
-      cleanup();
+    window.EXIF.getData(file, function(this: File) {
+      clearTimeout(timeoutId);
       
-      // Intentar leer EXIF directamente desde el archivo sin cargar la imagen completa
       try {
-        if (typeof window.EXIF !== 'undefined') {
-          window.EXIF.getData(file, function(this: File) {
-            try {
-              const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
-              const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
-              const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
-              
-              const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
-              
-              if (dateTimeValue && typeof dateTimeValue === 'string') {
-                const [datePart, timePart] = dateTimeValue.split(' ');
-                if (datePart && timePart) {
-                  const [year, month, day] = datePart.split(':');
-                  const [hour, minute, second] = timePart.split(':');
-                  
-                  const date = `${day}/${month}/${year}`;
-                  const time = `${hour}:${minute}:${second}`;
-                  
-                  const result: DateTimeInfo = { date, time };
-                  dateTimeCache.set(cacheKey, result);
-                  (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
-                  
-                  console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
-                  resolve(result);
-                  return;
-                }
-              }
-            } catch (exifError) {
-              console.log(`📅 No date/time data found for ${file.name}`);
-            }
+        const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
+        const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
+        const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
+        
+        // Try different EXIF date fields (prioridad: Original > Digitized > DateTime)
+        const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
+        
+        if (dateTimeValue && typeof dateTimeValue === 'string') {
+          // EXIF date format: "YYYY:MM:DD HH:MM:SS"
+          const [datePart, timePart] = dateTimeValue.split(' ');
+          if (datePart && timePart) {
+            // Convert to more readable format
+            const [year, month, day] = datePart.split(':');
+            const [hour, minute, second] = timePart.split(':');
             
+            const date = `${day}/${month}/${year}`;
+            const time = `${hour}:${minute}:${second}`;
+            
+            const result: DateTimeInfo = { date, time };
+            
+            // Cache the result
+            dateTimeCache.set(cacheKey, result);
+            (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
+            
+            console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
+            resolve(result);
+          } else {
+            console.log(`❌ Invalid date format for ${file.name}: ${dateTimeValue}`);
             dateTimeCache.set(cacheKey, null);
             resolve(null);
-          });
+          }
         } else {
+          console.log(`📅 Date extraction for ${file.name}: Not found`);
           dateTimeCache.set(cacheKey, null);
           resolve(null);
         }
-      } catch (exifError) {
+      } catch (error) {
+        console.error(`❌ Error processing EXIF date for ${file.name}:`, error);
         dateTimeCache.set(cacheKey, null);
         resolve(null);
       }
-    };
-    
-    // No usar crossOrigin para blob URLs - solo causa problemas
-    // img.crossOrigin = 'anonymous'; // Removido
-    
-    try {
-      objectUrl = URL.createObjectURL(file);
-      img.src = objectUrl;
-    } catch (error) {
-      // Si falla, intentar leer EXIF directamente desde el archivo
-      console.log(`⚠️ Could not create object URL, trying direct EXIF read: ${file.name}`);
-      cleanup();
-      
-      if (typeof window.EXIF !== 'undefined') {
-        window.EXIF.getData(file, function(this: File) {
-          try {
-            const dateTimeOriginal = window.EXIF.getTag(this, 'DateTimeOriginal') as string | undefined;
-            const dateTimeDigitized = window.EXIF.getTag(this, 'DateTimeDigitized') as string | undefined;
-            const dateTime = window.EXIF.getTag(this, 'DateTime') as string | undefined;
-            
-            const dateTimeValue = dateTimeOriginal || dateTimeDigitized || dateTime;
-            
-            if (dateTimeValue && typeof dateTimeValue === 'string') {
-              const [datePart, timePart] = dateTimeValue.split(' ');
-              if (datePart && timePart) {
-                const [year, month, day] = datePart.split(':');
-                const [hour, minute, second] = timePart.split(':');
-                
-                const date = `${day}/${month}/${year}`;
-                const time = `${hour}:${minute}:${second}`;
-                
-                const result: DateTimeInfo = { date, time };
-                dateTimeCache.set(cacheKey, result);
-                (window as unknown as { dateTimeCache: Map<string, DateTimeInfo | null> }).dateTimeCache = dateTimeCache;
-                
-                console.log(`📅 Date/Time found for ${file.name}: ${date} ${time}`);
-                resolve(result);
-                return;
-              }
-            }
-          } catch (exifError) {
-            // Ignore
-          }
-          
-          dateTimeCache.set(cacheKey, null);
-          resolve(null);
-        });
-      } else {
-        dateTimeCache.set(cacheKey, null);
-        resolve(null);
-      }
-    }
+    });
   });
 };
 

@@ -106,7 +106,7 @@ export const compressImage = async (
       }
     };
     
-    img.onerror = (error) => {
+    img.onerror = () => {
       cleanup();
       // No es un error crítico - el backend puede procesar el archivo original
       console.warn('⚠️ Could not load image for compression preview, using original file:', file.name);

@@ -43,55 +43,85 @@ export const compressImage = async (
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
+    let objectUrl: string | null = null;
     
-    img.onload = () => {
-      // Calculate new dimensions maintaining aspect ratio
-      let { width, height } = img;
-      
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-      }
-      
-      // Set canvas dimensions
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Draw and compress
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              
-              console.log(`📦 Image compressed: ${formatFileSize(file.size)} → ${formatFileSize(compressedFile.size)}`);
-              resolve(compressedFile);
-            } else {
-              reject(new Error('Failed to compress image'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      } else {
-        reject(new Error('Failed to get canvas context'));
+    // Cleanup function
+    const cleanup = () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
       }
     };
     
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        // Calculate new dimensions maintaining aspect ratio
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              cleanup();
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                
+                console.log(`📦 Image compressed: ${formatFileSize(file.size)} → ${formatFileSize(compressedFile.size)}`);
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Failed to compress image - blob is null'));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        } else {
+          cleanup();
+          reject(new Error('Failed to get canvas context'));
+        }
+      } catch (error) {
+        cleanup();
+        reject(error instanceof Error ? error : new Error('Failed to compress image'));
+      }
+    };
+    
+    img.onerror = (error) => {
+      cleanup();
+      console.error('❌ Image load error:', error);
+      reject(new Error(`Failed to load image: ${file.name}`));
+    };
+    
+    // Set crossOrigin to avoid CORS issues
+    img.crossOrigin = 'anonymous';
+    
+    try {
+      objectUrl = URL.createObjectURL(file);
+      img.src = objectUrl;
+    } catch (error) {
+      cleanup();
+      reject(error instanceof Error ? error : new Error('Failed to create object URL'));
+    }
   });
 };
 

@@ -15,11 +15,23 @@
 
 **Azure Portal → App Service → Configuration → General settings**
 
-- **Startup Command**: Debe estar vacío o configurado como `npm start`
-  - Azure detectará automáticamente `package.json` y ejecutará `npm start`
-  - `npm start` ejecuta `node dist/server.js` (definido en `backend/package.json`)
-
-**Si está vacío, está bien** - Azure usará `npm start` automáticamente.
+- **Startup Command**: Configurar como `/home/site/wwwroot/startup.sh`
+  
+  **⚠️ IMPORTANTE**: Si el Startup Command está vacío o configurado como `npm start`, puede causar el error:
+  ```
+  npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'
+  ```
+  
+  **Solución**: El script `startup.sh` personalizado asegura que:
+  1. Se cambie al directorio correcto (`/home/site/wwwroot`)
+  2. Se verifique que `package.json` y `dist/server.js` existen
+  3. Se instalen dependencias de producción si es necesario
+  4. Se ejecute `npm start` desde el directorio correcto
+  
+  **Alternativa**: Si prefieres no usar el script, configurar directamente:
+  ```
+  cd /home/site/wwwroot && npm install --production && npm start
+  ```
 
 ### 2. Verificar URLs de Producción
 
@@ -118,6 +130,25 @@ https://agromigiva-luzysombra-fdfzhje4ascbc3dr.eastus2-01.azurewebsites.net
 ---
 
 ## 🐛 Troubleshooting
+
+### Error: "Could not read package.json: Error: ENOENT: no such file or directory, open '/package.json'"
+
+**Causa**: Azure está ejecutando `npm start` desde la raíz del sistema (`/`) en lugar de desde `/home/site/wwwroot`.
+
+**Solución**:
+1. **Configurar Startup Command** en Azure Portal:
+   - Ir a: **Azure Portal → App Service → Configuration → General settings**
+   - **Startup Command**: Configurar como `/home/site/wwwroot/startup.sh`
+   - Guardar y reiniciar el App Service
+
+2. **Alternativa**: Si el script `startup.sh` no funciona, configurar directamente:
+   ```
+   cd /home/site/wwwroot && npm install --production && npm start
+   ```
+
+3. **Verificar que el script existe** después del deploy:
+   - Usar SSH o Kudu Console (`https://<app-name>.scm.azurewebsites.net`)
+   - Verificar que `/home/site/wwwroot/startup.sh` existe y tiene permisos de ejecución
 
 ### Error: "Cannot find module"
 

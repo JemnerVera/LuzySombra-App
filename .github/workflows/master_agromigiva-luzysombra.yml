@@ -55,6 +55,19 @@ jobs:
           cp -r frontend/dist/* backend/public/
           echo "✅ Frontend copiado a backend/public"
 
+      - name: Prepare deployment package
+        working-directory: ./backend
+        run: |
+          # Asegurar que el script de startup tenga permisos de ejecución
+          chmod +x startup.sh
+          # Verificar que los archivos necesarios existen
+          echo "📦 Verificando archivos de deployment..."
+          ls -la
+          echo "📁 Contenido de dist/:"
+          ls -la dist/ || echo "dist/ no existe"
+          echo "📄 package.json:"
+          cat package.json | head -15
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:

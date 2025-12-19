@@ -62,7 +62,9 @@ const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({ onNotificatio
       setLoading(true);
       const response = await apiService.getStatistics();
       if (response.success && response.data) {
-        setStatistics(response.data);
+        setStatistics(response.data as any);
+      } else {
+        setStatistics(null);
       }
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
@@ -259,12 +261,17 @@ const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({ onNotificatio
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ rango, porcentaje }) => `${rango}: ${porcentaje}%`}
+                label={(entry: any) => {
+                  const data = entry.payload || entry;
+                  const rango = data?.rango || data?.name || '';
+                  const porcentaje = data?.porcentaje || data?.value || 0;
+                  return `${rango}: ${porcentaje}%`;
+                }}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="total"
               >
-                {statistics.distribucionLuz.map((entry, index) => (
+                {statistics.distribucionLuz.map((_entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

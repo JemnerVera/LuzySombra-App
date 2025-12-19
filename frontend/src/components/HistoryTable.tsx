@@ -111,7 +111,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
     if (isInitialMount.current) {
       // Carga inicial
       isInitialMount.current = false;
-      prevFilters.current = { filterEmpresa, filterFundo };
+      prevFilters.current = { 
+        filterEmpresa, 
+        filterFundo,
+        filterFechaDesde: '',
+        filterFechaHasta: '',
+        filterPorcentajeLuzMin: '',
+        filterPorcentajeLuzMax: ''
+      };
       loadHistory(1);
     } else if (pageChangeFromFilter.current) {
       // Si el cambio de página fue causado por un cambio de filtro, cargar página 1
@@ -132,7 +139,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      exportToCSV(history as any, 'historial_luz_sombra.csv');
+      exportToCSV(history as Record<string, unknown>[], 'historial_luz_sombra.csv');
       onNotification('✅ Historial exportado exitosamente', 'success');
     } catch (error) {
       console.error('Error exporting CSV:', error);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { Plus, Edit, Trash2, RefreshCw, Save, X, Smartphone, Key, Eye, EyeOff, AlertCircle, Copy, Download, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Save, X, Smartphone, Key, Copy, Download, Check } from 'lucide-react';
 
 interface Dispositivo {
   dispositivoID: number;
@@ -24,7 +24,6 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [showApiKey, setShowApiKey] = useState<number | null>(null);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [apiKeyCopied, setApiKeyCopied] = useState(false);
@@ -40,8 +39,9 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
     try {
       setLoading(true);
       const response = await apiService.getDispositivos();
-      if (response.success && response.dispositivos) {
-        setDispositivos(response.dispositivos);
+      if (response.success) {
+        const dispositivos = (response.data as any)?.dispositivos || (response as any).dispositivos || [];
+        setDispositivos(dispositivos);
       }
     } catch (error) {
       console.error('Error cargando dispositivos:', error);
@@ -118,13 +118,14 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
       });
 
       if (response.success) {
+        const data = (response.data as any) || response;
         console.log('✅ Dispositivo creado - Respuesta completa:', response);
-        console.log('📱 API Key recibida:', response.apiKey ? 'Sí' : 'No');
-        console.log('📱 QR Code URL recibida:', response.qrCodeUrl ? 'Sí (' + response.qrCodeUrl.substring(0, 50) + '...)' : 'No');
+        console.log('📱 API Key recibida:', data.apiKey ? 'Sí' : 'No');
+        console.log('📱 QR Code URL recibida:', data.qrCodeUrl ? 'Sí (' + data.qrCodeUrl.substring(0, 50) + '...)' : 'No');
         onNotification('Dispositivo creado exitosamente', 'success');
         // Establecer API key y QR antes de resetear el formulario
-        setNewApiKey(response.apiKey || null);
-        setQrCodeUrl(response.qrCodeUrl || null);
+        setNewApiKey(data.apiKey || null);
+        setQrCodeUrl(data.qrCodeUrl || null);
         setApiKeyCopied(false);
         // Resetear solo el formulario, NO la API key (para que el modal se muestre)
         resetForm(false);
@@ -185,12 +186,14 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
 
     try {
       const response = await apiService.regenerateApiKey(id);
-      if (response.success && response.apiKey) {
-        console.log('✅ API Key regenerada:', response);
-        console.log('📱 QR Code URL recibido:', response.qrCodeUrl ? 'Sí' : 'No');
-        onNotification('API Key regenerada exitosamente', 'success');
-        setNewApiKey(response.apiKey);
-        setQrCodeUrl(response.qrCodeUrl || null);
+      if (response.success) {
+        const data = (response.data as any) || response;
+        if (data.apiKey) {
+          console.log('✅ API Key regenerada:', response);
+          console.log('📱 QR Code URL recibido:', data.qrCodeUrl ? 'Sí' : 'No');
+          onNotification('API Key regenerada exitosamente', 'success');
+          setNewApiKey(data.apiKey);
+          setQrCodeUrl(data.qrCodeUrl || null);
         setApiKeyCopied(false);
         loadDispositivos();
       }
@@ -393,7 +396,7 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
               {editingId ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
             </h3>
             <button
-              onClick={resetForm}
+              onClick={() => resetForm(true)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X className="h-5 w-5" />
@@ -465,7 +468,7 @@ const DispositivosManagement: React.FC<DispositivosManagementProps> = ({ onNotif
                 {editingId ? 'Guardar Cambios' : 'Crear Dispositivo'}
               </button>
               <button
-                onClick={resetForm}
+                onClick={() => resetForm(true)}
                 className="px-4 py-2 text-gray-700 dark:text-dark-300 bg-gray-100 dark:bg-dark-800 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
               >
                 Cancelar

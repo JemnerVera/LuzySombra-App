@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import LazyImage from './LazyImage';
 
 interface ImageViewModalProps {
   isOpen: boolean;

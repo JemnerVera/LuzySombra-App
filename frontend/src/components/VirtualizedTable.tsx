@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList } from 'react-window';
 
 interface VirtualizedTableProps<T> {
   data: T[];
@@ -67,7 +67,7 @@ function VirtualizedTable<T extends { id: string | number }>({
       </div>
 
       {/* Virtualized list */}
-      <List
+      <FixedSizeList
         height={height}
         itemCount={data.length}
         itemSize={rowHeight}
@@ -75,7 +75,7 @@ function VirtualizedTable<T extends { id: string | number }>({
         overscanCount={5} // Renderizar 5 items extra fuera de la vista
       >
         {Row}
-      </List>
+      </FixedSizeList>
     </div>
   );
 }

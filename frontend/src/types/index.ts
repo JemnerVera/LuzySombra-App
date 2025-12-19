@@ -74,12 +74,15 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   detail?: string;
+  error?: string;
   pagination?: {
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
   };
+  // Propiedades que pueden estar en el objeto raíz (para compatibilidad con backend)
+  [key: string]: any;
 }
 
 export interface ProcessingFormData {

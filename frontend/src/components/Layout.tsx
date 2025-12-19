@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TabType } from '../types';
 import { UI_CONFIG } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone, Package, Mail, Settings, SunMoon, List, Layers, ShieldAlert, LayoutDashboard } from 'lucide-react';
+import { Upload, Eye, BarChart3, Table, Sun, Moon, Calendar, ChevronDown, ChevronRight, Image, Gauge, Bell, Users, History, LogOut, User, Smartphone, Package, Mail, Settings, SunMoon, List, ShieldAlert, LayoutDashboard } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {

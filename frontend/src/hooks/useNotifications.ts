@@ -41,18 +41,22 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       const contadorResponse = await apiService.getNotificacionesContador(ultimaConsulta);
       
       if (contadorResponse.success) {
-        const nuevas = contadorResponse.nuevasAlertas || 0;
+        const contadorData = (contadorResponse.data as any) || contadorResponse;
+        const nuevas = contadorData.nuevasAlertas || 0;
         setContador(nuevas);
         
         // Si hay nuevas, actualizar timestamp
-        if (nuevas > 0 && contadorResponse.timestamp) {
-          setUltimaConsulta(contadorResponse.timestamp);
+        if (nuevas > 0 && contadorData.timestamp) {
+          setUltimaConsulta(contadorData.timestamp);
         }
 
         // Obtener lista de notificaciones recientes
         const listaResponse = await apiService.getNotificacionesLista(10);
-        if (listaResponse.success && listaResponse.notificaciones) {
-          setNotificaciones(listaResponse.notificaciones);
+        if (listaResponse.success) {
+          const listaData = (listaResponse.data as any) || listaResponse;
+          if (listaData.notificaciones) {
+            setNotificaciones(listaData.notificaciones);
+          }
         }
       }
     } catch (err: any) {

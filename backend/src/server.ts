@@ -6,7 +6,7 @@ console.log('✅ express importado');
 
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+// import rateLimit from 'express-rate-limit'; // TEMPORALMENTE DESHABILITADO - ver comentarios más abajo
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';

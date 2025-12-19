@@ -145,7 +145,9 @@ const globalLimiter = rateLimit({
   // skipKeyGenerator: false significa que usamos nuestro keyGenerator personalizado
 });
 
-app.use('/api/', globalLimiter);
+// TEMPORALMENTE DESHABILITADO: Rate limiting comentado para resolver errores de validación
+// TODO: Re-habilitar después de resolver problemas con express-rate-limit
+// app.use('/api/', globalLimiter);
 
 // Rate Limiting más estricto para endpoints de autenticación
 const authLimiter = rateLimit({
@@ -199,8 +201,10 @@ app.use('/api/test-model', testModelRouter);
 app.use('/api/check-gps-info', checkGpsInfoRouter);
 
 // AUTENTICACIÓN (con rate limiting estricto)
-app.use('/api/auth', authLimiter, authRoutes); // Dispositivos móviles (AgriQR)
-app.use('/api/auth/web', authLimiter, authWebRoutes); // Usuarios web
+// TEMPORALMENTE DESHABILITADO: Rate limiting comentado para resolver errores de validación
+// TODO: Re-habilitar después de resolver problemas con express-rate-limit
+app.use('/api/auth', authRoutes); // Dispositivos móviles (AgriQR) - authLimiter temporalmente deshabilitado
+app.use('/api/auth/web', authWebRoutes); // Usuarios web - authLimiter temporalmente deshabilitado
 app.use('/api/photos', photoUploadRoutes);
 
 // RUTAS PARA ALERTAS

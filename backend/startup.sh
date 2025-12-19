@@ -21,10 +21,16 @@ if [ ! -f "dist/server.js" ]; then
     exit 1
 fi
 
-# Azure Oryx ya extrae node_modules automáticamente desde el build
-# NO ejecutar npm install aquí porque causará errores de permisos
-# Oryx extrae node_modules.tar.gz y crea un symlink a /node_modules
-echo "✅ node_modules ya está disponible (extraído por Oryx durante el deploy)"
+# Verificar si js-md4 existe y está completo (check crítico para evitar errores)
+if [ ! -f "node_modules/js-md4/src/md4.js" ]; then
+    echo "⚠️ js-md4 incompleto o faltante, reinstalando dependencias..."
+    # Limpiar node_modules corrupto antes de reinstalar
+    rm -rf node_modules
+    npm install --production --no-audit --no-fund
+    echo "✅ Dependencias reinstaladas"
+else
+    echo "✅ node_modules verificado (js-md4 presente)"
+fi
 
 # Ejecutar npm start (que ejecuta node dist/server.js según package.json)
 echo "✅ Iniciando aplicación desde /home/site/wwwroot"

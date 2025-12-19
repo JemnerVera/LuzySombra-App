@@ -1,13 +1,15 @@
-name: Deploy Frontend to Azure Static Web Apps
+# ⚠️ DESHABILITADO: Este workflow no se usa
+# El deploy se hace mediante master_agromigiva-luzysombra.yml que despliega backend + frontend juntos
+# name: Deploy Frontend to Azure Static Web Apps
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-frontend-azure.yml'
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - master
+#     paths:
+#       - 'frontend/**'
+#       - '.github/workflows/deploy-frontend-azure.yml'
+#   workflow_dispatch:
 
 env:
   NODE_VERSION: '18.x'

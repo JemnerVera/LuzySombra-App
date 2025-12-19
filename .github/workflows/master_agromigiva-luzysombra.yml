@@ -28,14 +28,19 @@ jobs:
         run: |
           npm ci
           npm run build
+        env:
+          NODE_ENV: production
 
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          npm install --ignore-scripts
+          npm ci
           npm run build
-        # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)
-        # En desarrollo: usar VITE_API_URL=http://localhost:3001 en .env.local
+        env:
+          # No configurar VITE_API_URL - usar rutas relativas (mismo dominio)
+          # El frontend se sirve desde el mismo App Service que el backend
+          # En desarrollo: usar VITE_API_URL=http://localhost:3001 en .env.local
+          NODE_ENV: production
 
       - name: Copy frontend to backend public folder
         run: |
@@ -65,4 +70,9 @@ jobs:
           app-name: 'agromigiva-luzysombra'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_319CC0F88D4B479BB142E5D2A67EB783 }}
+          # ⚠️ IMPORTANTE: Azure genera automáticamente un secret cuando se configura Deployment Center
+          # Si Azure generó un secret automáticamente, usar ese nombre (ej: AZUREAPPSERVICE_PUBLISHPROFILE_...)
+          # O configurar manualmente como AZURE_WEBAPP_PUBLISH_PROFILE
+          # Obtener el Publish Profile desde Azure Portal:
+          # App Service → Deployment Center → Manage publish profile → Download
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE || secrets.AZUREAPPSERVICE_PUBLISHPROFILE_319CC0F88D4B479BB142E5D2A67EB783 }}

@@ -22,12 +22,16 @@ if [ ! -f "dist/server.js" ]; then
 fi
 
 # Verificar si js-md4 existe y está completo (check crítico para evitar errores)
+# Oryx puede extraer node_modules incompletos desde tar.gz
 if [ ! -f "node_modules/js-md4/src/md4.js" ]; then
-    echo "⚠️ js-md4 incompleto o faltante, reinstalando dependencias..."
-    # Limpiar node_modules corrupto antes de reinstalar
-    rm -rf node_modules
-    npm install --production --no-audit --no-fund
-    echo "✅ Dependencias reinstaladas"
+    echo "⚠️ js-md4 incompleto o faltante, reparando dependencias..."
+    # npm install puede reparar módulos faltantes sin necesidad de eliminar todo
+    npm install --production --no-audit --no-fund --legacy-peer-deps 2>&1 || {
+        echo "⚠️ npm install falló, intentando con eliminación completa..."
+        rm -rf node_modules
+        npm install --production --no-audit --no-fund --legacy-peer-deps
+    }
+    echo "✅ Dependencias reparadas"
 else
     echo "✅ node_modules verificado (js-md4 presente)"
 fi

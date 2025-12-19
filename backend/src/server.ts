@@ -194,7 +194,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 try {
   console.log(`🚀 Iniciando servidor en puerto ${PORT}...`);
   
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     const startMessage = `✅ Backend server iniciado en puerto ${PORT}`;
     console.log(startMessage); // Log directo a consola para Azure Log Stream
     logger.info('Backend server iniciado', {
@@ -204,12 +204,20 @@ try {
     });
   });
 
-  app.on('error', (error: Error) => {
-    console.error('❌ Error en el servidor Express:', error);
-    logger.error('Error en servidor Express', {
+  // Manejar errores del servidor HTTP
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    console.error('❌ Error en el servidor HTTP:', error);
+    logger.error('Error en servidor HTTP', {
       error: error.message,
+      code: error.code,
       stack: error.stack,
     });
+    
+    // Si el error es EADDRINUSE, el puerto ya está en uso
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Puerto ${PORT} ya está en uso`);
+      process.exit(1);
+    }
   });
 } catch (error: any) {
   console.error('❌ Error al iniciar el servidor:', error);

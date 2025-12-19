@@ -60,17 +60,18 @@ jobs:
         run: |
           # Asegurar que el script de startup tenga permisos de ejecución
           chmod +x startup.sh
-          # Excluir node_modules del deployment (Azure instalará dependencias de producción)
-          # Esto reduce significativamente el tamaño del package
-          echo "🗑️ Eliminando node_modules del package de deployment..."
-          rm -rf node_modules
+          # Mantener node_modules en el deployment
+          # Oryx puede tener problemas extrayendo algunos módulos desde tar.gz
+          # Incluir node_modules asegura que todas las dependencias estén presentes
           echo "📦 Verificando archivos de deployment..."
           ls -la
           echo "📁 Contenido de dist/:"
           ls -la dist/ || echo "dist/ no existe"
+          echo "📦 Verificando node_modules/js-md4 existe:"
+          ls -la node_modules/js-md4/ 2>/dev/null || echo "⚠️ js-md4 no encontrado"
           echo "📄 package.json:"
           cat package.json | head -15
-          echo "✅ Package listo para deployment (sin node_modules)"
+          echo "✅ Package listo para deployment (con node_modules)"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

@@ -1,8 +1,5 @@
 // Logging inicial ANTES de cualquier import para capturar errores tempranos
-console.log('📦 Cargando módulos del servidor...');
-
 import express from 'express';
-console.log('✅ express importado');
 
 import cors from 'cors';
 import helmet from 'helmet';
@@ -11,9 +8,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-console.log('✅ Librerías básicas importadas, importando logger...');
 import logger from './lib/logger';
-console.log('✅ logger importado');
 
 // Manejo global de errores no capturados ANTES de que cualquier otro código se ejecute
 process.on('uncaughtException', (error: Error) => {
@@ -43,7 +38,6 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   }
 });
 
-console.log('✅ Handlers de errores configurados, cargando variables de entorno...');
 
 // Cargar variables de entorno
 // Buscar .env.local en la raíz del proyecto (un nivel arriba de backend/)
@@ -52,7 +46,6 @@ dotenv.config({ path: path.join(rootPath, '.env.local') });
 dotenv.config({ path: path.join(rootPath, '.env') }); // Fallback a .env si .env.local no existe
 dotenv.config(); // También buscar en backend/.env.local y backend/.env (fallback)
 
-console.log('✅ Variables de entorno cargadas, importando rutas...');
 
 // Importar rutas
 import fieldDataRoutes from './routes/field-data';
@@ -78,6 +71,8 @@ import authWebRoutes from './routes/auth-web';
 import notificacionesRoutes from './routes/notificaciones';
 import dispositivosRoutes from './routes/dispositivos';
 import usuariosRoutes from './routes/usuarios';
+import burroRoutes from './routes/burro';
+import lotInfoRoutes from './routes/lot-info';
 
 const app = express();
 
@@ -90,8 +85,9 @@ app.set('trust proxy', 1);
 // Leer PORT de las variables de entorno (Azure lo configura automáticamente)
 // Azure expone puertos 80 y 8080, pero permite configurar PORT personalizado
 // El proxy de Azure redirige el tráfico al puerto que configuremos
-const PORT = parseInt(process.env.PORT || '8080', 10);
-console.log(`🔧 PORT desde env: ${process.env.PORT || 'no configurado'}, usando: ${PORT}`);
+// En desarrollo local, usar puerto 3001 por defecto (frontend espera este puerto)
+const DEFAULT_PORT = process.env.NODE_ENV === 'production' ? '8080' : '3001';
+const PORT = parseInt(process.env.PORT || DEFAULT_PORT, 10);
 
 // ===== SEGURIDAD =====
 // Helmet.js - Headers de seguridad HTTP
@@ -194,6 +190,10 @@ app.use('/api/notificaciones', notificacionesRoutes);
 // RUTAS PARA DISPOSITIVOS
 app.use('/api/dispositivos', dispositivosRoutes);
 
+// RUTAS PARA BURRO (Raspberry Pi)
+app.use('/api/burro', burroRoutes);
+app.use('/api/lot-info', lotInfoRoutes);
+
 // Servir archivos estáticos del frontend (si existen)
 const frontendPath = path.join(__dirname, '../public');
 if (fs.existsSync(frontendPath)) {
@@ -238,11 +238,9 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Iniciar servidor con manejo de errores
 try {
-  console.log(`🚀 Iniciando servidor en puerto ${PORT}...`);
+  logger.info(`Iniciando servidor en puerto ${PORT}...`, { port: PORT });
   
   const server = app.listen(PORT, () => {
-    const startMessage = `✅ Backend server iniciado en puerto ${PORT}`;
-    console.log(startMessage); // Log directo a consola para Azure Log Stream
     logger.info('Backend server iniciado', {
       port: PORT,
       frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -250,9 +248,7 @@ try {
     });
     
     // Iniciar scheduler de alertas después de que el servidor esté escuchando
-    console.log('✅ Iniciando scheduler de alertas...');
     import('./scheduler/alertScheduler').then(() => {
-      console.log('✅ Scheduler iniciado correctamente');
     }).catch((schedulerError: any) => {
       console.error('⚠️ Error al inicializar scheduler (continuando sin scheduler):', schedulerError.message);
       // NO hacer process.exit() aquí - el servidor puede funcionar sin scheduler
@@ -261,7 +257,6 @@ try {
 
   // Manejar errores del servidor HTTP
   server.on('error', (error: NodeJS.ErrnoException) => {
-    console.error('❌ Error en el servidor HTTP:', error);
     logger.error('Error en servidor HTTP', {
       error: error.message,
       code: error.code,
@@ -270,13 +265,14 @@ try {
     
     // Si el error es EADDRINUSE, el puerto ya está en uso
     if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Puerto ${PORT} ya está en uso`);
+      logger.error(`Puerto ${PORT} ya está en uso`, {
+        port: PORT,
+        suggestion: 'Cierra el proceso que está usando el puerto o cambia el puerto en .env'
+      });
       process.exit(1);
     }
   });
 } catch (error: any) {
-  console.error('❌ Error al iniciar el servidor:', error);
-  console.error('Stack:', error.stack);
   logger.error('Error al iniciar servidor', {
     error: error.message,
     stack: error.stack,

@@ -19,7 +19,6 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    console.log(`📊 [tabla-consolidada/detalle] Obteniendo lotID para: ${fundo} - ${sector} - ${lote}`);
 
     // Buscar el lotID desde el nombre del lote, sector y fundo
     const lotResult = await query<{ lotID: number }>(`
@@ -43,7 +42,6 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const lotID = lotResult[0].lotID;
-    console.log(`📊 [tabla-consolidada/detalle] lotID encontrado: ${lotID}`);
 
     // Obtener el detalle histórico
     const result = await sqlServerService.getLoteDetalleHistorial(lotID);

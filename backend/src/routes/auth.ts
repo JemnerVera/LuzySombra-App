@@ -248,11 +248,6 @@ router.get('/verify-lote-token', async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
 
-    console.log('🔍 [verify-lote-token] Verificando token...', { 
-      hasToken: !!token, 
-      tokenType: typeof token,
-      tokenLength: token ? (typeof token === 'string' ? token.length : 'N/A') : 0
-    });
 
     if (!token || typeof token !== 'string') {
       console.error('❌ [verify-lote-token] Token no válido o faltante');
@@ -266,13 +261,6 @@ router.get('/verify-lote-token', async (req: Request, res: Response) => {
     let decoded: any;
     try {
       decoded = verifyToken(token) as any;
-      console.log('✅ [verify-lote-token] Token decodificado:', { 
-        type: decoded.type, 
-        lotID: decoded.lotID,
-        hasLote: !!decoded.lote,
-        hasSector: !!decoded.sector,
-        hasFundo: !!decoded.fundo
-      });
     } catch (verifyError: any) {
       console.error('❌ [verify-lote-token] Error verificando token:', verifyError.message);
       throw verifyError;
@@ -332,7 +320,6 @@ router.get('/verify-lote-token', async (req: Request, res: Response) => {
       });
     }
 
-    console.log('✅ [verify-lote-token] Token válido, retornando información del lote');
     // Token válido - retornar información del lote
     res.json({
       success: true,

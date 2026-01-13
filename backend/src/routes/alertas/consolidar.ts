@@ -11,9 +11,17 @@ const router = express.Router();
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const horasAtras = parseInt(req.query.horasAtras as string) || 24;
+    // Manejar correctamente cuando horasAtras es 0 (para consolidar todas las alertas)
+    const horasAtrasParam = req.query.horasAtras as string;
+    const horasAtras = horasAtrasParam !== undefined && horasAtrasParam !== null
+      ? parseInt(horasAtrasParam)
+      : 24;
     
-    console.log(`🔄 Iniciando consolidación de alertas (últimas ${horasAtras} horas)...`);
+    if (horasAtras <= 0) {
+      console.log(`🔄 Iniciando consolidación de alertas (TODAS las alertas pendientes)...`);
+    } else {
+      console.log(`🔄 Iniciando consolidación de alertas (últimas ${horasAtras} horas)...`);
+    }
     
     // Debug: Ver alertas sin mensaje primero
     const alertasSinMensaje = await alertService.getAlertasSinMensaje();

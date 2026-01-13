@@ -92,11 +92,11 @@ BEGIN
         DECLARE @lotID INT;
         DECLARE @userID INT;
         
-        -- 1. Obtener growerID desde empresa
+        -- 1. Obtener growerID desde empresa (SIN filtrar por statusID - puede estar inactivo)
+        -- Las tablas de la app se deben llenar correctamente aunque estén inactivos
         SELECT TOP 1 @growerID = growerID
         FROM GROWER.GROWERS
-        WHERE businessName = @empresa
-          AND statusID = 1;
+        WHERE businessName = @empresa;
         
         IF @growerID IS NULL
         BEGIN
@@ -105,14 +105,12 @@ BEGIN
             RETURN;
         END;
         
-        -- 2. Obtener farmID desde fundo
+        -- 2. Obtener farmID desde fundo (SIN filtrar por statusID)
         SELECT TOP 1 @farmID = f.farmID
         FROM GROWER.FARMS f
         INNER JOIN GROWER.STAGE s ON f.farmID = s.farmID
         WHERE f.Description = @fundo
-          AND s.growerID = @growerID
-          AND f.statusID = 1
-          AND s.statusID = 1;
+          AND s.growerID = @growerID;
         
         IF @farmID IS NULL
         BEGIN
@@ -121,12 +119,11 @@ BEGIN
             RETURN;
         END;
         
-        -- 3. Obtener stageID desde sector
+        -- 3. Obtener stageID desde sector (SIN filtrar por statusID)
         SELECT TOP 1 @stageID = stageID
         FROM GROWER.STAGE
         WHERE stage = @sector
-          AND farmID = @farmID
-          AND statusID = 1;
+          AND farmID = @farmID;
         
         IF @stageID IS NULL
         BEGIN
@@ -135,12 +132,11 @@ BEGIN
             RETURN;
         END;
         
-        -- 4. Obtener lotID desde lote
+        -- 4. Obtener lotID desde lote (SIN filtrar por statusID)
         SELECT TOP 1 @lotID = lotID
         FROM GROWER.LOT
         WHERE name = @lote
-          AND stageID = @stageID
-          AND statusID = 1;
+          AND stageID = @stageID;
         
         IF @lotID IS NULL
         BEGIN

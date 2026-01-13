@@ -126,7 +126,8 @@ const AlertasDashboard: React.FC<AlertasDashboardProps> = ({ onNotification, onN
 
     try {
       setConsolidando(true);
-      const response = await apiService.consolidarAlertas(24);
+      // Pasar 0 para consolidar TODAS las alertas pendientes sin importar la fecha
+      const response = await apiService.consolidarAlertas(0);
       if (response.success && response.data) {
         const data = response.data as { mensajesCreados: number; horasAtras: number; alertasSinMensaje: number };
         onNotification(

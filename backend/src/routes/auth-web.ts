@@ -48,12 +48,14 @@ router.post('/login', async (req: Request, res: Response) => {
     const usuario = await userService.findByUsername(username);
 
     if (!usuario) {
+      logger.warn('Login fallido - usuario no encontrado', { username });
       await rateLimitService.registrarIntento(false, ipAddress, undefined, username, 'User not found');
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
     }
+
 
     // Verificar si está activo
     if (!usuario.activo) {
@@ -75,12 +77,17 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Verificar contraseña
+    // Trim la contraseña para eliminar espacios al inicio/final que puedan haberse copiado del email
+    const passwordTrimmed = password.trim();
+
     const passwordValid = await userService.verifyPassword(
-      password,
+      passwordTrimmed,
       usuario.passwordHash
     );
 
     if (!passwordValid) {
+      logger.warn('Login fallido - contraseña inválida', { username });
+
       // Incrementar intentos fallidos (en UsuarioWeb)
       await userService.incrementFailedAttempts(usuario.usuarioID);
       // Registrar intento fallido (en IntentoLogin)

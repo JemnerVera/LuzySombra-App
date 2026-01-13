@@ -337,7 +337,7 @@ class SqlServerService {
         // Verificar si el registro existe de todas formas (por si acaso)
         console.warn('⚠️ No se recibió analisisID del OUTPUT, verificando si el registro existe...');
         
-        // Obtener lotID primero
+        // Obtener lotID primero (sin filtrar por statusID - puede estar inactivo)
         const lotResult = await query<{ lotID: number }>(`
           SELECT TOP 1 lotID 
           FROM GROWER.LOT l
@@ -348,10 +348,6 @@ class SqlServerService {
             AND s.stage = @sector
             AND f.Description = @fundo
             AND g.businessName = @empresa
-            AND l.statusID = 1
-            AND s.statusID = 1
-            AND f.statusID = 1
-            AND g.statusID = 1
           ORDER BY l.lotID
         `, { 
           lote: result.lote,
@@ -375,7 +371,6 @@ class SqlServerService {
           });
           
           if (existingRecord.length > 0) {
-            console.log(`✅ Registro encontrado en BD: analisisID=${existingRecord[0].analisisID}`);
             this.historialCache = null;
             return existingRecord[0].analisisID;
           }
@@ -384,7 +379,6 @@ class SqlServerService {
         throw new Error('No se pudo obtener el ID del análisis insertado');
       }
 
-      console.log(`✅ Análisis guardado exitosamente: analisisID=${analisisID}`);
       this.historialCache = null;
 
       return analisisID;
@@ -698,7 +692,6 @@ class SqlServerService {
         sombraProm: row.sombraProm,
       }));
 
-      console.log(`✅ [getLoteDetalleHistorial] Obtenidos ${data.length} registros para lotID ${lotID}`);
 
       return {
         success: true,

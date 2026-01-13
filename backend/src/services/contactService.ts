@@ -234,7 +234,6 @@ class ContactService {
         throw new Error('No se pudo crear el contacto');
       }
 
-      console.log(`✅ Contacto ${contactoID} creado exitosamente`);
       return contactoID;
     } catch (error) {
       console.error('❌ Error creando contacto:', error);
@@ -377,7 +376,6 @@ class ContactService {
           AND statusID = 1
       `, params);
 
-      console.log(`✅ Contacto ${contactoID} actualizado exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error actualizando contacto:', error);
@@ -399,7 +397,6 @@ class ContactService {
           AND statusID = 1
       `, { contactoID });
 
-      console.log(`✅ Contacto ${contactoID} eliminado exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error eliminando contacto:', error);

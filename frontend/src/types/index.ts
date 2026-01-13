@@ -29,6 +29,8 @@ export interface ImageFile {
     date: string;
     time: string;
   };
+  lotStatus: 'extracting' | 'found' | 'not-found';
+  lotID?: number;
   hilera?: string;
   numero_planta?: string;
 }

@@ -216,19 +216,9 @@ export class TensorFlowService {
 
   /**
    * Create processed image with classification colors
+   * Note: This is frontend code, so it always runs in the browser
    */
   private createProcessedImage(imageData: ImageData, classificationMap: number[][]): string {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      return this.createProcessedImageBrowser(imageData, classificationMap);
-    } else {
-      return this.createProcessedImageNode(imageData, classificationMap);
-    }
-  }
-
-  /**
-   * Create processed image in browser environment
-   */
-  private createProcessedImageBrowser(imageData: ImageData, classificationMap: number[][]): string {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -268,55 +258,6 @@ export class TensorFlowService {
       return canvas.toDataURL('image/png');
     } catch (error) {
       console.error('❌ Error creating processed image in browser:', error);
-      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-    }
-  }
-
-  /**
-   * Create processed image in Node.js environment
-   */
-  private createProcessedImageNode(imageData: ImageData, classificationMap: number[][]): string {
-    try {
-      // Import canvas dynamically for Node.js
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createCanvas } = require('canvas');
-      
-      const canvas = createCanvas(imageData.width, imageData.height);
-      const ctx = canvas.getContext('2d');
-      
-      // Create image data for the processed image
-      const processedImageData = ctx.createImageData(imageData.width, imageData.height);
-      
-      // Apply classification colors
-      for (let y = 0; y < imageData.height; y++) {
-        for (let x = 0; x < imageData.width; x++) {
-          const pixelIndex = (y * imageData.width + x) * 4;
-          const classification = classificationMap[y]?.[x] || 0;
-          
-          if (classification === 1) {
-            // Light area - green
-            processedImageData.data[pixelIndex] = 0;     // R
-            processedImageData.data[pixelIndex + 1] = 255; // G
-            processedImageData.data[pixelIndex + 2] = 0;   // B
-            processedImageData.data[pixelIndex + 3] = 255; // A
-          } else {
-            // Shadow area - blue
-            processedImageData.data[pixelIndex] = 0;     // R
-            processedImageData.data[pixelIndex + 1] = 0;   // G
-            processedImageData.data[pixelIndex + 2] = 255; // B
-            processedImageData.data[pixelIndex + 3] = 255; // A
-          }
-        }
-      }
-      
-      // Put the processed image data on canvas
-      ctx.putImageData(processedImageData, 0, 0);
-      
-      // Convert to base64
-      return canvas.toDataURL('image/png');
-    } catch (error) {
-      console.error('❌ Error creating processed image in Node.js:', error);
-      // Return a simple placeholder if canvas fails
       return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     }
   }

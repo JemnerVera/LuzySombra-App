@@ -91,8 +91,45 @@ export interface DateTimeInfo {
   time: string;
 }
 
-// Extract lotID from EXIF data
-export const extractLotIdFromImage = (file: File): Promise<number | null> => {
+// Extract lotID from EXIF data using backend (robust method with piexif)
+export const extractLotIdFromImage = async (file: File): Promise<number | null> => {
+  // Cache para evitar extracciones duplicadas
+  const cacheKey = `${file.name}_${file.size}_${file.lastModified}_lotid`;
+  const lotIdCache = (window as unknown as { lotIdCache?: Map<string, number | null> }).lotIdCache || new Map<string, number | null>();
+  
+  const cached = lotIdCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  try {
+    // Usar backend para extraer lotID (más robusto que EXIF.js)
+    // Importar dinámicamente para evitar dependencias circulares
+    const { apiService } = await import('../services/api');
+    const response = await apiService.extractLotIdFromImage(file);
+    
+    if (response.success && response.lotID) {
+      const lotID = response.lotID;
+      lotIdCache.set(cacheKey, lotID);
+      (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+      console.log(`✅ [extractLotIdFromImage] lotID found via backend for ${file.name}: ${lotID}`);
+      return lotID;
+    }
+    
+    // No se encontró lotID
+    lotIdCache.set(cacheKey, null);
+    (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+    return null;
+  } catch (error) {
+    console.error(`❌ Error extracting lotID from EXIF via backend for ${file.name}:`, error);
+    lotIdCache.set(cacheKey, null);
+    (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+    return null;
+  }
+};
+
+// Función legacy usando EXIF.js (mantenida por compatibilidad pero no se usa)
+export const extractLotIdFromImageLegacy = (file: File): Promise<number | null> => {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !window.EXIF) {
       resolve(null);
@@ -128,8 +165,14 @@ export const extractLotIdFromImage = (file: File): Promise<number | null> => {
         }
         
         // Buscar lotID en ImageDescription (tag 270)
+        // Intentar obtener ImageDescription por nombre y por tag number
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const imageDescription = (window.EXIF.getTag as any)(this, 'ImageDescription') as string | undefined;
+        let imageDescription = (window.EXIF.getTag as any)(this, 'ImageDescription') as string | undefined;
+        // Si no funciona, intentar acceder directamente por tag number 270
+        if (!imageDescription) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          imageDescription = (window.EXIF.getTag as any)(this, 270) as string | undefined;
+        }
         console.log(`🔍 [extractLotIdFromImage] ImageDescription raw:`, imageDescription, typeof imageDescription);
         
         // Buscar lotID en UserComment (tag 37510)
@@ -152,11 +195,89 @@ export const extractLotIdFromImage = (file: File): Promise<number | null> => {
         const exifData = (this as any).exifdata;
         if (exifData) {
           console.log(`📋 [extractLotIdFromImage] Full exifdata object keys:`, Object.keys(exifData));
-          // Buscar cualquier campo que pueda contener "lotID"
+          
+          // Buscar lotID en TODOS los campos EXIF disponibles (antes de buscar en campos específicos)
           for (const key in exifData) {
             const value = exifData[key];
-            if (typeof value === 'string' && value.toLowerCase().includes('lotid')) {
-              console.log(`🎯 [extractLotIdFromImage] Found potential lotID in key "${key}":`, value);
+            
+            // Log específico para campos que son arrays
+            if (Array.isArray(value)) {
+              console.log(`🔍 [extractLotIdFromImage] Found array field "${key}" with ${value.length} elements:`, value.slice(0, 50));
+            }
+            
+            // Si es string, buscar lotID
+            if (typeof value === 'string' && value.trim().length > 0) {
+              const lotIdMatch = value.match(/lotID[:\s=]*(\d+)/i);
+              if (lotIdMatch && lotIdMatch[1]) {
+                const lotID = parseInt(lotIdMatch[1], 10);
+                if (!isNaN(lotID) && lotID > 0) {
+                  console.log(`✅ [extractLotIdFromImage] lotID found in field "${key}": ${lotID}`);
+                  lotIdCache.set(cacheKey, lotID);
+                  (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+                  resolve(lotID);
+                  return;
+                }
+              }
+              // También buscar si el campo solo contiene un número
+              const directMatch = value.trim().match(/^(\d+)$/);
+              if (directMatch && directMatch[1]) {
+                const lotID = parseInt(directMatch[1], 10);
+                if (!isNaN(lotID) && lotID > 0 && lotID < 100000) { // Validación razonable
+                  console.log(`✅ [extractLotIdFromImage] lotID found in field "${key}" (direct number): ${lotID}`);
+                  lotIdCache.set(cacheKey, lotID);
+                  (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+                  resolve(lotID);
+                  return;
+                }
+              }
+            }
+            // Si es array (como UserComment o ImageDescription), procesarlo
+            else if (Array.isArray(value) && value.length > 0) {
+              try {
+                console.log(`🔍 [extractLotIdFromImage] Processing array field "${key}" with ${value.length} elements`);
+                
+                // Método 1: UTF-8 (filtrar bytes válidos)
+                const utf8Bytes = value.filter(c => c >= 0 && c < 256);
+                if (utf8Bytes.length > 0) {
+                  const arrayStr = String.fromCharCode(...utf8Bytes).replace(/\0/g, '');
+                  console.log(`🔍 [extractLotIdFromImage] Field "${key}" as UTF-8 string (first 100 chars): "${arrayStr.substring(0, 100)}"`);
+                  if (arrayStr.length > 0) {
+                    const lotIdMatch = arrayStr.match(/lotID[:\s=]*(\d+)/i);
+                    if (lotIdMatch && lotIdMatch[1]) {
+                      const lotID = parseInt(lotIdMatch[1], 10);
+                      if (!isNaN(lotID) && lotID > 0) {
+                        console.log(`✅ [extractLotIdFromImage] lotID found in field "${key}" (array UTF-8): ${lotID}`);
+                        lotIdCache.set(cacheKey, lotID);
+                        (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+                        resolve(lotID);
+                        return;
+                      }
+                    }
+                  }
+                }
+                
+                // Método 2: UTF-16LE (cada carácter seguido de 0)
+                const utf16Bytes = value.filter((v, i) => i % 2 === 0 && v > 0);
+                if (utf16Bytes.length > 0 && utf16Bytes.length !== utf8Bytes.length) {
+                  const utf16Str = String.fromCharCode(...utf16Bytes).replace(/\0/g, '');
+                  console.log(`🔍 [extractLotIdFromImage] Field "${key}" as UTF-16LE string (first 100 chars): "${utf16Str.substring(0, 100)}"`);
+                  if (utf16Str.length > 0) {
+                    const lotIdMatch = utf16Str.match(/lotID[:\s=]*(\d+)/i);
+                    if (lotIdMatch && lotIdMatch[1]) {
+                      const lotID = parseInt(lotIdMatch[1], 10);
+                      if (!isNaN(lotID) && lotID > 0) {
+                        console.log(`✅ [extractLotIdFromImage] lotID found in field "${key}" (array UTF-16LE): ${lotID}`);
+                        lotIdCache.set(cacheKey, lotID);
+                        (window as unknown as { lotIdCache: Map<string, number | null> }).lotIdCache = lotIdCache;
+                        resolve(lotID);
+                        return;
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn(`⚠️ [extractLotIdFromImage] Error processing array field "${key}":`, e);
+              }
             }
           }
         }

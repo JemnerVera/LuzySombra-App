@@ -215,6 +215,8 @@ async function getLotInfoFromLotId(lotID: number): Promise<{
   lote: string;
 } | null> {
   try {
+    // NO filtrar por statusID - necesitamos obtener la info aunque esté inactivo
+    // porque las tablas de la app se deben llenar correctamente
     const lotInfo = await query<{
       empresa: string;
       fundo: string;
@@ -231,10 +233,6 @@ async function getLotInfoFromLotId(lotID: number): Promise<{
       INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
       INNER JOIN GROWER.GROWERS g WITH (NOLOCK) ON s.growerID = g.growerID
       WHERE l.lotID = @lotID
-        AND l.statusID = 1
-        AND s.statusID = 1
-        AND f.statusID = 1
-        AND g.statusID = 1
     `, { lotID });
 
     if (!lotInfo || lotInfo.length === 0) {

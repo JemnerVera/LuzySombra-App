@@ -173,22 +173,96 @@ export const extractLotIdFromExifServer = async (file: Buffer, filename: string)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ifd0 = exifData['0th'] as any;
     
+    // Función helper para buscar lotID en un campo
+    const searchLotIdInField = (fieldValue: any, fieldName: string): number | null => {
+      if (!fieldValue) return null;
+      
+      let fieldStr: string;
+      if (typeof fieldValue === 'string') {
+        fieldStr = fieldValue;
+      } else if (Buffer.isBuffer(fieldValue)) {
+        // Intentar UTF-8 primero
+        fieldStr = fieldValue.toString('utf8').replace(/\0/g, '');
+        // Si no tiene sentido, intentar UTF-16LE
+        if (!fieldStr.match(/lotID[:\s=]*\d+/i)) {
+          try {
+            const utf16Str = fieldValue.toString('utf16le').replace(/\0/g, '');
+            if (utf16Str.match(/lotID[:\s=]*\d+/i)) {
+              fieldStr = utf16Str;
+            }
+          } catch (e) {
+            // Ignorar error
+          }
+        }
+      } else if (Array.isArray(fieldValue)) {
+        // Intentar UTF-8 primero
+        fieldStr = Buffer.from(fieldValue).toString('utf8').replace(/\0/g, '');
+        // Si no tiene sentido, intentar UTF-16LE
+        if (!fieldStr.match(/lotID[:\s=]*\d+/i)) {
+          try {
+            fieldStr = Buffer.from(fieldValue).toString('utf16le').replace(/\0/g, '');
+          } catch (e) {
+            // Ignorar error
+          }
+        }
+      } else {
+        fieldStr = String(fieldValue);
+      }
+      
+      // Buscar formato "lotID:123", "lotID=123", "lotID 123" o simplemente "123"
+      const lotIdMatch = fieldStr.match(/lotID[:\s=]*(\d+)/i);
+      if (lotIdMatch && lotIdMatch[1]) {
+        const lotID = parseInt(lotIdMatch[1], 10);
+        if (!isNaN(lotID) && lotID > 0) {
+          return lotID;
+        }
+      }
+      // Si el campo solo contiene un número
+      const directMatch = fieldStr.trim().match(/^(\d+)$/);
+      if (directMatch && directMatch[1]) {
+        const lotID = parseInt(directMatch[1], 10);
+        if (!isNaN(lotID) && lotID > 0) {
+          return lotID;
+        }
+      }
+      return null;
+    };
+    
+    // Buscar lotID en TODOS los campos IFD0 disponibles
+    // Nota: El lotID puede estar en diferentes campos según el dispositivo:
+    // - ImageDescription (tag 270): campo estándar EXIF
+    // - XPComment (tag 40092): metadatos de Windows (donde el burro guarda "Comentarios: lotID=1599")
+    // - UserComment (tag 37510): campo alternativo EXIF
+    // - Artist (tag 315): campo alternativo EXIF
+    for (const tagKey in ifd0) {
+      const tagValue = ifd0[tagKey];
+      // Saltar punteros (ExifIFD tag 34665, GPSInfoIFD tag 34853) - no contienen datos de texto
+      if (tagKey === '34665' || tagKey === '34853') continue;
+      
+      const lotID = searchLotIdInField(tagValue, `IFD0[${tagKey}]`);
+      if (lotID) return lotID;
+    }
+    
     // Buscar lotID en ImageDescription (tag 270) - Campo estándar para metadata personalizada
     const imageDescription = ifd0[piexif.ImageIFD.ImageDescription];
     if (imageDescription) {
       // ImageDescription puede ser string o bytes
-      const descStr = typeof imageDescription === 'string' 
-        ? imageDescription 
-        : (typeof imageDescription === 'object' && imageDescription !== null && 'toString' in imageDescription)
-          ? imageDescription.toString()
-          : Buffer.from(imageDescription).toString('utf8').replace(/\0/g, '');
+      let descStr: string;
+      if (typeof imageDescription === 'string') {
+        descStr = imageDescription;
+      } else if (Buffer.isBuffer(imageDescription)) {
+        descStr = imageDescription.toString('utf8').replace(/\0/g, '');
+      } else if (Array.isArray(imageDescription)) {
+        descStr = Buffer.from(imageDescription).toString('utf8').replace(/\0/g, '');
+      } else {
+        descStr = String(imageDescription);
+      }
       
       // Buscar formato "lotID:123", "lotID=123", "lotID 123" o simplemente "123"
       const lotIdMatch = descStr.match(/lotID[:\s=]*(\d+)/i);
       if (lotIdMatch && lotIdMatch[1]) {
         const lotID = parseInt(lotIdMatch[1], 10);
         if (!isNaN(lotID) && lotID > 0) {
-          console.log(`🏷️ lotID found in ImageDescription for ${filename}: ${lotID}`);
           return lotID;
         }
       }
@@ -197,7 +271,6 @@ export const extractLotIdFromExifServer = async (file: Buffer, filename: string)
       if (directMatch && directMatch[1]) {
         const lotID = parseInt(directMatch[1], 10);
         if (!isNaN(lotID) && lotID > 0) {
-          console.log(`🏷️ lotID found in ImageDescription (direct number) for ${filename}: ${lotID}`);
           return lotID;
         }
       }
@@ -208,16 +281,44 @@ export const extractLotIdFromExifServer = async (file: Buffer, filename: string)
     const exif = exifData['Exif'] as any;
     if (exif && exif[piexif.ExifIFD.UserComment]) {
       const userComment = exif[piexif.ExifIFD.UserComment];
-      // UserComment puede ser string o bytes, convertir a string si es necesario
-      const commentStr = typeof userComment === 'string' 
-        ? userComment 
-        : Buffer.from(userComment).toString('utf8').replace(/\0/g, '');
+      
+      // UserComment puede ser string o bytes (UTF-8 o UTF-16LE)
+      let commentStr: string;
+      if (typeof userComment === 'string') {
+        commentStr = userComment;
+      } else if (Buffer.isBuffer(userComment)) {
+        // Intentar UTF-8 primero
+        commentStr = userComment.toString('utf8').replace(/\0/g, '');
+        // Si no tiene sentido, intentar UTF-16LE
+        if (!commentStr.match(/lotID[:\s=]*\d+/i)) {
+          try {
+            const utf16Str = userComment.toString('utf16le').replace(/\0/g, '');
+            if (utf16Str.match(/lotID[:\s=]*\d+/i)) {
+              commentStr = utf16Str;
+            }
+          } catch (e) {
+            // Ignorar error
+          }
+        }
+      } else if (Array.isArray(userComment)) {
+        // Intentar UTF-8 primero
+        commentStr = Buffer.from(userComment).toString('utf8').replace(/\0/g, '');
+        // Si no tiene sentido, intentar UTF-16LE
+        if (!commentStr.match(/lotID[:\s=]*\d+/i)) {
+          try {
+            commentStr = Buffer.from(userComment).toString('utf16le').replace(/\0/g, '');
+          } catch (e) {
+            // Ignorar error
+          }
+        }
+      } else {
+        commentStr = String(userComment);
+      }
       
       const lotIdMatch = commentStr.match(/lotID[:\s=]*(\d+)/i);
       if (lotIdMatch && lotIdMatch[1]) {
         const lotID = parseInt(lotIdMatch[1], 10);
         if (!isNaN(lotID) && lotID > 0) {
-          console.log(`🏷️ lotID found in UserComment for ${filename}: ${lotID}`);
           return lotID;
         }
       }
@@ -226,7 +327,6 @@ export const extractLotIdFromExifServer = async (file: Buffer, filename: string)
       if (directMatch && directMatch[1]) {
         const lotID = parseInt(directMatch[1], 10);
         if (!isNaN(lotID) && lotID > 0) {
-          console.log(`🏷️ lotID found in UserComment (direct number) for ${filename}: ${lotID}`);
           return lotID;
         }
       }
@@ -243,7 +343,6 @@ export const extractLotIdFromExifServer = async (file: Buffer, filename: string)
       if (lotIdMatch && lotIdMatch[1]) {
         const lotID = parseInt(lotIdMatch[1], 10);
         if (!isNaN(lotID) && lotID > 0) {
-          console.log(`🏷️ lotID found in Artist for ${filename}: ${lotID}`);
           return lotID;
         }
       }

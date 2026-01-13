@@ -73,6 +73,7 @@ import dispositivosRoutes from './routes/dispositivos';
 import usuariosRoutes from './routes/usuarios';
 import burroRoutes from './routes/burro';
 import lotInfoRoutes from './routes/lot-info';
+import extractLotIdRoutes from './routes/extract-lot-id';
 
 const app = express();
 
@@ -193,6 +194,7 @@ app.use('/api/dispositivos', dispositivosRoutes);
 // RUTAS PARA BURRO (Raspberry Pi)
 app.use('/api/burro', burroRoutes);
 app.use('/api/lot-info', lotInfoRoutes);
+app.use('/api/extract-lot-id', extractLotIdRoutes);
 
 // Servir archivos estáticos del frontend (si existen)
 const frontendPath = path.join(__dirname, '../public');

@@ -191,6 +191,18 @@ export const apiService = {
     return response.data;
   },
 
+  // Extract lotID from EXIF (robust backend method)
+  extractLotIdFromImage: async (file: File): Promise<{ success: boolean; lotID: number | null; error?: string; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/extract-lot-id', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   // Get statistics
   getStatistics: async (): Promise<ApiResponse<unknown>> => {
     const response = await api.get('/api/estadisticas');

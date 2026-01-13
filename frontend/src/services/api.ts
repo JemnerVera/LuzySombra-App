@@ -180,6 +180,17 @@ export const apiService = {
     return response.data;
   },
 
+  // Get lot info from lotID
+  getLotInfo: async (lotID: number): Promise<ApiResponse<{
+    empresa: string;
+    fundo: string;
+    sector: string;
+    lote: string;
+  }>> => {
+    const response = await api.get(`/api/lot-info/${lotID}`);
+    return response.data;
+  },
+
   // Get statistics
   getStatistics: async (): Promise<ApiResponse<unknown>> => {
     const response = await api.get('/api/estadisticas');
@@ -361,7 +372,8 @@ export const apiService = {
     horasAtras: number;
     alertasSinMensaje: number;
   }>> => {
-    const params = horasAtras ? { horasAtras } : {};
+    // Incluir horasAtras incluso si es 0 (para consolidar todas las alertas)
+    const params = horasAtras !== undefined ? { horasAtras } : {};
     const response = await api.post('/api/alertas/consolidar', null, { params });
     return response.data;
   },

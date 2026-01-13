@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ImageFile } from '../types';
-import { extractGpsFromImage, GpsCoordinates, extractDateTimeFromImage, DateTimeInfo } from '../utils/exif';
+import { extractGpsFromImage, GpsCoordinates, extractDateTimeFromImage, DateTimeInfo, extractLotIdFromImage } from '../utils/exif';
 import { createImagePreview, validateImageFile } from '../utils/helpers';
 import { parseFilename } from '../utils/filenameParser';
 
@@ -35,6 +35,7 @@ export const useImageUpload = () => {
           preview,
           gpsStatus: 'extracting',
           dateStatus: 'extracting',
+          lotStatus: 'extracting',
           hilera: parsedFilename.hilera || '',
           numero_planta: parsedFilename.planta || '',
         };
@@ -89,6 +90,30 @@ export const useImageUpload = () => {
             setImages(prev => prev.map(img => 
               img.file === imageFile.file 
                 ? { ...img, dateStatus: 'not-found', dateTime: undefined }
+                : img
+            ));
+          });
+
+        // Extract lotID
+        console.log(`🏷️ [useImageUpload] Starting lotID extraction for ${imageFile.file.name}`);
+        extractLotIdFromImage(imageFile.file)
+          .then((lotID: number | null) => {
+            console.log(`🏷️ [useImageUpload] lotID extraction result for ${imageFile.file.name}:`, lotID ? `Found: ${lotID}` : 'Not found');
+            setImages(prev => prev.map(img => 
+              img.file === imageFile.file 
+                ? {
+                    ...img,
+                    lotStatus: lotID ? 'found' : 'not-found',
+                    lotID: lotID || undefined
+                  }
+                : img
+            ));
+          })
+          .catch((error) => {
+            console.error(`❌ [useImageUpload] Error extracting lotID for ${imageFile.file.name}:`, error);
+            setImages(prev => prev.map(img => 
+              img.file === imageFile.file 
+                ? { ...img, lotStatus: 'not-found', lotID: undefined }
                 : img
             ));
           });

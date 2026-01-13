@@ -75,7 +75,6 @@ export class ImageProcessingService {
       // Create processed image
       const processedImageData = this.createProcessedImage(imageData, classificationMap);
 
-      console.log(`✅ Image processed: ${lightPercentage.toFixed(2)}% light, ${shadowPercentage.toFixed(2)}% shadow`);
 
       return {
         lightPercentage,

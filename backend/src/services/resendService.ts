@@ -17,7 +17,6 @@ class ResendService {
 
     if (apiKey) {
       this.resend = new Resend(apiKey);
-      console.log('✅ Resend Service inicializado');
     } else {
       console.warn('⚠️ RESEND_API_KEY no configurada. El servicio de envío de emails no funcionará.');
     }
@@ -109,7 +108,6 @@ class ResendService {
             `, { mensajeID: mensaje.mensajeID });
 
             exitosos++;
-            console.log(`✅ Mensaje ${mensaje.mensajeID} enviado exitosamente`);
           } else {
             // Actualizar como error
             await query(`
@@ -145,7 +143,6 @@ class ResendService {
         }
       }
 
-      console.log(`✅ Procesamiento completado: ${exitosos} exitoso(s), ${errores} error(es)`);
       return { exitosos, errores };
     } catch (error) {
       console.error('❌ Error procesando mensajes pendientes:', error);

@@ -135,5 +135,6 @@ INSTALACION_*.md
 .vercel/
 vercel.json
 
-# DbSchema (visualización local, no necesario en repo)
-dbschema/
+# Carpetas de documentación y scripts
+docs/
+scripts/

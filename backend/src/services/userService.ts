@@ -165,7 +165,8 @@ class UserService {
         'contactos:write',
         'dashboard:read',
         'historial:read',
-        'dispositivos:read'
+        'dispositivos:read',
+        'dispositivos:write'
       ],
       Supervisor: [
         'alertas:read',
@@ -354,7 +355,9 @@ class UserService {
       }
 
       if (data.password !== undefined) {
-        const passwordHash = await this.hashPassword(data.password);
+        // Trim la contraseña para eliminar espacios
+        const passwordTrimmed = data.password.trim();
+        const passwordHash = await this.hashPassword(passwordTrimmed);
         updates.push('passwordHash = @passwordHash');
         params.passwordHash = passwordHash;
       }
@@ -388,10 +391,28 @@ class UserService {
 
       await query(`
         UPDATE evalImagen.usuarioWeb
-        SET ${updates.join(', ')}
+        SET ${updates.join(', ')},
+            intentosLogin = 0,
+            bloqueadoHasta = NULL
         WHERE usuarioID = @usuarioID
           AND statusID = 1
       `, params);
+      
+      // Si se actualizó la contraseña, verificar que se guardó correctamente
+      if (data.password !== undefined) {
+        const usuarioActualizado = await this.findByUsername(
+          data.username !== undefined ? data.username : (await query<{username: string}>(`
+            SELECT username FROM evalImagen.usuarioWeb WHERE usuarioID = @usuarioID
+          `, { usuarioID }))[0]?.username || ''
+        );
+        
+        if (usuarioActualizado) {
+          const passwordTest = await this.verifyPassword(data.password.trim(), usuarioActualizado.passwordHash);
+          if (!passwordTest) {
+            console.error('❌ ERROR: La contraseña actualizada no funciona!', { usuarioID });
+          }
+        }
+      }
 
       return true;
     } catch (error) {
@@ -443,6 +464,8 @@ class UserService {
       const newPassword = this.generateRandomPassword(12);
       const passwordHash = await this.hashPassword(newPassword);
 
+      // Actualizar contraseña - usar query directa
+      // El hash de bcrypt es de 60 caracteres, así que NVARCHAR(255) es suficiente
       await query(`
         UPDATE evalImagen.usuarioWeb
         SET passwordHash = @passwordHash,
@@ -457,6 +480,19 @@ class UserService {
         passwordHash
       });
 
+      // Verificar que el hash se guardó correctamente haciendo una lectura
+      const usuarioActualizado = await this.findByEmail(email);
+      if (usuarioActualizado) {
+        // Verificar que la contraseña funciona
+        const passwordTest = await this.verifyPassword(newPassword, usuarioActualizado.passwordHash);
+        if (!passwordTest) {
+          console.error('❌ ERROR CRÍTICO: El hash guardado no coincide con la contraseña generada!', {
+            usuarioID: usuario.usuarioID,
+            email: usuario.email
+          });
+        }
+      }
+
       return { success: true, newPassword };
     } catch (error) {
       console.error('❌ Error reseteando contraseña:', error);
@@ -469,12 +505,14 @@ class UserService {
 
   /**
    * Genera una contraseña aleatoria segura
+   * Usa caracteres que no causen problemas al copiar desde email HTML
+   * Evita caracteres problemáticos como: < > & " ' (comillas simples/dobles pueden causar problemas en HTML)
    */
   private generateRandomPassword(length: number = 12): string {
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const special = '!@#$%&*';
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Excluir I, O para evitar confusión
+    const lowercase = 'abcdefghijkmnpqrstuvwxyz'; // Excluir l, o para evitar confusión
+    const numbers = '23456789'; // Excluir 0, 1 para evitar confusión con O, I, l
+    const special = '!@#$%&*'; // Caracteres seguros que funcionan bien en HTML/email
     const allChars = uppercase + lowercase + numbers + special;
 
     let password = '';

@@ -21,7 +21,6 @@ class AlertScheduler {
     this.enabled = process.env.ENABLE_ALERT_SCHEDULER !== 'false';
     
     if (this.enabled) {
-      console.log('✅ Alert Scheduler habilitado');
       this.start();
     } else {
       console.log('⚠️ Alert Scheduler deshabilitado (ENABLE_ALERT_SCHEDULER=false)');
@@ -44,13 +43,11 @@ class AlertScheduler {
       console.log('🔄 [Scheduler] Iniciando consolidación diaria de alertas...');
       try {
         const mensajesCreados = await alertService.consolidarAlertasPorFundo(24);
-        console.log(`✅ [Scheduler] Consolidación completada: ${mensajesCreados} mensaje(s) creado(s)`);
         
         // Después de consolidar, intentar enviar inmediatamente
         if (mensajesCreados > 0) {
           console.log('📧 [Scheduler] Enviando mensajes consolidados...');
           const resultado = await resendService.processPendingMensajes();
-          console.log(`✅ [Scheduler] Envío completado: ${resultado.exitosos} exitoso(s), ${resultado.errores} error(es)`);
         }
       } catch (error) {
         console.error('❌ [Scheduler] Error en consolidación diaria:', error);
@@ -66,7 +63,6 @@ class AlertScheduler {
       try {
         const resultado = await resendService.processPendingMensajes();
         if (resultado.exitosos > 0 || resultado.errores > 0) {
-          console.log(`✅ [Scheduler] Procesados ${resultado.exitosos + resultado.errores} mensaje(s): ${resultado.exitosos} exitoso(s), ${resultado.errores} error(es)`);
         }
       } catch (error) {
         console.error('❌ [Scheduler] Error procesando mensajes pendientes:', error);
@@ -75,7 +71,6 @@ class AlertScheduler {
       timezone: 'America/Santiago'
     });
 
-    console.log('✅ [Scheduler] Jobs programados:');
     console.log('   - Consolidación: Diariamente a las 8:00 AM');
     console.log('   - Envío: Cada hora');
   }
@@ -102,7 +97,6 @@ class AlertScheduler {
     console.log('🔄 [Scheduler] Ejecutando consolidación manual...');
     try {
       const mensajesCreados = await alertService.consolidarAlertasPorFundo(24);
-      console.log(`✅ [Scheduler] Consolidación manual completada: ${mensajesCreados} mensaje(s) creado(s)`);
       
       let exitosos = 0;
       let errores = 0;
@@ -112,7 +106,6 @@ class AlertScheduler {
         const resultado = await resendService.processPendingMensajes();
         exitosos = resultado.exitosos;
         errores = resultado.errores;
-        console.log(`✅ [Scheduler] Envío completado: ${exitosos} exitoso(s), ${errores} error(es)`);
       }
       
       return { mensajesCreados, exitosos, errores };

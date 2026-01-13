@@ -12,7 +12,6 @@ export async function consolidarAlertasDiario(): Promise<number> {
   try {
     console.log('🔄 Iniciando consolidación diaria de alertas por fundo...');
     const mensajesCreados = await alertService.consolidarAlertasPorFundo(24);
-    console.log(`✅ Consolidación diaria completada: ${mensajesCreados} mensaje(s) creado(s)`);
     return mensajesCreados;
   } catch (error) {
     console.error('❌ Error en consolidación diaria de alertas:', error);

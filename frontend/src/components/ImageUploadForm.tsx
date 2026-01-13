@@ -4,7 +4,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 import { apiService } from '../services/api';
 import { ProcessingResult } from '../types';
 import { formatFileSize, compressImage, isFileSizeValid } from '../utils/helpers';
-import { Upload, X, Eye, Crop, MapPin, AlertCircle, Calendar } from 'lucide-react';
+import { Upload, X, Eye, Crop, MapPin, AlertCircle, Calendar, Package } from 'lucide-react';
 import ImageViewModal from './ImageViewModal';
 import ImageCropModal from './ImageCropModal';
 
@@ -44,6 +44,123 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
     const hasData = hasImages() || Object.values(formData).some(value => value !== '');
     onUnsavedDataChange(hasData);
   }, [images, formData, hasImages, onUnsavedDataChange]);
+
+  // Auto-fill form when lotID is detected (using ref to prevent infinite loops)
+  const autoFillAttemptedRef = React.useRef<Set<number>>(new Set());
+  
+  React.useEffect(() => {
+    const imageWithLotID = images.find(img => img.lotStatus === 'found' && img.lotID);
+    
+    console.log(`🔍 [ImageUploadForm] Checking for lotID auto-fill:`, {
+      hasImages: images.length > 0,
+      imageWithLotID: imageWithLotID ? { lotID: imageWithLotID.lotID, lotStatus: imageWithLotID.lotStatus } : null,
+      currentFormData: formData,
+      alreadyAttempted: imageWithLotID ? autoFillAttemptedRef.current.has(imageWithLotID.lotID!) : false
+    });
+    
+    if (imageWithLotID && imageWithLotID.lotID) {
+      // Prevent infinite loops: only try once per lotID
+      if (autoFillAttemptedRef.current.has(imageWithLotID.lotID)) {
+        console.log(`⏭️ [ImageUploadForm] Already attempted auto-fill for lotID=${imageWithLotID.lotID}, skipping`);
+        return;
+      }
+      
+      // Only auto-fill if form is empty (all fields empty)
+      const isFormEmpty = !formData.empresa && !formData.fundo && !formData.sector && !formData.lote;
+      
+      console.log(`🔍 [ImageUploadForm] Form empty check:`, isFormEmpty);
+      
+      if (isFormEmpty) {
+        // Mark as attempted to prevent infinite loops
+        autoFillAttemptedRef.current.add(imageWithLotID.lotID);
+        
+        console.log(`🏷️ [ImageUploadForm] Auto-filling form with lotID=${imageWithLotID.lotID}`);
+        
+        apiService.getLotInfo(imageWithLotID.lotID)
+          .then((response) => {
+            console.log(`📋 [ImageUploadForm] getLotInfo response:`, response);
+            
+            if (response.success && response.data) {
+              const lotInfo = response.data;
+              const warning = (response as any).warning;
+              
+              console.log('✅ [ImageUploadForm] Lot info retrieved:', lotInfo);
+              if (warning) {
+                console.warn('⚠️ [ImageUploadForm] Warning:', warning);
+              }
+              
+              // Verificar que los valores existen en fieldData antes de asignar
+              const empresas = fieldData?.empresa || [];
+              const fundos = lotInfo.empresa ? getFundosByEmpresa(lotInfo.empresa) : [];
+              const sectores = (lotInfo.empresa && lotInfo.fundo) ? getSectoresByEmpresaAndFundo(lotInfo.empresa, lotInfo.fundo) : [];
+              const lotes = (lotInfo.empresa && lotInfo.fundo && lotInfo.sector) ? getLotesByEmpresaFundoAndSector(lotInfo.empresa, lotInfo.fundo, lotInfo.sector) : [];
+              
+              console.log('🔍 [ImageUploadForm] Available options:', {
+                empresas: empresas.includes(lotInfo.empresa),
+                fundos: fundos.includes(lotInfo.fundo),
+                sectores: sectores.includes(lotInfo.sector),
+                lotes: lotes.includes(lotInfo.lote),
+                empresaInList: empresas,
+                fundoInList: fundos,
+                sectorInList: sectores,
+                loteInList: lotes
+              });
+              
+              // Verificar que todos los valores existen en los dropdowns
+              const empresaExists = empresas.includes(lotInfo.empresa);
+              const fundoExists = fundos.includes(lotInfo.fundo);
+              const sectorExists = sectores.includes(lotInfo.sector);
+              const loteExists = lotes.includes(lotInfo.lote);
+              
+              console.log('🔍 [ImageUploadForm] Existence check:', {
+                empresaExists,
+                fundoExists,
+                sectorExists,
+                loteExists,
+                empresaValue: lotInfo.empresa,
+                fundoValue: lotInfo.fundo,
+                sectorValue: lotInfo.sector,
+                loteValue: lotInfo.lote
+              });
+              
+              // Llenar todos los campos directamente con los valores de la BD
+              // Incluso si no están en los dropdowns (puede ser que el lote no esté activo)
+              console.log('✅ [ImageUploadForm] Setting form data with lot info:', lotInfo);
+              setFormData({
+                empresa: lotInfo.empresa,
+                fundo: lotInfo.fundo,
+                sector: lotInfo.sector,
+                lote: lotInfo.lote
+              });
+              
+              // Mostrar notificación apropiada
+              if (empresaExists && fundoExists && sectorExists && loteExists) {
+                onNotification('Información del lote cargada automáticamente desde EXIF', 'success');
+              } else if (warning) {
+                onNotification(`Información del lote cargada (lote inactivo: ${lotInfo.lote})`, 'warning');
+              } else {
+                onNotification('Información del lote cargada. Algunos valores pueden no estar disponibles en los dropdowns', 'warning');
+              }
+            } else {
+              console.warn('⚠️ [ImageUploadForm] Could not retrieve lot info:', response.error);
+              // No mostrar notificación de error si el lote simplemente no existe (404)
+              if (response.error && !response.error.includes('No se encontró')) {
+                onNotification('No se pudo obtener la información del lote desde la base de datos', 'warning');
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('❌ [ImageUploadForm] Error retrieving lot info:', error);
+            // Solo mostrar error si no es un 404 (lote no encontrado)
+            if (error.response?.status !== 404) {
+              onNotification('Error al obtener la información del lote', 'error');
+            }
+          });
+      } else {
+        console.log(`⏭️ [ImageUploadForm] Form already has data, skipping auto-fill`);
+      }
+    }
+  }, [images, formData.empresa, formData.fundo, formData.sector, formData.lote, onNotification, fieldData, getFundosByEmpresa, getSectoresByEmpresaAndFundo, getLotesByEmpresaFundoAndSector]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -304,6 +421,12 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
                   {sector}
                 </option>
               ))}
+              {/* Mostrar el valor si no está en la lista (puede ser un lote inactivo) */}
+              {formData.sector && !getSectoresByEmpresaAndFundo(formData.empresa, formData.fundo).includes(formData.sector) && (
+                <option value={formData.sector} style={{ fontStyle: 'italic', color: '#f59e0b' }}>
+                  {formData.sector} (inactivo)
+                </option>
+              )}
             </select>
           </div>
 
@@ -332,6 +455,12 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
                   {lote}
                 </option>
               ))}
+              {/* Mostrar el valor si no está en la lista (puede ser un lote inactivo) */}
+              {formData.lote && !getLotesByEmpresaFundoAndSector(formData.empresa, formData.fundo, formData.sector).includes(formData.lote) && (
+                <option value={formData.lote} style={{ fontStyle: 'italic', color: '#f59e0b' }}>
+                  {formData.lote} (inactivo)
+                </option>
+              )}
             </select>
           </div>
         </div>
@@ -455,6 +584,26 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onUnsavedDataChange, 
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Sin Fecha
+                        </span>
+                      )}
+
+                      {/* Lot Status */}
+                      {imageFile.lotStatus === 'extracting' && (
+                        <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-400">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b border-yellow-400 mr-1"></div>
+                          Lote...
+                        </div>
+                      )}
+                      {imageFile.lotStatus === 'found' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <Package className="h-3 w-3 mr-1" />
+                          Con Lote
+                        </span>
+                      )}
+                      {imageFile.lotStatus === 'not-found' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Sin Lote
                         </span>
                       )}
                     </div>

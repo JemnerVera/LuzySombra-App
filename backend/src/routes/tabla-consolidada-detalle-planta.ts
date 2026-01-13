@@ -18,7 +18,6 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    console.log(`📊 [tabla-consolidada/detalle-planta] Obteniendo plantas para: ${fundo} - ${sector} - ${lote} - ${fecha}`);
 
     // Buscar el lotID
     const lotResult = await query<{ lotID: number }>(`

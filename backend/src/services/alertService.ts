@@ -481,7 +481,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
 
       // La relación se maneja a través de Mensaje.alertaID (para mensajes individuales)
       // No es necesario crear registro en MensajeAlerta ya que Mensaje.alertaID ya referencia la alerta
-      console.log(`✅ Mensaje ${mensajeID} creado para alerta ${alertaID}`);
       return mensajeID;
     } catch (error) {
       console.error(`❌ Error creando mensaje para alerta ${alertaID}:`, error);
@@ -564,9 +563,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
         const fundoIDTrimmed = fundoID.trim();
         condiciones.push('(c.fundoID IS NULL OR RTRIM(c.fundoID) = @fundoID)');
         params.fundoID = fundoIDTrimmed;
-        console.log(`🔍 Filtro por fundoID: ${fundoIDTrimmed}`);
       } else {
-        console.log(`🔍 Sin filtro por fundoID (fundoID es null/undefined/vacío)`);
       }
 
       // Filtro por sectorID (opcional, más específico): contactos sin filtro (sectorID IS NULL) O contactos del mismo sector
@@ -575,11 +572,9 @@ Por favor, revisa el lote y toma las acciones necesarias.
       if (sectorID !== null && sectorID !== undefined) {
         condiciones.push('(c.sectorID IS NULL OR c.sectorID = @sectorID)');
         params.sectorID = sectorID;
-        console.log(`🔍 Filtro por sectorID: ${sectorID}`);
       }
 
       const whereClause = condiciones.length > 0 ? 'WHERE ' + condiciones.join(' AND ') : '';
-      console.log(`🔍 Query contactos: WHERE ${condiciones.join(' AND ')}`);
 
       const rows = await query<{ email: string; prioridad: number; nombre: string }>(`
         SELECT DISTINCT 
@@ -637,7 +632,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
         }
       }
 
-      console.log(`✅ Procesadas ${procesadas} alertas sin mensaje`);
       return procesadas;
     } catch (error) {
       console.error('❌ Error procesando alertas sin mensaje:', error);
@@ -653,12 +647,28 @@ Por favor, revisa el lote y toma las acciones necesarias.
   async consolidarAlertasPorFundo(horasAtras: number = 24): Promise<number> {
     try {
       // 1. Obtener alertas pendientes del último período (sin mensaje)
-      const fechaLimite = new Date();
-      fechaLimite.setHours(fechaLimite.getHours() - horasAtras);
+      // Si horasAtras es 0 o negativo, consolidar TODAS las alertas pendientes sin importar la fecha
+      const consolidarTodas = horasAtras <= 0;
       
-      console.log(`🔍 Buscando alertas desde: ${fechaLimite.toISOString()} (últimas ${horasAtras} horas)`);
+      let fechaLimite: Date | null = null;
+      if (!consolidarTodas) {
+        fechaLimite = new Date();
+        fechaLimite.setHours(fechaLimite.getHours() - horasAtras);
+      } else {
+      }
       
-      const alertas = await query<Alerta & { fundoID: string; fundo: string }>(`
+      // Construir query condicionalmente
+      const fechaCondition = consolidarTodas 
+        ? '' 
+        : 'AND a.fechaCreacion >= @fechaLimite';
+      
+      const queryParams: any = {};
+      if (!consolidarTodas && fechaLimite) {
+        queryParams.fechaLimite = fechaLimite;
+      }
+      
+      // Usar LEFT JOIN para incluir todas las alertas, luego filtrar las que no tienen fundoID
+      const alertasConFundo = await query<Alerta & { fundoID: string | null; fundo: string | null }>(`
         SELECT 
           a.alertaID,
           a.lotID,
@@ -673,7 +683,7 @@ Por favor, revisa el lote y toma las acciones necesarias.
           CAST(COALESCE(le.fundoID, f.farmID) AS VARCHAR) AS fundoID,
           f.Description AS fundo
         FROM evalImagen.alerta a
-        INNER JOIN evalImagen.loteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
+        LEFT JOIN evalImagen.loteEvaluacion le ON a.loteEvaluacionID = le.loteEvaluacionID
         LEFT JOIN GROWER.STAGE s ON le.sectorID = s.stageID
         LEFT JOIN GROWER.FARMS f ON COALESCE(le.fundoID, s.farmID) = f.farmID
         WHERE a.estado IN ('Pendiente', 'Enviada')
@@ -690,12 +700,20 @@ Por favor, revisa el lote y toma las acciones necesarias.
             WHERE m.alertaID = a.alertaID 
             AND m.statusID = 1
           )
-          AND a.fechaCreacion >= @fechaLimite
-          AND COALESCE(le.fundoID, f.farmID) IS NOT NULL
+          ${fechaCondition}
         ORDER BY COALESCE(le.fundoID, f.farmID), a.fechaCreacion ASC
-      `, { fechaLimite });
+      `, queryParams);
 
-      console.log(`🔍 Alertas encontradas por la query de consolidación: ${alertas.length}`);
+      // Filtrar alertas que no tienen fundoID (no se pueden consolidar sin fundoID)
+      const alertas = alertasConFundo.filter(a => a.fundoID !== null && a.fundoID.trim() !== '') as Array<Alerta & { fundoID: string; fundo: string }>;
+      
+      const alertasSinFundo = alertasConFundo.filter(a => !a.fundoID || a.fundoID.trim() === '');
+      if (alertasSinFundo.length > 0) {
+        console.log(`⚠️ ${alertasSinFundo.length} alerta(s) sin fundoID encontrada(s) - no se pueden consolidar:`, 
+          alertasSinFundo.map(a => ({ alertaID: a.alertaID, lotID: a.lotID, loteEvaluacionID: a.loteEvaluacionID }))
+        );
+      }
+
       if (alertas.length > 0) {
         console.log(`📋 Primeras alertas:`, alertas.slice(0, 3).map(a => ({
           alertaID: a.alertaID,
@@ -739,7 +757,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
         }
       }
 
-      console.log(`✅ Consolidación completada: ${mensajesCreados} mensaje(s) creado(s)`);
       return mensajesCreados;
     } catch (error) {
       console.error('❌ Error consolidando alertas por fundo:', error);
@@ -789,7 +806,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
         primeraAlerta.loteInfo?.sectorID
       );
       
-      console.log(`🔍 Buscando destinatarios para fundo: ${fundoIDParaContactos}, tipo: ${tipoUmbralParaDestinatarios}`);
       console.log(`📧 Destinatarios encontrados: ${destinatarios.length}`);
 
       if (destinatarios.length === 0) {
@@ -855,7 +871,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
       // La relación se maneja completamente a través de MensajeAlerta
       // No es necesario actualizar Alerta.mensajeID (columna eliminada)
 
-      console.log(`✅ Mensaje consolidado ${mensajeID} creado para fundo ${fundoID} con ${alertas.length} alerta(s)`);
       return mensajeID;
     } catch (error) {
       console.error(`❌ Error creando mensaje consolidado para fundo ${fundoID}:`, error);
@@ -1229,7 +1244,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
           AND statusID = 1
       `, { alertaID, usuarioResolvioID, notas: notas || null });
 
-      console.log(`✅ Alerta ${alertaID} resuelta exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error resolviendo alerta:', error);
@@ -1252,7 +1266,6 @@ Por favor, revisa el lote y toma las acciones necesarias.
           AND statusID = 1
       `, { alertaID, usuarioResolvioID, notas: notas || null });
 
-      console.log(`✅ Alerta ${alertaID} ignorada exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error ignorando alerta:', error);

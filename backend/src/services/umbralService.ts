@@ -247,7 +247,6 @@ class UmbralService {
         throw new Error('No se pudo crear el umbral');
       }
 
-      console.log(`✅ Umbral ${umbralID} creado exitosamente`);
       return umbralID;
     } catch (error) {
       console.error('❌ Error creando umbral:', error);
@@ -337,7 +336,6 @@ class UmbralService {
           AND statusID = 1
       `, params);
 
-      console.log(`✅ Umbral ${umbralID} actualizado exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error actualizando umbral:', error);
@@ -359,7 +357,6 @@ class UmbralService {
           AND statusID = 1
       `, { umbralID });
 
-      console.log(`✅ Umbral ${umbralID} eliminado exitosamente`);
       return true;
     } catch (error) {
       console.error('❌ Error eliminando umbral:', error);

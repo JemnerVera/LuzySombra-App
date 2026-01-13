@@ -4,8 +4,10 @@ import { createCanvas, loadImage } from 'canvas';
 import { sqlServerService } from '../services/sqlServerService';
 import { imageProcessingService } from '../services/imageProcessingService';
 import { parseFilename } from '../utils/filenameParser';
-import { extractDateTimeFromImageServer } from '../utils/exif-server';
+import { extractDateTimeFromImageServer, extractLotIdFromExifServer } from '../utils/exif-server';
 import { createThumbnail } from '../utils/imageThumbnail';
+import { query } from '../lib/db';
+import logger from '../lib/logger';
 
 // Configurar multer para manejar archivos en memoria
 const upload = multer({
@@ -33,6 +35,34 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
 
     const file = req.file;
     const imageBuffer = file.buffer;
+
+    // Intentar extraer lotID desde EXIF y obtener info del lote automáticamente
+    let finalEmpresa = empresa;
+    let finalFundo = fundo;
+    let finalSector = sector;
+    let finalLote = lote;
+    let lotID: number | null = null;
+
+    try {
+      lotID = await extractLotIdFromExifServer(imageBuffer, file.originalname);
+      if (lotID && lotID > 0) {
+        logger.debug(`lotID extraído desde EXIF para ${file.originalname}`, { lotID, filename: file.originalname });
+        
+        // Obtener información del lote desde la BD
+        const lotInfo = await getLotInfoFromLotId(lotID);
+        if (lotInfo) {
+          finalEmpresa = lotInfo.empresa;
+          finalFundo = lotInfo.fundo;
+          finalSector = lotInfo.sector;
+          finalLote = lotInfo.lote;
+        } else {
+          logger.debug(`No se encontró información de lote para lotID=${lotID}, usando valores del formulario`, { lotID });
+        }
+      }
+    } catch (error) {
+      logger.debug(`Error extrayendo lotID desde EXIF para ${file.originalname}`, { error: error instanceof Error ? error.message : 'Unknown error' });
+      // Continuar con valores del formulario
+    }
     
     // Convertir imagen original a Base64
     const originalImageBase64 = `data:${file.mimetype || 'image/jpeg'};base64,${imageBuffer.toString('base64')}`;
@@ -67,17 +97,14 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
         date: exifDate,
         time: exifTime
       };
-      console.log(`📅 Usando fecha EXIF del frontend para ${file.originalname}: ${exifDate} ${exifTime}`);
     } else {
       // Si no se recibió del frontend, intentar extraer del buffer
       try {
         exifDateTime = await extractDateTimeFromImageServer(imageBuffer, file.originalname);
         if (exifDateTime) {
-          console.log(`📅 Fecha EXIF extraída del buffer para ${file.originalname}: ${exifDateTime.date} ${exifDateTime.time}`);
         }
       } catch (error) {
         // EXIF extraction failed, continue without date
-        console.log(`❌ No se pudo extraer fecha EXIF para ${file.originalname}`);
       }
     }
 
@@ -90,10 +117,10 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       numero_planta: finalNumeroPlanta,
       porcentaje_luz: processingResult.lightPercentage,
       porcentaje_sombra: processingResult.shadowPercentage,
-      fundo: fundo || 'Unknown',
-      sector: sector || 'Unknown',
-      lote: lote || 'Unknown',
-      empresa: empresa || 'Unknown',
+      fundo: finalFundo || 'Unknown',
+      sector: finalSector || 'Unknown',
+      lote: finalLote || 'Unknown',
+      empresa: finalEmpresa || 'Unknown',
       latitud: latitud ? parseFloat(latitud) : null,
       longitud: longitud ? parseFloat(longitud) : null,
       processed_image: processingResult.processedImageData,
@@ -262,5 +289,55 @@ checkGpsInfoRouter.post('/', upload.single('file'), async (req: Request, res: Re
     });
   }
 });
+
+/**
+ * Función auxiliar: Obtener información completa de lote desde lotID
+ * (Reutilizada desde burro.ts)
+ */
+async function getLotInfoFromLotId(lotID: number): Promise<{
+  empresa: string;
+  fundo: string;
+  sector: string;
+  lote: string;
+} | null> {
+  try {
+    // NO filtrar por statusID - necesitamos obtener la info aunque esté inactivo
+    // porque las tablas de la app se deben llenar correctamente
+    const lotInfo = await query<{
+      empresa: string;
+      fundo: string;
+      sector: string;
+      lote: string;
+    }>(`
+      SELECT 
+        g.businessName as empresa,
+        f.Description as fundo,
+        s.stage as sector,
+        l.name as lote
+      FROM GROWER.LOT l WITH (NOLOCK)
+      INNER JOIN GROWER.STAGE s WITH (NOLOCK) ON l.stageID = s.stageID
+      INNER JOIN GROWER.FARMS f WITH (NOLOCK) ON s.farmID = f.farmID
+      INNER JOIN GROWER.GROWERS g WITH (NOLOCK) ON s.growerID = g.growerID
+      WHERE l.lotID = @lotID
+    `, { lotID });
+
+    if (!lotInfo || lotInfo.length === 0) {
+      logger.warn(`No se encontró información de lote para lotID=${lotID}`);
+      return null;
+    }
+
+    const result = {
+      empresa: lotInfo[0].empresa,
+      fundo: lotInfo[0].fundo,
+      sector: lotInfo[0].sector,
+      lote: lotInfo[0].lote
+    };
+
+    return result;
+  } catch (error) {
+    logger.error('Error getting lot info', { error: error instanceof Error ? error.message : 'Unknown error' });
+    return null;
+  }
+}
 
 export default router;

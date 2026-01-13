@@ -27,13 +27,6 @@ function validateEnvVars(): void {
  */
 function getConfig(): sql.config {
   validateEnvVars();
-  
-  // Log de configuración
-  logger.debug('Configurando conexión a SQL Server', {
-    server: process.env.SQL_SERVER,
-    database: process.env.SQL_DATABASE,
-    port: process.env.SQL_PORT || '1433',
-  });
 
   return {
     user: process.env.SQL_USER!,

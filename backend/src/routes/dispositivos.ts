@@ -132,13 +132,11 @@ router.post('/', requirePermission('dispositivos:write'), async (req: Request, r
     };
 
     // Generar QR Code como imagen base64
-    console.log('📱 Generando QR code para dispositivo:', device.deviceId);
     const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData), {
       errorCorrectionLevel: 'M',
       type: 'image/png',
       width: 512
     });
-    console.log('✅ QR code generado exitosamente, tamaño:', qrCodeBase64.length, 'caracteres');
 
     res.status(201).json({
       success: true,
@@ -246,13 +244,11 @@ router.post('/:id/regenerate-key', requirePermission('dispositivos:write'), asyn
     };
 
     // Generar QR Code como imagen base64
-    console.log('📱 Generando QR code para regeneración de API key:', device.deviceId);
     const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData), {
       errorCorrectionLevel: 'M',
       type: 'image/png',
       width: 512
     });
-    console.log('✅ QR code generado exitosamente, tamaño:', qrCodeBase64.length, 'caracteres');
 
     res.json({
       success: true,

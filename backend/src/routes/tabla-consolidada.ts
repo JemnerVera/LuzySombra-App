@@ -21,16 +21,7 @@ router.get('/', async (req: Request, res: Response) => {
     if (page) filters.page = parseInt(page as string);
     if (pageSize) filters.pageSize = parseInt(pageSize as string);
 
-    console.log('📊 [tabla-consolidada] Fetching consolidated table with filters:', filters);
-
     const result = await sqlServerService.getConsolidatedTable(filters);
-
-    console.log('✅ [tabla-consolidada] Success:', {
-      records: result.data.length,
-      total: result.total,
-      page: result.page,
-      totalPages: result.totalPages
-    });
 
     res.json(result);
   } catch (error) {

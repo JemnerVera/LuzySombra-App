@@ -154,7 +154,6 @@ router.post('/upload',
       let sqlAnalisisId: number | null = null;
       try {
         sqlAnalisisId = await sqlServerService.saveProcessingResult(resultWithThumbnail);
-        console.log(`✅ Foto procesada y guardada: analisisID=${sqlAnalisisId}, plantId=${plantId}`);
       } catch (sqlError) {
         console.error('❌ Error saving to SQL Server:', sqlError);
         return res.status(500).json({
@@ -240,7 +239,6 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
           lotID = plantResult[0].lotID;
           hilera = plantResult[0].numberLine?.toString() || '';
           numero_planta = plantResult[0].position?.toString() || plantId;
-          console.log(`✅ getPlantInfoFromPlantId: Encontrado en GROWER.PLANT para plantId=${plantId} (int: ${plantIdInt}), lotID=${lotID}, hilera=${hilera}, position=${numero_planta}`);
         }
       }
     } catch (plantError: any) {
@@ -272,7 +270,6 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
         if (evaluationResult && evaluationResult.length > 0) {
           lotID = evaluationResult[0].lotID;
           hilera = evaluationResult[0].Hilera || '';
-          console.log(`✅ getPlantInfoFromPlantId: Encontrado en evalAgri.evaluacionPlagaEnfermedad para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
         }
       } catch (evaluationError: any) {
         console.warn(`⚠️ getPlantInfoFromPlantId: Error buscando en evalAgri.evaluacionPlagaEnfermedad:`, evaluationError.message);
@@ -297,7 +294,6 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       if (analysisResult && analysisResult.length > 0) {
         lotID = analysisResult[0].lotID;
         hilera = analysisResult[0].hilera || '';
-        console.log(`✅ getPlantInfoFromPlantId: Encontrado en evalImagen.analisisImagen para plantId=${plantId}, lotID=${lotID}, hilera=${hilera}`);
       }
     }
 
@@ -349,7 +345,6 @@ async function getPlantInfoFromPlantId(plantId: string): Promise<{
       numero_planta
     };
 
-    console.log(`✅ getPlantInfoFromPlantId: Información completa encontrada para plantId=${plantId}:`, result);
 
     return result;
   } catch (error) {

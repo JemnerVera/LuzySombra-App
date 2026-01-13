@@ -191,7 +191,7 @@ class SqlServerService {
           a.analisisID as analisisid,
           a.fechaCreacion as fecha_procesamiento,
           a.filename as nombre_archivo_original,
-          CASE WHEN a.processedImageUrl IS NOT NULL THEN 1 ELSE 0 END as tieneImagen,
+          CASE WHEN mi.processedImageUrl IS NOT NULL THEN 1 ELSE 0 END as tieneImagen,
           g.businessName as empresa,
           f.Description as fundo,
           s.stage as sector,
@@ -210,6 +210,7 @@ class SqlServerService {
         INNER JOIN GROWER.STAGE s ON l.stageID = s.stageID
         INNER JOIN GROWER.FARMS f ON s.farmID = f.farmID
         INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
+        LEFT JOIN evalImagen.metadataImagen mi ON a.analisisID = mi.analisisID
         ${whereClause}
         ORDER BY a.fechaCreacion DESC
         OFFSET @offset ROWS

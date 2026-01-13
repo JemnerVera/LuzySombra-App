@@ -20,10 +20,11 @@ router.get('/:id', async (req: Request, res: Response) => {
     console.log(`🖼️ Obteniendo imagen para análisis ID: ${analisisID}`);
 
     const result = await query<{ processedImageUrl: string | null }>(`
-      SELECT processedImageUrl 
-      FROM evalImagen.analisisImagen 
-      WHERE analisisID = @analisisID 
-        AND statusID = 1
+      SELECT mi.processedImageUrl 
+      FROM evalImagen.metadataImagen mi
+      INNER JOIN evalImagen.analisisImagen ai ON mi.analisisID = ai.analisisID
+      WHERE mi.analisisID = @analisisID 
+        AND ai.statusID = 1
     `, { analisisID });
 
     if (result.length === 0 || !result[0].processedImageUrl) {

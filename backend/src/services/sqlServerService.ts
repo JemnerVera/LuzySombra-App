@@ -12,7 +12,9 @@ export interface FieldData {
 
 export interface ProcessingRecord {
   id: string;
-  fecha: string;
+  fecha_tomada: string; // Compatible con frontend
+  tipo_fecha: 'captura' | 'proceso';
+  fecha: string;        // Mantener para compatibilidad
   hora: string;
   imagen: string;
   nombre_archivo: string;
@@ -47,6 +49,7 @@ interface JerarquiaRow {
 interface AnalisisRow {
   analisisid: number;
   fecha_procesamiento: Date;
+  fecha_captura: Date | null;
   nombre_archivo_original: string;
   tieneImagen: number;
   empresa: string;
@@ -190,6 +193,7 @@ class SqlServerService {
         SELECT 
           a.analisisID as analisisid,
           a.fechaCreacion as fecha_procesamiento,
+          a.fechaCaptura as fecha_captura,
           a.filename as nombre_archivo_original,
           CASE WHEN mi.processedImageUrl IS NOT NULL THEN 1 ELSE 0 END as tieneImagen,
           g.businessName as empresa,
@@ -212,7 +216,7 @@ class SqlServerService {
         INNER JOIN GROWER.GROWERS g ON s.growerID = g.growerID
         LEFT JOIN evalImagen.metadataImagen mi ON a.analisisID = mi.analisisID
         ${whereClause}
-        ORDER BY a.fechaCreacion DESC
+        ORDER BY COALESCE(a.fechaCaptura, a.fechaCreacion) DESC
         OFFSET @offset ROWS
         FETCH NEXT @pageSize ROWS ONLY
       `;
@@ -221,9 +225,21 @@ class SqlServerService {
       params.pageSize = pageSize;
 
       const rows = await query<AnalisisRow>(queryStr, params);
-
+      
       const historial: ProcessingRecord[] = rows.map((row) => {
-        const fecha = new Date(row.fecha_procesamiento);
+        // Priorizar fechaCaptura (EXIF), si no existe usar fechaCreacion
+        const fechaObj = row.fecha_captura || row.fecha_procesamiento;
+        
+        // Asegurar que sea un objeto Date válido
+        let fecha: Date;
+        if (fechaObj instanceof Date && !isNaN(fechaObj.getTime())) {
+          fecha = fechaObj;
+        } else if (fechaObj) {
+          fecha = new Date(fechaObj);
+        } else {
+          fecha = new Date();
+        }
+
         const tieneImagen = row.tieneImagen ?? 0;
         const imagenUrl = tieneImagen === 1
           ? `/api/imagen/${row.analisisid}`
@@ -231,6 +247,8 @@ class SqlServerService {
         
         return {
           id: row.analisisid.toString(),
+          fecha_tomada: fecha.toISOString(),
+          tipo_fecha: row.fecha_captura ? 'captura' : 'proceso',
           fecha: fecha.toLocaleDateString('es-ES'),
           hora: fecha.toLocaleTimeString('es-ES'),
           imagen: row.nombre_archivo_original || '',
@@ -249,7 +267,7 @@ class SqlServerService {
           dispositivo: row.dispositivo || '',
           software: row.software || '',
           direccion: row.direccion || '',
-          timestamp: row.fecha_procesamiento.toISOString()
+          timestamp: fecha.toISOString()
         };
       });
 
@@ -335,8 +353,11 @@ class SqlServerService {
       console.log(`📝 Stored procedure ejecutado. analisisID recibido: ${analisisID}`);
       
       if (!analisisID) {
+        console.error('❌ Error: El Stored Procedure no devolvió analisisID en el parámetro OUTPUT.');
+        console.log('Result.output completo:', JSON.stringify(spResult.output));
+        
         // Verificar si el registro existe de todas formas (por si acaso)
-        console.warn('⚠️ No se recibió analisisID del OUTPUT, verificando si el registro existe...');
+        console.warn('⚠️ Intentando recuperar el registro por filename y lotID...');
         
         // Obtener lotID primero (sin filtrar por statusID - puede estar inactivo)
         const lotResult = await query<{ lotID: number }>(`

@@ -1,61 +1,36 @@
 -- =====================================================
--- SCRIPT: Crear Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen
+-- SCRIPT: Actualizar Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen (V2)
 -- Base de datos: [CONFIGURAR - Reemplazar con nombre de tu base de datos]
 -- Schema: evalImagen
--- Propósito: Insertar análisis de imagen y obtener IDs necesarios desde nombres
+-- Propósito: Actualizar SP para usar tabla metadataImagen separada
 -- =====================================================
 -- 
--- OBJETOS CREADOS:
---   ✅ Stored Procedures:
---      - evalImagen.usp_evalImagen_insertAnalisisImagen
---   ✅ Extended Properties:
---      - Documentación de stored procedure y parámetros
--- 
 -- OBJETOS MODIFICADOS:
---   ✅ Tablas (al ejecutarse):
---      - evalImagen.analisisImagen (INSERT)
+--   ✅ Stored Procedures:
+--      - evalImagen.usp_evalImagen_insertAnalisisImagen (UPDATE)
 -- 
 -- DEPENDENCIAS:
---   ⚠️  Requiere: Schema evalImagen (debe existir)
---   ⚠️  Requiere: evalImagen.analisisImagen (tabla)
---   ⚠️  Requiere: GROWER.GROWERS, GROWER.FARMS, GROWER.STAGE, GROWER.LOT (tablas existentes)
---   ⚠️  Requiere: MAST.USERS (tabla existente)
+--   ⚠️  Requiere: evalImagen.metadataImagen (tabla debe existir)
 -- 
 -- ORDEN DE EJECUCIÓN:
---   Después de crear evalImagen.analisisImagen
+--   1. Crear tabla metadataImagen
+--   2. Migrar datos existentes
+--   3. Ejecutar este script para actualizar el SP
+--   4. Actualizar código backend
+--   5. (Opcional) Eliminar columnas antiguas
 -- 
--- USADO POR:
---   - Backend: src/services/sqlServerService.ts (saveProcessingResult)
---   - Backend: src/routes/photo-upload.ts (procesamiento de imágenes)
--- 
--- PARÁMETROS:
---   @empresa VARCHAR(100) - Nombre de la empresa
---   @fundo VARCHAR(100) - Nombre del fundo
---   @sector VARCHAR(100) - Nombre del sector
---   @lote VARCHAR(100) - Nombre del lote
---   @hilera NVARCHAR(50) - Número de hilera
---   @planta NVARCHAR(50) - Número de planta
---   @filename NVARCHAR(500) - Nombre del archivo
---   @processedImageUrl NVARCHAR(MAX) - URL de la imagen procesada
---   @originalImageUrl NVARCHAR(MAX) - URL de la imagen original
---   @fechaCaptura DATETIME NULL - Fecha de captura (EXIF)
---   @porcentajeLuz DECIMAL(5,2) - Porcentaje de luz detectado
---   @porcentajeSombra DECIMAL(5,2) - Porcentaje de sombra detectado
---   @latitud DECIMAL(10,8) NULL - Latitud GPS
---   @longitud DECIMAL(11,8) NULL - Longitud GPS
---   @usuarioCreaID INT NULL - ID del usuario que crea (si NULL, usa el primer usuario activo de MAST.USERS)
--- 
--- RETORNO:
---   @analisisID INT OUTPUT - ID del análisis insertado
+-- CAMBIOS RESPECTO A V1:
+--   - Elimina processedImageUrl y originalImageUrl del INSERT en analisisImagen
+--   - Inserta imágenes en metadataImagen después de insertar en analisisImagen
 -- 
 -- =====================================================
 
--- âš ï¸ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
+-- ⚠️ IMPORTANTE: Reemplazar [TU_BASE_DE_DATOS] con el nombre real de tu base de datos
 USE [TU_BASE_DE_DATOS];
 GO
 
 -- =====================================================
--- Crear Stored Procedure
+-- Actualizar Stored Procedure
 -- =====================================================
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'evalImagen.usp_evalImagen_insertAnalisisImagen') AND type in (N'P', N'PC'))
     DROP PROCEDURE evalImagen.usp_evalImagen_insertAnalisisImagen;
@@ -94,7 +69,6 @@ BEGIN
         DECLARE @userID INT;
         
         -- 1. Obtener growerID desde empresa (SIN filtrar por statusID - puede estar inactivo)
-        -- Las tablas de la app se deben llenar correctamente aunque estén inactivos
         SELECT TOP 1 @growerID = growerID
         FROM GROWER.GROWERS
         WHERE businessName = @empresa;
@@ -167,12 +141,12 @@ BEGIN
         WHERE filename = @filename
           AND lotID = @lotID
           AND statusID = 1
-        ORDER BY analisisID DESC; -- Obtener el más reciente
+        ORDER BY analisisID DESC;
         
         -- Si ya existe, retornar el ID existente y salir (sin error)
         IF @existingAnalisisID IS NOT NULL
         BEGIN
-            SET @analisisID = @existingAnalisisID; -- Establecer OUTPUT explícitamente
+            SET @analisisID = @existingAnalisisID;
             PRINT '⚠️ Registro ya existe para filename=' + @filename + ', lotID=' + CAST(@lotID AS VARCHAR(10)) + '. Retornando analisisID existente: ' + CAST(@analisisID AS VARCHAR(10));
             
             -- Actualizar modeloDispositivo si se proporciona y está vacío
@@ -183,12 +157,45 @@ BEGIN
                 WHERE analisisID = @existingAnalisisID AND (modeloDispositivo IS NULL OR modeloDispositivo = '');
             END
 
+            -- Actualizar imágenes si se proporcionan y no existen
+            IF (@processedImageUrl IS NOT NULL OR @originalImageUrl IS NOT NULL)
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM evalImagen.metadataImagen WHERE analisisID = @existingAnalisisID)
+                BEGIN
+                    INSERT INTO evalImagen.metadataImagen (
+                        analisisID,
+                        processedImageUrl,
+                        originalImageUrl,
+                        statusID,
+                        usuarioCreaID,
+                        fechaCreacion
+                    )
+                    VALUES (
+                        @existingAnalisisID,
+                        @processedImageUrl,
+                        @originalImageUrl,
+                        1,
+                        @usuarioCreaID,
+                        GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    -- Actualizar imágenes existentes
+                    UPDATE evalImagen.metadataImagen
+                    SET processedImageUrl = @processedImageUrl,
+                        originalImageUrl = @originalImageUrl,
+                        usuarioModificaID = @usuarioCreaID,
+                        fechaModificacion = GETDATE()
+                    WHERE analisisID = @existingAnalisisID;
+                END
+            END
+            
             COMMIT TRANSACTION;
-            -- El OUTPUT @analisisID está establecido explícitamente
             RETURN;
         END;
         
-        -- 6. Insertar en evalImagen.AnalisisImagen
+        -- 6. Insertar en evalImagen.analisisImagen (SIN las columnas de imágenes)
         INSERT INTO evalImagen.analisisImagen (
             lotID,
             hilera,
@@ -199,8 +206,6 @@ BEGIN
             porcentajeSombra,
             latitud,
             longitud,
-            processedImageUrl,
-            originalImageUrl,
             modeloDispositivo,
             usuarioCreaID,
             fechaCreacion,
@@ -216,8 +221,6 @@ BEGIN
             @porcentajeSombra,
             @latitud,
             @longitud,
-            @processedImageUrl,
-            @originalImageUrl,
             @modeloDispositivo,
             @usuarioCreaID,
             GETDATE(),
@@ -227,17 +230,36 @@ BEGIN
         -- 7. Obtener el ID insertado
         SET @analisisID = SCOPE_IDENTITY();
         
-        -- 8. Ejecutar usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas
-        -- IMPORTANTE: Siempre recalcular para asegurar que se actualice con los nuevos datos
+        -- 8. Insertar imágenes en metadataImagen (solo si se proporcionan)
+        IF (@processedImageUrl IS NOT NULL OR @originalImageUrl IS NOT NULL)
+        BEGIN
+            INSERT INTO evalImagen.metadataImagen (
+                analisisID,
+                processedImageUrl,
+                originalImageUrl,
+                statusID,
+                usuarioCreaID,
+                fechaCreacion
+            )
+            VALUES (
+                @analisisID,
+                @processedImageUrl,
+                @originalImageUrl,
+                1,
+                @usuarioCreaID,
+                GETDATE()
+            );
+        END
+        
+        -- 9. Ejecutar usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas
         BEGIN TRY
             EXEC evalImagen.usp_evalImagen_calcularLoteEvaluacion 
                 @LotID = @lotID,
                 @PeriodoDias = 30,
-                @ForzarRecalculo = 1;  -- Forzar recálculo para asegurar actualización
+                @ForzarRecalculo = 1;
             PRINT '✅ Evaluación de lote calculada exitosamente para lotID=' + CAST(@lotID AS VARCHAR(10));
         END TRY
         BEGIN CATCH
-            -- Si falla el cálculo, solo loguear pero no fallar la inserción
             PRINT '⚠️ Advertencia: Error al calcular evaluación de lote: ' + ERROR_MESSAGE();
             PRINT '   lotID=' + CAST(@lotID AS VARCHAR(10));
         END CATCH;
@@ -258,56 +280,6 @@ BEGIN
 END;
 GO
 
--- =====================================================
--- Agregar Extended Properties
--- =====================================================
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'Inserta un análisis de imagen en evalImagen.analisisImagen, obteniendo automáticamente los IDs necesarios desde los nombres de empresa, fundo, sector y lote. También ejecuta usp_evalImagen_calcularLoteEvaluacion para actualizar estadísticas.',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen';
-GO
-
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'Nombre de la empresa (businessName)',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
-    @level2type = N'PARAMETER', @level2name = N'@empresa';
-GO
-
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'Nombre del fundo (Description)',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
-    @level2type = N'PARAMETER', @level2name = N'@fundo';
-GO
-
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'Nombre del sector (stage)',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
-    @level2type = N'PARAMETER', @level2name = N'@sector';
-GO
-
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'Nombre del lote (name)',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
-    @level2type = N'PARAMETER', @level2name = N'@lote';
-GO
-
-EXEC sys.sp_addextendedproperty 
-    @name = N'MS_Description',
-    @value = N'ID del análisis insertado (OUTPUT)',
-    @level0type = N'SCHEMA', @level0name = N'evalImagen',
-    @level1type = N'PROCEDURE', @level1name = N'usp_evalImagen_insertAnalisisImagen',
-    @level2type = N'PARAMETER', @level2name = N'@analisisID';
-GO
-
-PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen creado exitosamente';
+PRINT '[OK] Stored Procedure evalImagen.usp_evalImagen_insertAnalisisImagen actualizado (V2)';
 GO
 

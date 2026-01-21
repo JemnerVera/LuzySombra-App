@@ -135,6 +135,7 @@ router.post('/upload',
         empresa: plantInfo.empresa,
         latitud: gpsCoordinates?.lat || null,
         longitud: gpsCoordinates?.lng || null,
+        modelo_dispositivo: 'AgriQR',
         processed_image: processingResult.processedImageData,
         timestamp: new Date().toISOString(),
         exifDateTime: exifDateTime

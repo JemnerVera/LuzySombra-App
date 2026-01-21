@@ -123,6 +123,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       empresa: finalEmpresa || 'Unknown',
       latitud: latitud ? parseFloat(latitud) : null,
       longitud: longitud ? parseFloat(longitud) : null,
+      modelo_dispositivo: 'WebApp',
       processed_image: processingResult.processedImageData,
       timestamp: new Date().toISOString(),
       exifDateTime: exifDateTime

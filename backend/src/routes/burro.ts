@@ -165,6 +165,7 @@ router.post('/upload',
         empresa: lotInfo.empresa,
         latitud: gpsCoordinates?.lat || null,
         longitud: gpsCoordinates?.lng || null,
+        modelo_dispositivo: 'Burro',
         processed_image: processingResult.processedImageData,
         timestamp: new Date().toISOString(),
         exifDateTime: exifDateTime

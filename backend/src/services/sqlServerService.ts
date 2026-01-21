@@ -30,6 +30,7 @@ export interface ProcessingRecord {
   porcentaje_luz: number;
   porcentaje_sombra: number;
   dispositivo: string;
+  modelo_dispositivo?: string;
   software: string;
   direccion: string;
   timestamp: string;
@@ -63,6 +64,7 @@ interface AnalisisRow {
   porcentajeLuz: number;
   porcentajeSombra: number;
   dispositivo: string | null;
+  modeloDispositivo: string | null;
   software: string | null;
   direccion: string | null;
 }
@@ -207,6 +209,7 @@ class SqlServerService {
           a.porcentajeLuz,
           a.porcentajeSombra,
           '' as dispositivo,
+          a.modeloDispositivo,
           '' as software,
           '' as direccion
         FROM evalImagen.analisisImagen a
@@ -264,7 +267,8 @@ class SqlServerService {
           longitud: row.longitud ?? null,
           porcentaje_luz: row.porcentajeLuz ?? 0,
           porcentaje_sombra: row.porcentajeSombra ?? 0,
-          dispositivo: row.dispositivo || '',
+          dispositivo: row.dispositivo || row.modeloDispositivo || '',
+          modelo_dispositivo: row.modeloDispositivo || '',
           software: row.software || '',
           direccion: row.direccion || '',
           timestamp: fecha.toISOString()
@@ -305,6 +309,7 @@ class SqlServerService {
     empresa: string;
     latitud: number | null;
     longitud: number | null;
+    modelo_dispositivo?: string;
     processed_image: string;
     timestamp: string;
     exifDateTime?: { date: string; time: string } | null;
@@ -342,6 +347,7 @@ class SqlServerService {
           porcentajeSombra: parseFloat(result.porcentaje_sombra.toFixed(2)),
           latitud: result.latitud,
           longitud: result.longitud,
+          modeloDispositivo: result.modelo_dispositivo || null,
           usuarioCreaID: null // El SP obtendrá el usuario por defecto
         },
         ['analisisID'], // Parámetro OUTPUT

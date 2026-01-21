@@ -64,6 +64,7 @@ export interface HistoryRecord {
   porcentaje_luz: number;
   porcentaje_sombra: number;
   fecha_tomada: string;
+  tipo_fecha?: 'captura' | 'proceso';
   latitud?: number;
   longitud?: number;
   timestamp: string;

@@ -501,7 +501,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ onNotification }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-dark-200">
-                      {formatDate(record.fecha_tomada)}
+                      <div className="flex flex-col">
+                        <span className="font-medium">{formatDate(record.fecha_tomada)}</span>
+                        {record.tipo_fecha && (
+                          <span className={`text-[10px] uppercase font-bold ${record.tipo_fecha === 'captura' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            {record.tipo_fecha === 'captura' ? '📅 Captura' : '⚙️ Proceso'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-dark-200">
                       {record.latitud && record.longitud ? (

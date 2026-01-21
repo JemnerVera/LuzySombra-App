@@ -196,13 +196,12 @@ export async function executeProcedure<T = any>(
     
     const result = await request.execute(procedureName);
     
-    // Extraer valores OUTPUT
+    // Extraer valores OUTPUT de result.output (forma estándar en mssql)
     const output: Record<string, any> = {};
-    if (outputParams) {
+    if (outputParams && result.output) {
       outputParams.forEach(paramName => {
-        const param = request.parameters[paramName];
-        if (param) {
-          output[paramName] = param.value;
+        if (result.output[paramName] !== undefined) {
+          output[paramName] = result.output[paramName];
         }
       });
     }

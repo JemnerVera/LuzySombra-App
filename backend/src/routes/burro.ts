@@ -38,11 +38,25 @@ router.post('/upload',
   upload.single('file'),
   async (req: Request, res: Response) => {
     try {
+      // Debug: Log request details
+      const headersSafe = { ...req.headers };
+      if (headersSafe.authorization) headersSafe.authorization = 'Bearer [REDACTED]';
+      
+      console.log('📤 [burro/upload] Request recibido:');
+      console.log(`   Headers: ${JSON.stringify(headersSafe)}`);
+      console.log(`   Content-Type: ${req.headers['content-type']}`);
+      console.log(`   Body keys: ${Object.keys(req.body || {})}`);
+      console.log(`   File: ${req.file ? `Existe - ${req.file.originalname}, ${req.file.size} bytes` : 'NO EXISTE'}`);
+      
       // 1. Validar archivo
       if (!req.file) {
+        console.error('❌ [burro/upload] Error: No file provided in request');
+        console.error(`   Content-Type recibido: ${req.headers['content-type']}`);
+        console.error(`   Body recibido: ${JSON.stringify(req.body)}`);
         return res.status(400).json({
           error: 'No file provided',
-          processed: false
+          processed: false,
+          hint: 'The request must include a file field named "file" in multipart/form-data format'
         });
       }
 
@@ -58,10 +72,12 @@ router.post('/upload',
       }
 
       if (!lotID || lotID <= 0) {
+        console.error(`❌ [burro/upload] Error: lotID not found in EXIF for ${file.originalname}`);
         return res.status(400).json({
           error: 'lotID not found in EXIF metadata. The image must contain lotID in ImageDescription or UserComment field.',
           processed: false,
-          hint: 'Configure lotID in the burro before taking photos. The lotID should be stored in EXIF ImageDescription field (e.g., "lotID:123" or just "123")'
+          hint: 'Configure lotID in the burro before taking photos. The lotID should be stored in EXIF ImageDescription field (e.g., "lotID:123" or just "123")',
+          filename: file.originalname
         });
       }
 

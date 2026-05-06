@@ -99,6 +99,11 @@ coverage/
 # DynamoDB Local files
 .dynamodb/
 
+# Git backups and filters
+.git.backup-*
+.git/filter-branch-backup
+sensitive_data.txt
+
 # TernJS port file
 .tern-port
 
@@ -138,3 +143,4 @@ vercel.json
 # Carpetas de documentación y scripts
 docs/
 scripts/
+
